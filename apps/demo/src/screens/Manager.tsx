@@ -8,6 +8,8 @@ import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/dom
 import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
 import { notify } from "../data/notify";
 import { ReportsView, RankingSheet, SellerPanel } from "./Reports";
+import { RouteDetail, ChecklistSummary } from "./Ops";
+import { CHECKINS, PAYMENT_REQUESTS, NONCONFORMITIES, VEHICLES, type DeliveryRoute, type PaymentRequest } from "../data/mock";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
   inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
@@ -86,6 +88,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
   const vPlanned = vr.reduce((a, r) => a + r.target, 0), vDone = vr.reduce((a, r) => a + r.achieved, 0);
   const [drill, setDrill] = useState<null | "visits" | "deliveries">(null);
   const [rankOpen, setRankOpen] = useState(false);
+  const [routeOpen, setRouteOpen] = useState<DeliveryRoute | null>(null);
   const [sellerOpen, setSellerOpen] = useState<string | null>(null);
   const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
     ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, tab: "sales" })),
@@ -199,7 +202,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
         </Card>
         <Card title="Logística agora" icon={<Truck size={17} />} link="Ver" onLink={() => goTab("deliveries")}>
           {log.routes.slice(0, 4).map(({ r, p, driver }) => (
-            <div key={r.id} className="row">
+            <div key={r.id} className="row click" onClick={() => setRouteOpen(r)}>
               <div className="grow"><div className="title small">{r.name}</div><div className="sub">{driver.name.split(" ")[0]} · {p.status}</div>
                 <div className="mt" style={{ marginTop: 4 }}><Progress thin value={p.pct} color="green" /></div></div>
               <div className="end num semi small">{p.delivered}/{p.total}</div>
@@ -208,6 +211,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
         </Card>
       </div>
 
+      {routeOpen && <RouteDetail r={routeOpen} onClose={() => setRouteOpen(null)} />}
       {rankOpen && <RankingSheet scope={scope} initial={rankMode} onClose={() => setRankOpen(false)} />}
       {sellerOpen && <SellerPanel id={sellerOpen} onClose={() => setSellerOpen(null)} />}
       {drill === "visits" && (
@@ -314,6 +318,7 @@ function VisitsView({ scope }: { scope: string[] }) {
         <Kpi label="Atingimento" tone="gold" value={pct(vt.pct)} />
       </div>
       <Card title="Ranking por % de visitas realizadas"><VisitsTable scope={scope} /></Card>
+      <CheckinsCard scope={scope} />
     </>
   );
 }
@@ -364,14 +369,17 @@ function InactiveView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer
 }
 
 function DeliveriesTable() {
+  useStore();
   const log = logisticsOverview();
+  const [open, setOpen] = useState<DeliveryRoute | null>(null);
   return (
     <div className="table-wrap">
+      {open && <RouteDetail r={open} onClose={() => setOpen(null)} />}
       <table className="t">
         <thead><tr><th>Rota</th><th>Motorista</th><th>Veículo</th><th>Status</th><th className="r">Programadas</th><th className="r">Realizadas</th><th className="r">Pendentes</th><th className="r">Não realiz.</th><th>%</th></tr></thead>
         <tbody>
           {log.routes.map(({ r, p, driver, vehicle }) => (
-            <tr key={r.id}>
+            <tr key={r.id} className="click" onClick={() => setOpen(r)}>
               <td className="semi">{r.code} · {r.name}</td><td>{driver.name}</td><td>{vehicle.plate}</td>
               <td><Badge tone={p.status === "Em rota" ? (p.behind ? "warning" : "brand") : p.status === "Não iniciada" ? "danger" : "success"}>{p.behind ? "Atrasada" : p.status}</Badge></td>
               <td className="r">{p.total}</td><td className="r green semi">{p.delivered}</td><td className="r">{p.pending}</td><td className="r red">{p.failed}</td>
@@ -395,7 +403,8 @@ function DeliveriesView() {
         <Kpi label="Pendentes" tone="gold" value={log.pending} />
         <Kpi label="Não realizadas" tone="red" value={log.failed} />
       </div>
-      <Card title="Por rota, motorista e veículo"><DeliveriesTable /></Card>
+      <Card title="Por rota, motorista e veículo" sub="toque na rota para ver entregas e comprovantes"><DeliveriesTable /></Card>
+      <ChecklistsCard />
       <Card title="Entregas com atenção" icon={<AlertTriangle size={17} />} className="mt">
         {log.alerts.map((a, i) => <div key={i} className="alert-line"><span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}</div>)}
       </Card>
@@ -404,7 +413,10 @@ function DeliveriesView() {
 }
 
 function FinanceView() {
+  useStore();
   const fq = financeQueue();
+  const [open, setOpen] = useState<PaymentRequest | null>(null);
+  const answered = PAYMENT_REQUESTS.filter((p) => !["pending", "in_analysis"].includes(p.status) && p.respondedAt).sort((a, b) => (b.respondedAt ?? "").localeCompare(a.respondedAt ?? "")).slice(0, 8);
   return (
     <>
       <h2 style={{ margin: "6px 0 4px" }}>Solicitações financeiras</h2>
@@ -421,7 +433,7 @@ function FinanceView() {
             <thead><tr><th>#</th><th>Solicitação</th><th>Cliente</th><th>Vendedor</th><th>Método</th><th className="r">Valor</th><th>Status</th><th>SLA</th></tr></thead>
             <tbody>
               {fq.queue.map((p, i) => (
-                <tr key={p.id}>
+                <tr key={p.id} className="click" onClick={() => setOpen(p)}>
                   <td>{i + 1}</td><td className="semi">{p.number}{p.carryOver && <> <Badge tone="danger">dia anterior</Badge></>}</td>
                   <td>{customerById.get(p.customerId)?.tradeName}</td><td>{sellerById.get(p.sellerId)?.name}</td>
                   <td><Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge></td><td className="r num">{brl(p.amountCents)}</td>
@@ -433,6 +445,16 @@ function FinanceView() {
           </table>
         </div>
       </Card>
+      <Card title="Respondidas recentemente" className="mt" sub="toque para ver o comprovante">
+        {answered.map((p) => (
+          <div key={p.id} className="row click" onClick={() => setOpen(p)}>
+            <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
+            <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{p.number} · {sellerById.get(p.sellerId)?.name}</div></div>
+            <Badge tone={PAYMENT_REQUEST_STATUS[p.status].tone}>{PAYMENT_REQUEST_STATUS[p.status].label}</Badge>
+          </div>
+        ))}
+      </Card>
+      {open && <ProofView p={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -677,5 +699,72 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
         </Card>
       )}
     </Sheet>
+  );
+}
+
+function ProofView({ p, onClose }: { p: PaymentRequest; onClose: () => void }) {
+  const c = customerById.get(p.customerId)!;
+  const st = PAYMENT_REQUEST_STATUS[p.status];
+  return (
+    <Sheet title={`Comprovante ${p.number}`} onClose={onClose} icon={<Receipt size={18} />}>
+      <Card>
+        <dl className="kv">
+          <dt>Cliente</dt><dd>{c.code} · {c.tradeName}</dd><dt>Vendedor</dt><dd>{sellerById.get(p.sellerId)?.name}</dd>
+          <dt>Método</dt><dd>{p.method}</dd><dt>Débito</dt><dd>{p.receivableDoc}</dd><dt>Valor</dt><dd className="num">{brl(p.amountCents)}</dd>
+          <dt>Enviado</dt><dd>{new Date(p.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</dd>
+          <dt>Situação</dt><dd><Badge tone={st.tone}>{st.label}</Badge></dd>
+        </dl>
+      </Card>
+      <div className="mt">
+        {p.attachmentDataUrl ? <div className="photo-preview"><img src={p.attachmentDataUrl} alt="Comprovante" /></div>
+          : <div className="upload done" style={{ padding: 24 }}>📎 {p.attachmentName}</div>}
+      </div>
+      <p className="xs muted mt">A gestão acompanha; a resposta é do financeiro.</p>
+    </Sheet>
+  );
+}
+
+function CheckinsCard({ scope }: { scope: string[] }) {
+  useStore();
+  const list = CHECKINS.filter((k) => k.date === TODAY && scope.includes(k.sellerId));
+  const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <Card title={`Check-ins registrados agora (${list.length})`} className="mt" sub="visitas feitas no app durante o teste">
+      {list.map((k) => (
+        <div key={k.id} className="row">
+          <div className="grow"><div className="title small">{customerById.get(k.customerId)?.tradeName}</div><div className="sub">{sellerById.get(k.sellerId)?.name}</div></div>
+          <span className="small">{hhmm(k.inAt)} → {k.outAt ? hhmm(k.outAt) : "em andamento"}</span>
+          {k.outAt ? <Badge tone="success">{Math.max(1, Math.round((new Date(k.outAt).getTime() - new Date(k.inAt).getTime()) / 60000))} min</Badge> : <Badge tone="info">Em visita</Badge>}
+        </div>
+      ))}
+      {!list.length && <div className="small muted">Nenhum check-in feito no app ainda hoje.</div>}
+    </Card>
+  );
+}
+
+function ChecklistsCard() {
+  useStore();
+  const ncs = NONCONFORMITIES.filter((n) => n.status !== "resolved");
+  return (
+    <Card title="Checklists dos veículos e não conformidades" icon={<ClipboardList size={17} />} className="mt">
+      <div className="table-wrap">
+        <table className="t">
+          <thead><tr><th>Rota</th><th>Motorista</th><th>Veículo</th><th>Checklist</th><th>Não conformidades</th></tr></thead>
+          <tbody>
+            {DELIVERY_ROUTES.map((r) => {
+              const v = VEHICLES.find((x) => x.id === (r.checklistVehicleId ?? r.vehicleId))!;
+              const mine = ncs.filter((n) => n.vehicleId === v.id);
+              return (
+                <tr key={r.id}>
+                  <td className="semi">{r.name}</td><td>{DRIVERS.find((d) => d.id === r.driverId)?.name}</td><td>{v.plate}</td>
+                  <td>{r.checklistDone ? <Badge tone="success">Feito {r.checklistAt ? new Date(r.checklistAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : ""}</Badge> : r.startedAt ? <Badge tone="neutral">Antes do app</Badge> : <Badge tone="danger">Pendente</Badge>}</td>
+                  <td style={{ whiteSpace: "normal" }}>{mine.length ? mine.map((n) => <Badge key={n.id} tone={n.severity === "critical" ? "danger" : "warning"}>{n.item}</Badge>) : <span className="muted small">—</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }

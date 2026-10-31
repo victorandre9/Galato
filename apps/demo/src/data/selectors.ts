@@ -61,7 +61,7 @@ export function sellerSalesToday(sellerId: string) {
   const list = ordersOf(sellerId);
   const today = list.filter((o) => o.createdAt.startsWith(TODAY));
   const s = SELLERS.find((x) => x.id === sellerId)!;
-  return { count: Math.max(today.length, 6), ticketCents: Math.round(s.monthAchievedCents / s.ordersMonth) };
+  return { count: s.ordersToday, ticketCents: Math.round(s.monthAchievedCents / s.ordersMonth) };
 }
 
 export function salesRanking(mode: "day" | "month") {

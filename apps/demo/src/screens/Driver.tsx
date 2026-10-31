@@ -176,7 +176,7 @@ function DeliverySheet({ d, onClose, onIncident }: { d: Delivery; onClose: () =>
       d.status = "delivered"; d.deliveredAt = new Date().toISOString(); d.proofName = proofType;
       PROOFS.unshift({ id: `pf-${d.id}`, deliveryId: d.id, routeId: route.id, type: proofType, dataUrl: photo!, at: new Date().toISOString(), driverId: ME.id });
       if (order) order.status = "delivered";
-      notify({ kind: "logistica", title: "Entrega realizada", text: `${c.tradeName} · ${d.invoiceNumber} entregue por ${ME.name.split(" ")[0]} · comprovante ${proofType}.`, to: [`seller:${c.sellerId}`, "transport_coordinator"] });
+      notify({ kind: "logistica", title: "Entrega realizada", text: `${c.tradeName} · ${d.invoiceNumber} entregue por ${ME.name.split(" ")[0]} · comprovante ${proofType}.`, to: [`seller:${c.sellerId}`, "transport_coordinator", "general_manager"] });
     }, "Entrega baixada · comprovante enviado");
     onClose();
   }
@@ -269,8 +269,8 @@ function ChecklistSheet({ onClose }: { onClose: () => void }) {
       <button className="btn btn-primary btn-block mt" disabled={!all} onClick={() => {
         commit(() => {
           ncs.forEach((item, k) => NONCONFORMITIES.unshift({ id: `nc${Date.now()}${k}`, item, description: "Registrado no checklist do motorista.", vehicleId: vehicle, driverId: ME.id, severity: "medium", status: "open", createdAt: new Date().toISOString(), responsible: "Coord. transportes" }));
-          route.checklistDone = true; route.checklistVehicleId = vehicle;
-          notify({ kind: "logistica", priority: ncs.length ? "high" : "normal", title: ncs.length ? "Checklist com não conformidade" : "Checklist concluído", text: `${ME.name} · ${plate}${ncs.length ? ` · problemas: ${ncs.join(", ")}` : " · sem problemas"}.`, to: ["transport_coordinator"] });
+          route.checklistDone = true; route.checklistVehicleId = vehicle; route.checklistAt = new Date().toISOString(); route.checklistNcs = ncs;
+          notify({ kind: "logistica", priority: ncs.length ? "high" : "normal", title: ncs.length ? "Checklist com não conformidade" : "Checklist concluído", text: `${ME.name} · ${plate}${ncs.length ? ` · problemas: ${ncs.join(", ")}` : " · sem problemas"}.`, to: ["transport_coordinator", ...MANAGERS_KEYS] });
         }, ncs.length ? `Checklist salvo · ${ncs.length} não conformidade(s) aberta(s)` : "Checklist concluído · veículo liberado");
         onClose();
       }}>Concluir checklist</button>

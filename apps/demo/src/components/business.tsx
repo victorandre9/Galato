@@ -14,7 +14,8 @@ import {
 import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
-import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE } from "../data/mock";
+import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock";
+import { PhotoCapture } from "./photo";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
 
 const fmtDate = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—");
@@ -87,7 +88,9 @@ export function CustomerTable({ list, onOpen }: { list: Customer[]; onOpen: (c: 
 // ------------------------------------------------------------------ ficha / check-in
 export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; viewerSellerId?: string; onClose: () => void }) {
   const own = !viewerSellerId || viewerSellerId === c.sellerId;
-  const [checkedIn, setCheckedIn] = useState<string | null>(null);
+  const openCheckin = CHECKINS.find((k) => k.customerId === c.id && k.date === TODAY && !k.outAt);
+  const doneToday = CHECKINS.filter((k) => k.customerId === c.id && k.date === TODAY && k.outAt);
+  const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward">(null);
   const fin = financial(c);
   const r = customerRow(c);
@@ -169,16 +172,21 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
           )}
 
           <div className="grid g2" style={{ marginBottom: 0 }}>
-            {!checkedIn ? (
-              <button className="btn btn-primary" onClick={() => { setCheckedIn(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })); commit(() => {
+            {!openCheckin ? (
+              <button className="btn btn-primary" onClick={() => commit(() => {
+                CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: new Date().toISOString(), date: TODAY });
                 const s = SELLERS.find((x) => x.id === c.sellerId);
-                if (s) { s.visitsDoneToday += 1; if (c.routeCode !== TODAY_ROUTE?.code) s.visitsPlannedToday += 1; }
-              }, "Check-in registrado · visita contabilizada"); }}>
+                // a visita conta no check-in; repetir no mesmo cliente no mesmo dia não conta de novo
+                if (s && !doneToday.length) s.visitsDoneToday += 1;
+              }, doneToday.length ? "Novo check-in registrado (visita já contabilizada hoje)" : "Check-in registrado · visita contabilizada")}>
                 <LogIn size={17} /> Check-in
               </button>
             ) : (
-              <button className="btn btn-ghost" onClick={() => { commit(() => {}, `Checkout registrado · visita iniciada às ${checkedIn}`); onClose(); }}>
-                <LogOutIc size={17} /> Checkout <span className="xs muted">(desde {checkedIn})</span>
+              <button className="btn btn-ghost" onClick={() => {
+                const min = Math.max(1, Math.round((Date.now() - new Date(openCheckin.inAt).getTime()) / 60000));
+                commit(() => { openCheckin.outAt = new Date().toISOString(); }, `Checkout registrado · visita de ${min} min (desde ${hhmm(openCheckin.inAt)})`);
+              }}>
+                <LogOutIc size={17} /> Checkout <span className="xs muted">(desde {hhmm(openCheckin.inAt)})</span>
               </button>
             )}
             <button className="btn btn-gold" onClick={() => setMode("order")}><ShoppingCart size={17} /> Novo pedido</button>
@@ -186,6 +194,12 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             <button className="btn btn-ghost" onClick={() => setMode("proof")}><Upload size={17} /> Enviar comprovante</button>
           </div>
 
+          {(openCheckin || doneToday.length > 0) && (
+            <div className="small" style={{ padding: 10, borderRadius: 12, background: openCheckin ? "var(--info-soft)" : "var(--success-soft)" }}>
+              {openCheckin ? <>Visita em andamento desde <b>{hhmm(openCheckin.inAt)}</b> · faça o checkout ao sair.</>
+                : <>Visita de hoje concluída: {doneToday.map((k) => `${hhmm(k.inAt)}–${hhmm(k.outAt!)}`).join(", ")}.</>}
+            </div>
+          )}
           <Card title="Histórico do cliente" icon={<History size={17} />}>
             <div className="timeline">
               {history.slice(0, 6).map((o) => (
@@ -285,7 +299,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
   const open = c.receivables.filter((r) => r.openCents > 0);
   const [rec, setRec] = useState(open[0]?.id ?? "");
   const [method, setMethod] = useState<"PIX" | "BOLETO">("PIX");
-  const [file, setFile] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
   const target = open.find((r) => r.id === rec);
   return (
     <Sheet title="Enviar comprovante de pagamento" onClose={onClose} icon={<Upload size={18} />}>
@@ -298,9 +312,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
       <div className="field"><label>Método</label>
         <div className="chips"><Chip on={method === "PIX"} onClick={() => setMethod("PIX")}>PIX (prioritário)</Chip><Chip on={method === "BOLETO"} onClick={() => setMethod("BOLETO")}>Boleto</Chip></div>
       </div>
-      <div className={`upload ${file ? "done" : ""}`} onClick={() => setFile(true)}>
-        {file ? "✓ comprovante-pagamento.jpg anexado" : "Toque para fotografar ou anexar o comprovante"}
-      </div>
+      <PhotoCapture value={photo} onChange={setPhoto} label="Fotografar comprovante de pagamento" />
       <Card className="mt">
         <div className="xs muted mb">Associado automaticamente</div>
         <dl className="kv">
@@ -311,14 +323,14 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
           <dt>SLA financeiro</dt><dd>{PARAMS.financialSla.responseHours}h</dd>
         </dl>
       </Card>
-      <button className="btn btn-primary btn-block mt" disabled={!file} onClick={() => {
+      <button className="btn btn-primary btn-block mt" disabled={!photo} onClick={() => {
         commit(() => {
           PAYMENT_REQUESTS.unshift({
             id: `pr-new-${Date.now()}`, number: `SQ-${7500 + PAYMENT_REQUESTS.length}`, customerId: c.id, sellerId: c.sellerId, method,
             amountCents: target?.openCents ?? 0, receivableDoc: target?.doc ?? "Não identificado", createdAt: NOW.toISOString(),
-            status: "pending", attachmentName: "comprovante-pagamento.jpg",
+            status: "pending", attachmentName: "comprovante-pagamento.jpg", attachmentDataUrl: photo!,
           });
-          notify({ kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance"] });
+          notify({ kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
         }, "Comprovante enviado ao financeiro · acompanhe o status em Pendências");
         onClose();
       }}><Send size={16} /> Enviar ao financeiro</button>
@@ -359,13 +371,13 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
       ORDERS.unshift(o);
       if (kind === "ORDER" && status !== "draft") {
         const s = SELLERS.find((x) => x.id === c.sellerId);
-        if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; }
+        if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; s.ordersToday += 1; }
         c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
         notify({
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
           title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido para análise de crédito",
           text: `${o.number} · ${c.tradeName} · ${brl(total)} · prazo ${granted}d${granted !== recommended ? ` (recomendado ${recommended}d)` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
-          to: ["finance", ...(status === "blocked" ? MANAGERS_KEYS : [])],
+          to: ["finance", ...MANAGERS_KEYS],
         });
       }
     }, message);

@@ -123,7 +123,7 @@ function RoutesTable({ onOpen }: { onOpen: (r: DeliveryRoute) => void }) {
   );
 }
 
-function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) {
+export function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) {
   const [zoom, setZoom] = useState<string | null>(null);
   const p = routeProgress(r);
   const driver = DRIVERS.find((d) => d.id === r.driverId)!;
@@ -136,6 +136,7 @@ function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) 
         <Kpi label="Entregues" tone="success" value={`${p.delivered}/${p.total}`} foot={pct(p.pct)} />
         <Kpi label="Início" tone="gold" value={<span style={{ fontSize: 15 }}>{r.startedAt ? new Date(r.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone }) : "não iniciou"}</span>} />
       </div>
+      <ChecklistSummary r={r} />
       <Card>
         <div className="table-wrap">
           <table className="t">
@@ -361,7 +362,9 @@ function FinanceQueue() {
   );
 }
 
-function AnalyzeSheet({ p, onClose }: { p: PaymentRequest; onClose: () => void }) {
+function AnalyzeSheet({ p: view, onClose }: { p: PaymentRequest; onClose: () => void }) {
+  // a fila entrega uma cópia; a resposta precisa ir para o registro original
+  const p = PAYMENT_REQUESTS.find((x) => x.id === view.id) ?? view;
   const c = customerById.get(p.customerId)!;
   const f = financial(c);
   const answers: [PaymentRequest["status"], string][] = [
@@ -381,7 +384,9 @@ function AnalyzeSheet({ p, onClose }: { p: PaymentRequest; onClose: () => void }
           <dl className="kv"><dt>Em aberto</dt><dd>{brl(f.openCents)}</dd><dt>Vencido</dt><dd className="red">{brl(f.overdueCents)}</dd><dt>Média de atraso</dt><dd>{f.averageDelayDays.toFixed(1)} d</dd></dl>
         </Card>
         <Card>
-          <div className="upload done" style={{ padding: 30 }}>📎 {p.attachmentName}</div>
+          {p.attachmentDataUrl
+            ? <div className="photo-preview"><img src={p.attachmentDataUrl} alt="Comprovante de pagamento" /></div>
+            : <div className="upload done" style={{ padding: 30 }}>📎 {p.attachmentName}</div>}
           <div className="semi mt mb">Responder</div>
           <div className="grid g2" style={{ marginBottom: 0 }}>
             {answers.map(([st, label]) => (
@@ -549,6 +554,29 @@ function InvoicedAwaitingRoute() {
         );
       })}
       {!list.length && <Empty icon={<CheckCircle2 />} text="Nenhuma nota aguardando rota." />}
+    </Card>
+  );
+}
+
+/** Resumo do checklist do veículo de uma rota (para coordenação e gestão). */
+export function ChecklistSummary({ r }: { r: DeliveryRoute }) {
+  const ncs = NONCONFORMITIES.filter((n) => n.vehicleId === (r.checklistVehicleId ?? r.vehicleId) && n.status !== "resolved");
+  return (
+    <Card className="mb">
+      <div className="flex between wrap" style={{ gap: 8 }}>
+        <span className="semi">Checklist do veículo</span>
+        {r.checklistDone
+          ? <Badge tone={r.checklistNcs?.length ? "warning" : "success"}>Realizado {r.checklistAt ? `às ${new Date(r.checklistAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}{r.checklistNcs?.length ? ` · ${r.checklistNcs.length} não conformidade(s)` : " · sem problemas"}</Badge>
+          : <Badge tone="danger">Não realizado</Badge>}
+      </div>
+      {ncs.length > 0 && (
+        <div className="mt">
+          {ncs.map((n) => (
+            <div key={n.id} className="alert-line"><span className="dotc" style={{ background: n.severity === "critical" ? "var(--danger)" : "var(--gold)" }} />
+              <span><b>{n.item}</b> · {n.description} <span className="muted">({n.status === "open" ? "aberta" : "em tratamento"})</span></span></div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

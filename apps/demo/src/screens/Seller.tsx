@@ -12,7 +12,7 @@ import {
 } from "../data/selectors";
 import { useStore, commit } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty, Progress } from "../components/ui";
 import { CustomerSheet, CustomerTable, CustomerRowView, OrderRow, OrderBuilder, fmtDate } from "../components/business";
 
 export function SellerApp() {
@@ -71,6 +71,13 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
             <dt>Dias úteis rest.</dt><dd>{g.remainingBusinessDays} de {g.businessDaysInMonth}</dd>
           </dl>
         </div>
+      </Card>
+
+      <Card className="mb">
+        <div className="flex between"><span className="semi flex" style={{ gap: 8 }}><MapPinned size={17} className="red" /> Visitas de hoje</span>
+          <b className="num">{ME.visitsDoneToday} <span className="muted small">/ {ME.visitsPlannedToday}</span></b></div>
+        <div className="progress-row mt"><Progress value={(ME.visitsDoneToday / Math.max(1, ME.visitsPlannedToday)) * 100} color="green" /><b className="num xs">{pct((ME.visitsDoneToday / Math.max(1, ME.visitsPlannedToday)) * 100)}</b></div>
+        <div className="xs muted mt">Check-in no cliente conta como visita realizada.</div>
       </Card>
 
       <Card title={<>Rota de hoje · {TODAY_ROUTE?.name ?? "sem rota"}</>} icon={<MapPinned size={17} />} link="Ver rota" onLink={() => goTab("route")}>

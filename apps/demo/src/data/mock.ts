@@ -52,7 +52,7 @@ export interface Person { id: string; name: string; role: Role; email: string }
 export interface Seller extends Person {
   role: "seller"; managerId: string; region: string;
   monthlyGoalCents: number; monthAchievedCents: number; todayAchievedCents: number;
-  ordersMonth: number; visitsPlannedToday: number; visitsDoneToday: number;
+  ordersMonth: number; ordersToday: number; visitsPlannedToday: number; visitsDoneToday: number;
 }
 
 export const MANAGERS: Person[] = [
@@ -86,7 +86,7 @@ export const SELLERS: Seller[] = sellerSeeds.map((s) => {
     id: s.id, name: s.name, role: "seller", email: `${s.name.split(" ")[0]!.toLowerCase()}@demo.galato`,
     managerId: s.managerId, region: s.region, monthlyGoalCents: goal,
     monthAchievedCents: month + today, todayAchievedCents: today,
-    ordersMonth: between(70, 140), visitsPlannedToday: s.visits[0], visitsDoneToday: s.visits[1],
+    ordersMonth: between(70, 140), ordersToday: 4 + (Number(s.id.slice(1)) % 4), visitsPlannedToday: s.visits[0], visitsDoneToday: s.visits[1],
   };
 });
 export const CURRENT_SELLER = SELLERS[0]!;
@@ -301,7 +301,7 @@ for (let i = 0; i < 40; i++) {
 export interface PaymentRequest {
   id: string; number: string; customerId: string; sellerId: string; method: PaymentMethod; amountCents: number;
   receivableDoc: string; createdAt: string; status: PaymentRequestStatus; response?: string; respondedAt?: string;
-  attachmentName: string;
+  attachmentName: string; attachmentDataUrl?: string;
 }
 export const PAYMENT_REQUESTS: PaymentRequest[] = [];
 const prSpecs: [number, PaymentMethod, PaymentRequestStatus][] = [
@@ -350,6 +350,7 @@ export interface DeliveryRoute {
   id: string; code: string; name: string; date: IsoDate; source: "system" | "manual_pdf" | "manual";
   driverId: string; vehicleId: string; startedAt: string | null; finishedAt: string | null;
   expectedEnd: string; deliveries: Delivery[]; checklistDone?: boolean; checklistVehicleId?: string;
+  checklistAt?: string; checklistNcs?: string[];
 }
 const routeSpecs: { name: string; driver: string; vehicle: string; n: number; start: string | null; done: number; failed: number; source: DeliveryRoute["source"] }[] = [
   { name: "Contagem / Betim", driver: "d2", vehicle: "v2", n: 12, start: "07:12", done: 10, failed: 0, source: "system" },
@@ -503,3 +504,7 @@ export const YESTERDAY_ROUTES: YesterdayRoute[] = ydRoutes.map(([routeName, driv
     note: notFinished[routeName],
   };
 });
+
+// ---------------------------------------------------------------- check-ins (visitas)
+export interface Checkin { id: string; customerId: string; sellerId: string; inAt: string; outAt?: string; date: IsoDate }
+export const CHECKINS: Checkin[] = [];

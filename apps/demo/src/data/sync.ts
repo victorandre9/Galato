@@ -11,14 +11,14 @@
  */
 import {
   CUSTOMERS, ORDERS, PAYMENT_REQUESTS, DELIVERY_ROUTES, INCIDENTS, NONCONFORMITIES, EPI_REQUESTS, SELLERS,
-  NOTIFICATIONS, TRANSFER_REQUESTS, TEMP_ACCESS, PROOFS, YESTERDAY_DELIVERIES,
+  NOTIFICATIONS, TRANSFER_REQUESTS, TEMP_ACCESS, PROOFS, YESTERDAY_DELIVERIES, CHECKINS,
 } from "./mock";
 
 type Entity = { id: string };
 const REG: Record<string, Entity[]> = {
   customer: CUSTOMERS, order: ORDERS, payreq: PAYMENT_REQUESTS, route: DELIVERY_ROUTES, incident: INCIDENTS,
   nc: NONCONFORMITIES, epi: EPI_REQUESTS, seller: SELLERS, notif: NOTIFICATIONS, transfer: TRANSFER_REQUESTS,
-  tempaccess: TEMP_ACCESS, proof: PROOFS, yday: YESTERDAY_DELIVERIES,
+  tempaccess: TEMP_ACCESS, proof: PROOFS, yday: YESTERDAY_DELIVERIES, checkin: CHECKINS,
 };
 const COLLECTION = "overlay";
 const keyOf = (type: string, id: string) => `${type}~${id}`.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");

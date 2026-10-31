@@ -10,7 +10,10 @@ import { notify } from "../data/notify";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
   inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
+  yesterdaySummary,
 } from "../data/selectors";
+import { DRIVERS, DELIVERY_ROUTES, YESTERDAY_ROUTE, type YesterdayDelivery } from "../data/mock";
+import { History, CheckCircle2, XCircle, CalendarClock } from "lucide-react";
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
@@ -109,6 +112,8 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
           <div className="kpi-foot">{log.pending} pendentes · {log.failed} não realizadas</div>
         </Kpi>
       </div>
+
+      <YesterdayCard scope={scope} />
 
       <div className="grid gd gd-21">
         <Card title="Ranking por vendedor" icon={<Trophy size={17} />} sub="ordenado por % da meta" link="Detalhar" onLink={() => goTab("sales")}>
@@ -508,5 +513,122 @@ function PortfolioView() {
         </Card>
       </div>
     </>
+  );
+}
+
+// ------------------------------------------------------------------ fechamento do dia anterior
+function YesterdayCard({ scope }: { scope: string[] }) {
+  useStore();
+  const y = yesterdaySummary(scope);
+  const [open, setOpen] = useState(false);
+  const Stat = ({ label, done, target, pctV, fmt }: { label: string; done: string; target: string; pctV: number; fmt?: string }) => (
+    <div className="yd-stat">
+      <div className="xs muted semi">{label}</div>
+      <div className="flex between" style={{ alignItems: "baseline" }}>
+        <b className="num" style={{ fontSize: 20 }}>{done} <small className="muted" style={{ fontSize: 12, fontWeight: 500 }}>/ {target}</small></b>
+        <b className={`num small ${pctV >= 100 ? "green" : pctV < 80 ? "red" : "gold"}`}>{pct(pctV)}</b>
+      </div>
+      <Progress thin value={pctV} color={pctV >= 100 ? "green" : pctV < 80 ? "red" : undefined} />
+      {fmt && <div className="xs muted" style={{ marginTop: 4 }}>{fmt}</div>}
+    </div>
+  );
+  return (
+    <>
+      <Card title={<>Fechamento de ontem · {dayLabel(y.date)}</>} icon={<History size={17} />} link="Ver detalhes" onLink={() => setOpen(true)} className="mb yd-card">
+        <div className="flex wrap mb" style={{ gap: 8 }}>
+          {y.ok ? <Badge tone="success"><CheckCircle2 size={12} /> Dia concluído com sucesso</Badge> : <Badge tone="danger"><XCircle size={12} /> Dia com pendências</Badge>}
+          {y.incomplete.length > 0 && <Badge tone="warning">{y.incomplete.length} vendedor(es) não concluíram as visitas</Badge>}
+          {y.pendingFailed.length > 0 && <Badge tone="warning">{y.pendingFailed.length} entrega(s) a resolver</Badge>}
+        </div>
+        <div className="grid g3" style={{ marginBottom: 12 }}>
+          <Stat label="Faturamento x meta" done={brl0(y.sales)} target={brl0(y.goal)} pctV={y.salesPct} />
+          <Stat label="Visitas x planejadas" done={String(y.vDone)} target={String(y.vPlanned)} pctV={y.visitsPct} fmt={YESTERDAY_ROUTE ? `rota: ${YESTERDAY_ROUTE.name}` : undefined} />
+          <Stat label="Entregas x programadas" done={String(y.delivered)} target={String(y.deliveriesTotal)} pctV={y.deliveriesPct} />
+        </div>
+        <div className="grid gd gd-2" style={{ marginBottom: 0, gap: 18 }}>
+          <div>
+            <div className="xs muted semi mb">Visitas não concluídas</div>
+            {y.incomplete.map((r) => (
+              <div key={r.sellerId} className="alert-line"><span className="dotc" style={{ background: r.visitsPct < 80 ? "var(--danger)" : "var(--gold)" }} />
+                <span><b>{r.name}</b>: {r.visitsDone}/{r.visitsPlanned} visitas · faltaram {r.visitsPlanned - r.visitsDone} · vendeu {pct(r.salesPct)} da meta</span></div>
+            ))}
+            {!y.incomplete.length && <div className="small green semi">Todos concluíram as visitas planejadas.</div>}
+          </div>
+          <div>
+            <div className="xs muted semi mb">Entregas não concluídas</div>
+            {y.failed.slice(0, 5).map((d) => (
+              <div key={d.id} className="alert-line"><span className="dotc" style={{ background: d.rescheduledTo ? "var(--success)" : d.status === "no_record" ? "var(--danger)" : "var(--gold)" }} />
+                <span><b>{customerById.get(d.customerId)?.tradeName}</b> · {d.routeName} · {d.status === "no_record" ? "sem baixa do motorista" : d.reason}{d.rescheduledTo ? " · reprogramada hoje" : ""}</span></div>
+            ))}
+            {!y.failed.length && <div className="small green semi">Todas as entregas concluídas.</div>}
+            {(y.openPayments > 0 || y.openIncidents > 0) && <div className="xs muted mt">Ainda abertos de ontem: {y.openPayments} comprovante(s) no financeiro · {y.openIncidents} ocorrência(s).</div>}
+          </div>
+        </div>
+      </Card>
+      {open && <YesterdaySheet scope={scope} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => void }) {
+  useStore();
+  const y = yesterdaySummary(scope);
+  const reschedule = (d: YesterdayDelivery) => commit(() => {
+    const r = DELIVERY_ROUTES.find((x) => x.name === d.routeName && !x.finishedAt) ?? DELIVERY_ROUTES.find((x) => !x.finishedAt)!;
+    r.deliveries.push({ id: `re-${d.id}`, seq: r.deliveries.length + 1, customerId: d.customerId, invoiceNumber: d.invoiceNumber, orderNumber: "—", volumes: 10, status: r.startedAt ? "in_transit" : "scheduled" });
+    d.rescheduledTo = r.id;
+    const c = customerById.get(d.customerId)!;
+    notify({ kind: "logistica", title: "Reentrega incluída na sua rota", text: `${c.tradeName} · ${d.invoiceNumber} (pendente de ontem${d.reason ? `: ${d.reason}` : ""}).`, to: [`driver:${r.driverId}`, "transport_coordinator"] });
+    notify({ kind: "logistica", title: "Entrega reprogramada", text: `${c.tradeName} · ${d.invoiceNumber} volta para rota hoje.`, to: [`seller:${c.sellerId}`] });
+  }, "Entrega reprogramada para hoje · motorista e coordenação avisados");
+  return (
+    <Sheet title={`Fechamento de ontem · ${dayLabel(y.date)}`} onClose={onClose} wide icon={<History size={18} />}>
+      <div className="grid g3">
+        <Kpi label="Faturamento x meta" value={brl0(y.sales)} foot={`meta ${brl0(y.goal)} · ${pct(y.salesPct)}`} />
+        <Kpi label="Visitas x planejadas" tone="info" value={`${y.vDone}/${y.vPlanned}`} foot={pct(y.visitsPct)} />
+        <Kpi label="Entregas x programadas" tone="success" value={`${y.delivered}/${y.deliveriesTotal}`} foot={pct(y.deliveriesPct)} />
+      </div>
+      <Card title="Por vendedor" sub="ordenado por % da meta">
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>#</th><th>Vendedor</th><th className="r">Meta do dia</th><th className="r">Vendido</th><th className="r">%</th><th className="r">Pedidos</th><th className="r">Visitas</th><th>Não visitados</th></tr></thead>
+            <tbody>
+              {y.salesRank.map((rk) => {
+                const r = y.rows.find((x) => x.sellerId === rk.id)!;
+                return (
+                  <tr key={r.sellerId}>
+                    <td><span className={`pos p${rk.position}`}>{rk.position}º</span></td>
+                    <td className="semi">{r.name}</td>
+                    <td className="r num">{brl0(r.goalCents)}</td><td className="r num">{brl0(r.salesCents)}</td>
+                    <td className={`r bold num ${r.salesPct >= 100 ? "green" : r.salesPct < 80 ? "red" : "gold"}`}>{pct(r.salesPct)}</td>
+                    <td className="r">{r.orders}</td>
+                    <td className={`r semi ${r.visitsDone < r.visitsPlanned ? "red" : "green"}`}>{r.visitsDone}/{r.visitsPlanned}</td>
+                    <td className="small" style={{ whiteSpace: "normal", minWidth: 220 }}>{r.missedCustomerIds.map((id) => customerById.get(id)?.tradeName).join(", ") || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      <Card title={`Entregas não concluídas (${y.failed.length})`} className="mt">
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>Cliente</th><th>Nota</th><th>Rota</th><th>Motorista</th><th>Situação</th><th></th></tr></thead>
+            <tbody>
+              {y.failed.map((d) => (
+                <tr key={d.id}>
+                  <td className="semi">{customerById.get(d.customerId)?.tradeName}</td><td>{d.invoiceNumber}</td><td>{d.routeName}</td>
+                  <td>{DRIVERS.find((x) => x.id === d.driverId)?.name}</td>
+                  <td>{d.status === "no_record" ? <Badge tone="danger">Sem baixa do motorista</Badge> : <Badge tone="warning">{d.reason}</Badge>}</td>
+                  <td>{d.rescheduledTo ? <Badge tone="success">Reprogramada hoje</Badge>
+                    : <button className="btn btn-soft btn-sm" onClick={() => reschedule(d)}><CalendarClock size={14} /> Reprogramar hoje</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </Sheet>
   );
 }

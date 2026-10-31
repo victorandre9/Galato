@@ -1,7 +1,7 @@
 /** Indicadores derivados — tudo calculado pelas regras de @galato/domain. */
 import {
   goalProgress, rankByAttainment, daysWithoutPurchase, inactivityBucket, summarizeReceivables,
-  orderFinancialQueue, slaLevel, minutesOf, timeInTimezone, ORDER_STATUS, weightedAverageTerm,
+  orderFinancialQueue, slaLevel, minutesOf, timeInTimezone, ORDER_STATUS, weightedAverageTerm, isoDateInTimezone,
   type IsoDate,
 } from "@galato/domain";
 import {
@@ -188,3 +188,32 @@ export function inactiveTotals(sellerIds?: string[]) {
 
 export const dayLabel = (d: IsoDate) =>
   new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+
+// ---------------------------------------------------------------- dia anterior
+import { YESTERDAY, YESTERDAY_SELLERS, YESTERDAY_DELIVERIES } from "./mock";
+export function yesterdaySummary(scope: string[]) {
+  const rows = YESTERDAY_SELLERS.filter((y) => scope.includes(y.sellerId)).map((y) => {
+    const s = SELLERS.find((x) => x.id === y.sellerId)!;
+    const daily = goalProgress({ today: YESTERDAY, monthlyGoalCents: s.monthlyGoalCents, achievedMonthCents: 0, achievedTodayCents: 0, calendar: cal }).dailyGoalCents;
+    return { ...y, name: s.name, goalCents: daily, salesPct: daily ? (y.salesCents / daily) * 100 : 0, visitsPct: y.visitsPlanned ? (y.visitsDone / y.visitsPlanned) * 100 : 0 };
+  });
+  const salesRank = rankByAttainment(rows.map((r) => ({ id: r.sellerId, name: r.name, target: r.goalCents, achieved: r.salesCents })));
+  const visitRank = rankByAttainment(rows.map((r) => ({ id: r.sellerId, name: r.name, target: r.visitsPlanned, achieved: r.visitsDone })));
+  const goal = rows.reduce((a, r) => a + r.goalCents, 0);
+  const sales = rows.reduce((a, r) => a + r.salesCents, 0);
+  const vPlanned = rows.reduce((a, r) => a + r.visitsPlanned, 0);
+  const vDone = rows.reduce((a, r) => a + r.visitsDone, 0);
+  const dl = YESTERDAY_DELIVERIES;
+  const failed = dl.filter((d) => d.status !== "delivered");
+  const delivered = dl.length - failed.length;
+  const openPayments = PAYMENT_REQUESTS.filter((p) => OPEN_PR.includes(p.status) && isoDateInTimezone(new Date(p.createdAt), PARAMS.timezone) <= YESTERDAY).length;
+  const openIncidents = INCIDENTS.filter((i) => i.status !== "resolved" && i.createdAt.slice(0, 10) <= YESTERDAY).length;
+  const incomplete = rows.filter((r) => r.visitsDone < r.visitsPlanned);
+  const ok = sales >= goal && vDone >= vPlanned && failed.length === 0;
+  return {
+    date: YESTERDAY, rows, salesRank, visitRank, goal, sales, salesPct: goal ? (sales / goal) * 100 : 0,
+    vPlanned, vDone, visitsPct: vPlanned ? (vDone / vPlanned) * 100 : 0,
+    deliveriesTotal: dl.length, delivered, deliveriesPct: dl.length ? (delivered / dl.length) * 100 : 0, failed,
+    pendingFailed: failed.filter((f) => !f.rescheduledTo), openPayments, openIncidents, incomplete, ok,
+  };
+}

@@ -424,3 +424,51 @@ export const NOTIFICATIONS: Notification[] = [
 // ---------------------------------------------------------------- comprovantes (foto)
 export interface DeliveryProof { id: string; deliveryId: string; routeId: string; type: string; dataUrl: string; at: string; driverId: string }
 export const PROOFS: DeliveryProof[] = [];
+
+// ---------------------------------------------------------------- dia anterior (fechamento)
+function previousBusinessDay(d: IsoDate): IsoDate {
+  let x = addDays(d, -1);
+  while (!isBusinessDay(x, PARAMS.workCalendar)) x = addDays(x, -1);
+  return x;
+}
+export const YESTERDAY: IsoDate = previousBusinessDay(TODAY);
+export const YESTERDAY_ROUTE = routeForDate(YESTERDAY, PARAMS.commercialRoutes);
+
+export interface YesterdaySeller {
+  sellerId: string; salesCents: number; orders: number; visitsPlanned: number; visitsDone: number;
+  /** clientes planejados e não visitados */
+  missedCustomerIds: string[];
+}
+const ydPerf: Record<string, [number, number]> = { s1: [1.08, 0], s2: [0.96, 1], s3: [0.71, 4], s4: [1.02, 0], s5: [0.58, 6] };
+export const YESTERDAY_SELLERS: YesterdaySeller[] = SELLERS.map((s) => {
+  const [perf, missed] = ydPerf[s.id] ?? [0.9, 1];
+  const planned = CUSTOMERS.filter((c) => c.sellerId === s.id && c.routeCode === YESTERDAY_ROUTE?.code);
+  const daily = s.monthlyGoalCents / BD_MONTH;
+  return {
+    sellerId: s.id, salesCents: round(daily * perf), orders: between(5, 11), visitsPlanned: planned.length,
+    visitsDone: planned.length - missed, missedCustomerIds: planned.slice(-missed || planned.length).slice(0, missed).map((c) => c.id),
+  };
+});
+
+export interface YesterdayDelivery {
+  id: string; routeName: string; driverId: string; vehicleId: string; customerId: string; invoiceNumber: string;
+  status: "delivered" | "not_delivered" | "no_record"; reason?: string; rescheduledTo?: string;
+}
+const ydRoutes: [string, string, string, number, [string, "not_delivered" | "no_record"][]][] = [
+  ["Contagem / Betim", "d2", "v2", 12, [["Cliente fechado", "not_delivered"]]],
+  ["Belo Horizonte 1", "d1", "v1", 12, []],
+  ["Belo Horizonte 3", "d3", "v3", 10, [["Cliente recusou", "not_delivered"], ["", "no_record"]]],
+  ["Nova Lima / Sabará", "d4", "v4", 9, [["Problema no veículo", "not_delivered"], ["Problema no veículo", "not_delivered"]]],
+  ["Neves / Santa Luzia", "d5", "v5", 10, []],
+  ["Venda Nova / Pampulha", "d6", "v6", 8, [["Endereço incorreto", "not_delivered"]]],
+];
+export const YESTERDAY_DELIVERIES: YesterdayDelivery[] = ydRoutes.flatMap(([routeName, driverId, vehicleId, n, fails], ri) =>
+  Array.from({ length: n }, (_, k) => {
+    const f = fails[k - (n - fails.length)];
+    const c = pick(CUSTOMERS);
+    return {
+      id: `yd${ri}-${k}`, routeName, driverId, vehicleId, customerId: c.id, invoiceNumber: `NF ${124800 + ri * 20 + k}`,
+      status: f ? f[1] : "delivered", reason: f && f[0] ? f[0] : undefined,
+    } as YesterdayDelivery;
+  }),
+);

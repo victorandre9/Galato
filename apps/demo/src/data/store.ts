@@ -5,6 +5,7 @@
  */
 import { useSyncExternalStore } from "react";
 import type { Role } from "./mock";
+import { persistChanges, setSyncOnline, startSync, type DbMode } from "./sync";
 
 export type Theme = "light" | "dark";
 export interface Toast { id: number; text: string; tone: "success" | "info" | "warning" | "danger" }
@@ -19,9 +20,7 @@ interface UiState {
   lastSyncedAt: Date;
   toasts: Toast[];
   version: number;
-  driverDayStarted: boolean;
-  driverDayFinished: boolean;
-  driverChecklistDone: boolean;
+  dbMode: DbMode;
 }
 
 function initialTheme(): Theme {
@@ -39,7 +38,7 @@ function initialTheme(): Theme {
 
 let state: UiState = {
   role: null, theme: initialTheme(), online: true, pendingSync: 0, sync: "synced", lastSyncedAt: new Date(),
-  toasts: [], version: 0, driverDayStarted: false, driverDayFinished: false, driverChecklistDone: false,
+  toasts: [], version: 0, dbMode: "connecting",
 };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -66,10 +65,11 @@ export function toast(text: string, tone: Toast["tone"] = "success") {
  */
 export function commit(mutate: () => void, message: string) {
   mutate();
+  persistChanges();
   if (state.online) {
     setState({ version: state.version + 1, sync: "syncing" });
     toast(message, "success");
-    setTimeout(() => setState({ sync: state.pendingSync ? "pending" : "synced", lastSyncedAt: new Date() }), 700);
+    setTimeout(() => setState({ sync: state.pendingSync ? "pending" : "synced", lastSyncedAt: new Date() }), 600);
   } else {
     setState({ version: state.version + 1, pendingSync: state.pendingSync + 1, sync: "pending" });
     toast(`${message} · salvo no aparelho, sincroniza ao voltar a conexão`, "warning");
@@ -81,13 +81,21 @@ export function setOnline(online: boolean) {
     setState({ online, sync: "syncing" });
     const n = state.pendingSync;
     setTimeout(() => {
+      setSyncOnline(true);
       setState({ pendingSync: 0, sync: "synced", lastSyncedAt: new Date() });
       toast(`${n} registro(s) sincronizado(s) automaticamente`, "success");
-    }, 1400);
+    }, 1200);
   } else {
+    setSyncOnline(online);
     setState({ online });
   }
 }
+
+/** Atualização vinda de outro aparelho / outra pessoa. */
+startSync({
+  onRemoteChange: () => setState({ version: state.version + 1 }),
+  onModeChange: (m) => setState({ dbMode: m }),
+});
 
 export function setTheme(theme: Theme) {
   try { localStorage.setItem("galato-theme", theme); } catch { /* ok */ }

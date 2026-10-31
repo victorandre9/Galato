@@ -175,7 +175,7 @@ export const DEFAULT_PARAMETERS: PlatformParameters = {
   },
   catalogs: {
     incidentTypes: ["Acidente de trânsito", "Avaria de mercadoria", "Ocorrência no cliente", "Outro"],
-    epiTypes: ["Luva térmica", "Bota de segurança", "Jaqueta térmica", "Colete refletivo", "Outro"],
+    epiTypes: ["Luva térmica", "Bota de segurança", "Jaqueta térmica", "Colete refletivo"],
     nonDeliveryReasons: [
       "Cliente fechado",
       "Endereço incorreto",

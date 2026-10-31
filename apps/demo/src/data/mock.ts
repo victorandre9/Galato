@@ -329,12 +329,12 @@ export const VEHICLES: Vehicle[] = [
 
 export interface Delivery {
   id: string; seq: number; customerId: string; invoiceNumber: string; orderNumber: string; volumes: number;
-  status: DeliveryStatus; deliveredAt?: string; nonDeliveryReason?: string; proofName?: string;
+  status: DeliveryStatus; deliveredAt?: string; nonDeliveryReason?: string; proofName?: string; orderId?: string;
 }
 export interface DeliveryRoute {
   id: string; code: string; name: string; date: IsoDate; source: "system" | "manual_pdf" | "manual";
   driverId: string; vehicleId: string; startedAt: string | null; finishedAt: string | null;
-  expectedEnd: string; deliveries: Delivery[];
+  expectedEnd: string; deliveries: Delivery[]; checklistDone?: boolean; checklistVehicleId?: string;
 }
 const routeSpecs: { name: string; driver: string; vehicle: string; n: number; start: string | null; done: number; failed: number; source: DeliveryRoute["source"] }[] = [
   { name: "Contagem / Betim", driver: "d2", vehicle: "v2", n: 12, start: "07:12", done: 10, failed: 0, source: "system" },
@@ -395,3 +395,32 @@ export const DRIVER_HISTORY = [
   { date: addDays(TODAY, -3), route: "Contagem / Betim", delivered: 10, notDelivered: 0, checklist: "8/8 ok", incidents: 0 },
   { date: addDays(TODAY, -6), route: "Belo Horizonte 1", delivered: 13, notDelivered: 1, checklist: "8/8 ok", incidents: 0 },
 ];
+
+// ---------------------------------------------------------------- carteira
+export interface TransferRequest {
+  id: string; customerId: string; fromSellerId: string; toSellerId: string; reason: string; createdAt: string;
+  status: "pending" | "approved" | "rejected"; decidedBy?: string; decidedAt?: string;
+}
+export const TRANSFER_REQUESTS: TransferRequest[] = [
+  { id: "tr1", customerId: CUSTOMERS[70]!.id, fromSellerId: CUSTOMERS[70]!.sellerId, toSellerId: "s1", reason: "Cliente vizinho da minha rota de terça, já pediu atendimento comigo.", createdAt: new Date(NOW.getTime() - 3 * 3_600_000).toISOString(), status: "pending" },
+  { id: "tr2", customerId: CUSTOMERS[200]!.id, fromSellerId: CUSTOMERS[200]!.sellerId, toSellerId: "s4", reason: "Cliente mudou de endereço para Sabará.", createdAt: new Date(NOW.getTime() - 26 * 3_600_000).toISOString(), status: "pending" },
+];
+export interface TempAccess { id: string; holderSellerId: string; substituteSellerId: string; from: IsoDate; to: IsoDate; reason: string; createdAt: string }
+export const TEMP_ACCESS: TempAccess[] = [];
+
+// ---------------------------------------------------------------- notificações
+export type NotifKind = "operacional" | "alerta" | "financeiro" | "comercial" | "logistica" | "sistema";
+export interface Notification {
+  id: string; at: string; kind: NotifKind; priority: "normal" | "high"; title: string; text: string;
+  /** destinatários: papel ("finance") ou pessoa ("seller:s1", "driver:d1") */
+  to: string[]; readBy: string[];
+}
+export const NOTIFICATIONS: Notification[] = [
+  { id: "n1", at: new Date(NOW.getTime() - 50 * 60_000).toISOString(), kind: "financeiro", priority: "high", title: "Solicitações sem resposta há +24h", text: "3 comprovantes aguardam o financeiro além do SLA.", to: ["finance", "sales_manager", "sales_coordinator", "general_manager"], readBy: [] },
+  { id: "n2", at: new Date(NOW.getTime() - 95 * 60_000).toISOString(), kind: "logistica", priority: "high", title: "Não conformidade crítica", text: "Refrigeração do veículo HJK-9D10 marcando -12 °C.", to: ["transport_coordinator", "general_manager"], readBy: [] },
+  { id: "n3", at: new Date(NOW.getTime() - 3 * 3_600_000).toISOString(), kind: "comercial", priority: "normal", title: "Clientes da rota sem compra", text: "2 clientes da rota de hoje estão há mais de 28 dias sem comprar.", to: ["seller:s1"], readBy: [] },
+];
+
+// ---------------------------------------------------------------- comprovantes (foto)
+export interface DeliveryProof { id: string; deliveryId: string; routeId: string; type: string; dataUrl: string; at: string; driverId: string }
+export const PROOFS: DeliveryProof[] = [];

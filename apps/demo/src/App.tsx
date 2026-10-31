@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Moon, Sun } from "lucide-react";
+import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Moon, Sun, Maximize } from "lucide-react";
+import { DemoDataPanel, toggleFullscreen } from "./components/shell";
 import { setState, setTheme, useStore } from "./data/store";
 import type { Role } from "./data/mock";
 import { TODAY } from "./data/mock";
@@ -49,7 +50,8 @@ function Login() {
   const s = useStore();
   return (
     <div className="login">
-      <div style={{ alignSelf: "flex-end" }}>
+      <div style={{ alignSelf: "flex-end", display: "flex", gap: 8 }}>
+        <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
         <button className="icon-btn" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")} aria-label="Tema">{s.theme === "light" ? <Moon size={18} /> : <Sun size={18} />}</button>
       </div>
       <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
@@ -68,6 +70,7 @@ function Login() {
           </div>
         </div>
       ))}
+      <div style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><DemoDataPanel /></div>
     </div>
   );
 }

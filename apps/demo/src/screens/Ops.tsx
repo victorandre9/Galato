@@ -2,17 +2,20 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Route, AlertTriangle, MoreHorizontal, Layers, PlusCircle, Truck, Package, CheckCircle2, Activity,
-  XCircle, Bell, FileUp, Users, Wallet, History, Clock, FileCheck2, Receipt, Check, Wrench, MapPin,
+  XCircle, Bell, FileUp, Users, Wallet, History, Clock, FileCheck2, Receipt, Check, Wrench, MapPin, HardHat,
 } from "lucide-react";
 import { PAYMENT_REQUEST_STATUS, DELIVERY_STATUS, ORDER_STATUS } from "@galato/domain";
 import {
   PARAMS, DELIVERY_ROUTES, DRIVERS, VEHICLES, INCIDENTS, NONCONFORMITIES, PAYMENT_REQUESTS, ORDERS, TODAY, NOW,
   TRANSPORT_COORD, FINANCE_USER, BILLING_USER, customerById, sellerById, type DeliveryRoute, type PaymentRequest,
+  EPI_REQUESTS, PROOFS, CUSTOMERS,
 } from "../data/mock";
+import { notify, MANAGERS_KEYS } from "../data/notify";
+import { EPI_STATUS } from "@galato/domain";
 import { logisticsOverview, routeProgress, financeQueue, financial, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty } from "../components/ui";
+import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle } from "../components/ui";
 import { fmtDate, CustomerName } from "../components/business";
 
 // =================================================================== TRANSPORTES
@@ -65,6 +68,10 @@ function TransportHome({ goTab }: { goTab: (t: string) => void }) {
         <Kpi icon={<Clock size={17} />} tone="info" label="Pendências do dia anterior" value={log.yesterdayPending} />
       </div>
 
+      <div className="grid gd gd-2">
+        <EpiCard />
+        <InvoicedAwaitingRoute />
+      </div>
       <Card title={`Alertas (${log.alerts.length})`} icon={<Bell size={17} />} className="mb">
         <div className="grid gd gd-2" style={{ gap: 4, marginBottom: 0 }}>
           {log.alerts.map((a, i) => <div key={i} className="alert-line"><span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}</div>)}
@@ -117,6 +124,7 @@ function RoutesTable({ onOpen }: { onOpen: (r: DeliveryRoute) => void }) {
 }
 
 function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) {
+  const [zoom, setZoom] = useState<string | null>(null);
   const p = routeProgress(r);
   const driver = DRIVERS.find((d) => d.id === r.driverId)!;
   const vehicle = VEHICLES.find((v) => v.id === r.vehicleId)!;
@@ -137,13 +145,18 @@ function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) 
                 <tr key={d.id}>
                   <td>{d.seq}</td><td><CustomerName id={d.customerId} /></td><td>{d.invoiceNumber}</td><td className="r">{d.volumes}</td>
                   <td><Badge tone={DELIVERY_STATUS[d.status].tone}>{DELIVERY_STATUS[d.status].label}</Badge></td>
-                  <td className="small">{d.nonDeliveryReason ?? (d.proofName ? `✓ ${d.proofName}` : "")}</td>
+                  <td className="small">
+                    {(() => { const pf = PROOFS.find((x) => x.deliveryId === d.id); return pf
+                      ? <a href={pf.dataUrl} target="_blank" rel="noreferrer" className="flex" onClick={(e) => { e.preventDefault(); setZoom(pf.dataUrl); }}><img className="proof-thumb" src={pf.dataUrl} alt="Comprovante" /> {pf.type}</a>
+                      : d.nonDeliveryReason ?? (d.proofName ? `✓ ${d.proofName}` : ""); })()}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+      {zoom && <Sheet title="Comprovante de entrega" onClose={() => setZoom(null)}><div className="photo-preview"><img src={zoom} alt="Comprovante" /></div></Sheet>}
     </Sheet>
   );
 }
@@ -153,12 +166,9 @@ function ImportSheet({ mode, onClose }: { mode: "system" | "manual"; onClose: ()
   const [driver, setDriver] = useState(DRIVERS[1]!.id);
   const [vehicle, setVehicle] = useState(VEHICLES[1]!.id);
   const [name, setName] = useState("Rota 7 — Contagem 2");
-  const extracted = [
-    { nf: "NF 125911", customer: "Mercearia Boa Vista", vol: 18, ok: true },
-    { nf: "NF 125912", customer: "Padaria Pão Dourado", vol: 12, ok: true },
-    { nf: "NF 125915", customer: "Supermercado Estrela", vol: 40, ok: true },
-    { nf: "NF 125918", customer: "Bar do Zé", vol: 6, ok: false },
-  ];
+  const sample = CUSTOMERS.filter((c) => c.city === "Contagem").slice(0, 3);
+  const extractedReal = sample.map((c, k) => ({ nf: `NF ${125911 + k}`, customer: c.tradeName, customerId: c.id, vol: [18, 12, 40][k]!, ok: true }));
+  const extracted = [...extractedReal, { nf: "NF 125918", customer: "Bar do Zé", customerId: "", vol: 6, ok: false }];
   return (
     <Sheet title={mode === "system" ? "Rotas extraídas do sistema" : "Lançar rota manualmente"} onClose={onClose} wide icon={mode === "system" ? <Layers size={18} /> : <FileUp size={18} />}>
       <p className="small muted mb">{mode === "system"
@@ -182,7 +192,19 @@ function ImportSheet({ mode, onClose }: { mode: "system" | "manual"; onClose: ()
                 {!x.ok && <Badge tone="warning">Cliente não encontrado — associar</Badge>}
               </div>
             ))}
-            <button className="btn btn-primary btn-block mt" onClick={() => { commit(() => {}, `Rota “${name}” confirmada e atribuída · motorista notificado`); onClose(); }}>Confirmar importação</button>
+            <div className="xs muted mt">Notas com cliente não encontrado ficam fora até serem associadas.</div>
+            <button className="btn btn-primary btn-block mt" onClick={() => {
+              commit(() => {
+                const n = DELIVERY_ROUTES.length + 1;
+                DELIVERY_ROUTES.push({
+                  id: `rt-new-${Date.now()}`, code: `R${String(n).padStart(2, "0")}`, name, date: TODAY, source: mode === "system" ? "system" : "manual_pdf",
+                  driverId: driver, vehicleId: vehicle, startedAt: null, finishedAt: null, expectedEnd: "17:00",
+                  deliveries: extractedReal.map((x, k) => ({ id: `dl-new-${Date.now()}-${k}`, seq: k + 1, customerId: x.customerId, invoiceNumber: x.nf, orderNumber: "—", volumes: x.vol, status: "scheduled" as const })),
+                });
+                notify({ kind: "logistica", title: "Nova rota atribuída", text: `Rota ${name} com ${extractedReal.length} entregas atribuída a você.`, to: [`driver:${driver}`] });
+              }, `Rota “${name}” confirmada e atribuída · motorista notificado`);
+              onClose();
+            }}>Confirmar importação</button>
           </Card>
         </div>
       )}
@@ -326,7 +348,10 @@ function FinanceQueue() {
           {blocked.slice(0, 8).map((o) => (
             <div key={o.id} className="row">
               <div className="grow"><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
-              <button className="btn btn-soft btn-sm" onClick={() => commit(() => { o.status = "credit_approved"; }, `${o.number} liberado pelo crédito · segue para faturamento`)}>Liberar</button>
+              <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
+                o.status = "credit_approved";
+                notify({ kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
+              }, `${o.number} liberado pelo crédito · segue para faturamento`)}>Liberar</button>
             </div>
           ))}
         </Card>
@@ -361,7 +386,10 @@ function AnalyzeSheet({ p, onClose }: { p: PaymentRequest; onClose: () => void }
           <div className="grid g2" style={{ marginBottom: 0 }}>
             {answers.map(([st, label]) => (
               <button key={st} className={`btn btn-sm ${st === "confirmed" ? "btn-primary" : "btn-ghost"}`} onClick={() => {
-                commit(() => { p.status = st; p.respondedAt = NOW.toISOString(); }, `${label} · vendedor e gerente notificados`);
+                commit(() => {
+                  p.status = st; p.respondedAt = new Date().toISOString();
+                  notify({ kind: "financeiro", priority: st === "confirmed" ? "normal" : "high", title: `Comprovante ${p.number}: ${label}`, text: `${c.tradeName} · ${p.method} · ${brl(p.amountCents)}.`, to: [`seller:${p.sellerId}`, "sales_manager"] });
+                }, `${label} · vendedor e gerente notificados`);
                 onClose();
               }}>{st === "confirmed" && <Check size={14} />} {label}</button>
             ))}
@@ -436,6 +464,7 @@ function BillingBoard() {
                   </div>
                   {col.next && <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
                     o.status = col.next![0];
+                    if (o.status === "invoiced") notify({ kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
                     if (o.status === "invoiced") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
                     if (o.status !== "billing_error") o.billingError = undefined;
                   }, `${o.number}: ${ORDER_STATUS[col.next![0] as keyof typeof ORDER_STATUS].label}`)}>{col.next[1]}</button>}
@@ -447,5 +476,79 @@ function BillingBoard() {
         })}
       </div>
     </>
+  );
+}
+
+// ------------------------------------------------------------------- EPI (coordenação)
+function EpiCard() {
+  useStore();
+  const open = EPI_REQUESTS.filter((e) => !["delivered", "rejected"].includes(e.status)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const next: Record<string, [string, string][]> = {
+    requested: [["approved", "Aprovar"], ["rejected", "Recusar"]],
+    in_analysis: [["approved", "Aprovar"], ["rejected", "Recusar"]],
+    approved: [["delivered", "Entregue"], ["awaiting_purchase", "Aguard. compra"]],
+    awaiting_purchase: [["delivered", "Entregue"]],
+  };
+  return (
+    <Card title={`Solicitações de EPI (${open.length})`} icon={<HardHat size={17} />}>
+      {open.map((e) => {
+        const st = EPI_STATUS[e.status as keyof typeof EPI_STATUS];
+        const driver = DRIVERS.find((d) => d.id === e.driverId);
+        return (
+          <div key={e.id} className="row" style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div className="grow">
+              <div className="title">{e.qty}× {e.type}</div>
+              <div className="sub">{driver?.name} · {fmtDate(e.createdAt)} · {e.reason}</div>
+              <div style={{ marginTop: 4 }}><Badge tone={st.tone}>{st.label}</Badge></div>
+            </div>
+            <div className="flex" style={{ gap: 6 }}>
+              {(next[e.status] ?? []).map(([to, label]) => (
+                <button key={to} className={`btn btn-sm ${to === "rejected" ? "btn-ghost" : "btn-soft"}`} onClick={() => commit(() => {
+                  e.status = to;
+                  notify({ kind: "operacional", title: `EPI: ${EPI_STATUS[to as keyof typeof EPI_STATUS].label}`, text: `Sua solicitação de ${e.qty}× ${e.type} foi atualizada.`, to: [`driver:${e.driverId}`] });
+                }, `EPI ${EPI_STATUS[to as keyof typeof EPI_STATUS].label.toLowerCase()} · motorista avisado`)}>{label}</button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {!open.length && <Empty icon={<CheckCircle2 />} text="Nenhuma solicitação de EPI pendente." />}
+    </Card>
+  );
+}
+
+// ------------------------------------------------------------------- notas faturadas → rota
+function InvoicedAwaitingRoute() {
+  useStore();
+  const linked = new Set(DELIVERY_ROUTES.flatMap((r) => r.deliveries.map((d) => d.orderId).filter(Boolean)));
+  const list = ORDERS.filter((o) => o.kind === "ORDER" && o.status === "invoiced" && !linked.has(o.id)).slice(0, 8);
+  const [route, setRoute] = useState<Record<string, string>>({});
+  return (
+    <Card title={`Notas faturadas aguardando rota (${list.length})`} icon={<FileCheck2 size={17} />} sub="vindas do faturamento">
+      {list.map((o) => {
+        const c = customerById.get(o.customerId)!;
+        const rid = route[o.id] ?? DELIVERY_ROUTES[0]!.id;
+        return (
+          <div key={o.id} className="row" style={{ flexWrap: "wrap" }}>
+            <div className="grow" style={{ minWidth: 160 }}>
+              <div className="title small">{o.invoiceNumber} · {c.tradeName}</div>
+              <div className="sub">{o.number} · {c.city} · {sellerById.get(o.sellerId)?.name.split(" ")[0]}</div>
+            </div>
+            <select id={`route-${o.id}`} className="input" style={{ width: "auto", padding: "7px 10px", fontSize: 12.5 }} value={rid} onChange={(e) => setRoute({ ...route, [o.id]: e.target.value })}>
+              {DELIVERY_ROUTES.filter((r) => !r.finishedAt).map((r) => <option key={r.id} value={r.id}>{r.code} · {r.name}</option>)}
+            </select>
+            <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
+              const r = DELIVERY_ROUTES.find((x) => x.id === rid)!;
+              const vol = o.items.reduce((a, it) => a + it.qty, 0);
+              r.deliveries.push({ id: `dl-${o.id}`, seq: r.deliveries.length + 1, customerId: o.customerId, invoiceNumber: o.invoiceNumber ?? "NF —", orderNumber: o.number, volumes: vol, status: r.startedAt ? "in_transit" : "scheduled", orderId: o.id });
+              o.status = r.startedAt ? "in_transit" : "in_delivery_route";
+              notify({ kind: "logistica", title: "Nova entrega na sua rota", text: `${c.tradeName} · ${o.invoiceNumber} · ${vol} volumes.`, to: [`driver:${r.driverId}`] });
+              notify({ kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name}.`, to: [`seller:${o.sellerId}`] });
+            }, `${o.invoiceNumber} incluída na rota · motorista avisado`)}>Incluir</button>
+          </div>
+        );
+      })}
+      {!list.length && <Empty icon={<CheckCircle2 />} text="Nenhuma nota aguardando rota." />}
+    </Card>
   );
 }

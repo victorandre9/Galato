@@ -1,10 +1,19 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
-import type { ReactNode } from "react";
-import { Bell, Menu, Moon, Sun, CalendarDays, LogOut } from "lucide-react";
-import { setState, setTheme, useStore } from "../data/store";
+import { useState, type ReactNode } from "react";
+import { Bell, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
+import { setState, setTheme, useStore, toast } from "../data/store";
 import { TODAY } from "../data/mock";
 import { dayLabel } from "../data/selectors";
-import { SyncIndicator } from "./ui";
+import { notificationsFor, viewerId } from "../data/notify";
+import { persistChanges, resetDemo } from "../data/sync";
+import { SyncIndicator, Sheet, Badge, ConfirmModal, Empty } from "./ui";
+
+export function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => toast("Use F11 para tela cheia neste navegador", "info"));
+  } catch { toast("Use F11 para tela cheia neste navegador", "info"); }
+}
 
 export interface Tab { id: string; label: string; icon: ReactNode; count?: number }
 
@@ -12,6 +21,10 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
   tabs: Tab[]; tab: string; onTab: (t: string) => void; roleLabel: string; userName: string; narrow?: boolean; children: ReactNode;
 }) {
   const s = useStore();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const mine = s.role ? notificationsFor(s.role) : [];
+  const me = s.role ? viewerId(s.role) : "";
+  const unread = mine.filter((n) => !n.readBy.includes(me)).length;
   return (
     <>
       {!s.online && <div className="offline-bar">Sem conexão · você continua trabalhando, tudo é salvo no aparelho e sincroniza sozinho</div>}
@@ -51,11 +64,15 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
               <button className="icon-btn only-desktop" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")} aria-label="Tema">
                 {s.theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
               </button>
-              <button className="icon-btn" aria-label="Notificações"><Bell size={19} /><span className="dot" /></button>
+              <button className="icon-btn only-desktop" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
+              <button className="icon-btn" aria-label="Notificações" onClick={() => setNotifOpen(true)}>
+                <Bell size={19} />{unread > 0 && <span className="notif-count">{unread > 9 ? "9+" : unread}</span>}
+              </button>
             </div>
           </header>
           {children}
         </main>
+        {notifOpen && <NotificationCenter onClose={() => setNotifOpen(false)} />}
       </div>
       <nav className="bottom-nav">
         {tabs.slice(0, 5).map((t) => (
@@ -104,7 +121,59 @@ export function ProfilePanel({ name, role, extra }: { name: string; role: string
         <div className="flex between row"><span>Conexão (simulação)</span><SyncIndicator /></div>
         <div className="row xs muted">Clique no indicador para simular perda de internet. Ações continuam funcionando e sincronizam sozinhas ao reconectar.</div>
       </div>
+      <DemoDataPanel />
+      <button className="btn btn-ghost btn-block" onClick={toggleFullscreen}><Maximize size={16} /> Tela cheia</button>
       <button className="btn btn-ghost btn-block" onClick={() => setState({ role: null })}><LogOut size={16} /> Trocar perfil de demonstração</button>
+    </div>
+  );
+}
+
+function NotificationCenter({ onClose }: { onClose: () => void }) {
+  const s = useStore();
+  const list = s.role ? notificationsFor(s.role) : [];
+  const me = s.role ? viewerId(s.role) : "";
+  const close = () => {
+    // marca como lidas ao fechar
+    let changed = false;
+    for (const n of list) if (!n.readBy.includes(me)) { n.readBy.push(me); changed = true; }
+    if (changed) { persistChanges(); setState({ version: s.version + 1 }); }
+    onClose();
+  };
+  const tone = { financeiro: "brand", comercial: "info", logistica: "warning", alerta: "danger", operacional: "neutral", sistema: "neutral" } as const;
+  return (
+    <Sheet title={`Notificações (${list.filter((n) => !n.readBy.includes(me)).length} novas)`} onClose={close} icon={<Bell size={18} />}>
+      {list.map((n) => (
+        <div key={n.id} className="row" style={{ alignItems: "flex-start", opacity: n.readBy.includes(me) ? 0.6 : 1 }}>
+          <span className="dotc" style={{ width: 9, height: 9, borderRadius: 9, marginTop: 6, flexShrink: 0, background: n.readBy.includes(me) ? "transparent" : n.priority === "high" ? "var(--danger)" : "var(--gold)" }} />
+          <div className="grow">
+            <div className="flex between"><span className="semi">{n.title}</span><span className="xs muted">{new Date(n.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>
+            <div className="small t2" style={{ whiteSpace: "normal" }}>{n.text}</div>
+            <div style={{ marginTop: 4 }}><Badge tone={tone[n.kind]}>{n.kind}</Badge></div>
+          </div>
+        </div>
+      ))}
+      {!list.length && <Empty icon={<BellOff />} text="Nenhuma notificação." />}
+    </Sheet>
+  );
+}
+
+export function DemoDataPanel() {
+  const s = useStore();
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="card">
+      <div className="card-title"><span className="ic"><Database size={17} /></span>Dados da demonstração</div>
+      <div className="small t2 mb">
+        {s.dbMode === "shared" ? "Banco compartilhado ativo: o que você faz aqui aparece nos outros perfis e aparelhos, em tempo real."
+          : s.dbMode === "connecting" ? "Conectando ao banco compartilhado…"
+          : "Modo local: os dados ficam só nesta aba (fora do link do Claude)."}
+      </div>
+      <button className="btn btn-ghost btn-block btn-sm" onClick={() => setConfirm(true)}><RotateCcw size={15} /> Restaurar dados de demonstração</button>
+      {confirm && (
+        <ConfirmModal title="Restaurar dados?" confirmLabel="Restaurar" danger onClose={() => setConfirm(false)}
+          onConfirm={async () => { setConfirm(false); await resetDemo(); toast("Dados de demonstração restaurados", "success"); }}
+          text="Apaga pedidos, comprovantes, entregas e demais alterações feitas no teste, para todos os aparelhos. Os dados fictícios originais voltam." />
+      )}
     </div>
   );
 }

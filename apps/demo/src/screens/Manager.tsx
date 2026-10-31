@@ -5,7 +5,8 @@ import {
   BarChart3, AlertTriangle, Trophy, Receipt, ClipboardList, Clock, ArrowRightLeft, CalendarRange, Check, X as XIcon,
 } from "lucide-react";
 import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/domain";
-import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, type Customer, type Role } from "../data/mock";
+import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
+import { notify } from "../data/notify";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
   inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
@@ -39,7 +40,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
-    { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: 2 },
+    { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
   return (
     <Shell tabs={tabs} tab={tab} onTab={setTab} roleLabel={info.label} userName={info.name}>
@@ -450,41 +451,60 @@ function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) 
 }
 
 function PortfolioView() {
-  const [reqs, setReqs] = useState([
-    { id: "t1", customer: CUSTOMERS[70]!, from: "s3", to: "s1", reason: "Cliente vizinho da minha rota de terça, já pediu atendimento comigo.", at: "há 3h" },
-    { id: "t2", customer: CUSTOMERS[200]!, from: "s5", to: "s4", reason: "Cliente mudou de endereço para Sabará.", at: "ontem" },
-  ]);
+  useStore();
+  const reqs = TRANSFER_REQUESTS.filter((r) => r.status === "pending");
+  const decided = TRANSFER_REQUESTS.filter((r) => r.status !== "pending").slice(0, 5);
   const [form, setForm] = useState({ titular: "s3", sub: "s1", from: TODAY, to: "", reason: "Férias" });
+  const decide = (r: (typeof TRANSFER_REQUESTS)[number], ok: boolean) => commit(() => {
+    const c = customerById.get(r.customerId)!;
+    r.status = ok ? "approved" : "rejected"; r.decidedAt = new Date().toISOString(); r.decidedBy = "Gestão";
+    if (ok) c.sellerId = r.toSellerId;
+    notify({ kind: "comercial", title: ok ? "Transferência aprovada" : "Transferência recusada", text: `${c.tradeName}: ${ok ? `agora na carteira de ${sellerById.get(r.toSellerId)?.name}` : "permanece com o vendedor atual"}.`, to: [`seller:${r.toSellerId}`, `seller:${r.fromSellerId}`] });
+  }, ok ? "Transferência aprovada · carteira anterior, aprovador e motivo registrados" : "Transferência rejeitada · histórico registrado");
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Carteiras</h2>
       <div className="grid gd gd-2">
-        <Card title="Transferências pendentes" icon={<ArrowRightLeft size={17} />}>
-          {reqs.map((r) => (
-            <div key={r.id} className="row" style={{ alignItems: "flex-start" }}>
-              <div className="grow">
-                <div className="title">{r.customer.tradeName}</div>
-                <div className="sub">{sellerById.get(r.from)?.name} → {sellerById.get(r.to)?.name} · {r.at}</div>
-                <div className="small t2" style={{ whiteSpace: "normal", marginTop: 4 }}>“{r.reason}”</div>
+        <Card title={`Transferências pendentes (${reqs.length})`} icon={<ArrowRightLeft size={17} />}>
+          {reqs.map((r) => {
+            const c = customerById.get(r.customerId)!;
+            return (
+              <div key={r.id} className="row" style={{ alignItems: "flex-start" }}>
+                <div className="grow">
+                  <div className="title">{c.tradeName}</div>
+                  <div className="sub">{sellerById.get(r.fromSellerId)?.name} → {sellerById.get(r.toSellerId)?.name} · {fmtDate(r.createdAt)}</div>
+                  <div className="small t2" style={{ whiteSpace: "normal", marginTop: 4 }}>“{r.reason}”</div>
+                </div>
+                <div className="flex" style={{ gap: 6 }}>
+                  <button className="icon-btn" aria-label="Recusar" onClick={() => decide(r, false)}><XIcon size={16} /></button>
+                  <button className="icon-btn" aria-label="Aprovar" style={{ background: "var(--success)", color: "#fff" }} onClick={() => decide(r, true)}><Check size={16} /></button>
+                </div>
               </div>
-              <div className="flex" style={{ gap: 6 }}>
-                <button className="icon-btn" onClick={() => commit(() => setReqs(reqs.filter((x) => x.id !== r.id)), "Transferência rejeitada · histórico registrado")}><XIcon size={16} /></button>
-                <button className="icon-btn" style={{ background: "var(--success)", color: "#fff" }} onClick={() => commit(() => { r.customer.sellerId = r.to; setReqs(reqs.filter((x) => x.id !== r.id)); }, "Transferência aprovada · carteira anterior, aprovador e motivo registrados")}><Check size={16} /></button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {!reqs.length && <div className="small muted">Nenhuma transferência pendente.</div>}
+          {decided.length > 0 && <div className="section-title" style={{ fontSize: 13 }}>Histórico</div>}
+          {decided.map((r) => (
+            <div key={r.id} className="row"><span className="grow small">{customerById.get(r.customerId)?.tradeName} · {sellerById.get(r.fromSellerId)?.name.split(" ")[0]} → {sellerById.get(r.toSellerId)?.name.split(" ")[0]}</span><Badge tone={r.status === "approved" ? "success" : "danger"}>{r.status === "approved" ? "Aprovada" : "Recusada"}</Badge></div>
+          ))}
         </Card>
         <Card title="Acesso temporário à carteira" icon={<CalendarRange size={17} />} sub="férias, afastamento, cobertura">
           <div className="grid g2" style={{ marginBottom: 0 }}>
-            <div className="field"><label>Titular</label><select className="input" value={form.titular} onChange={(e) => setForm({ ...form, titular: e.target.value })}>{SELLERS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-            <div className="field"><label>Substituto</label><select className="input" value={form.sub} onChange={(e) => setForm({ ...form, sub: e.target.value })}>{SELLERS.filter((s) => s.id !== form.titular).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-            <div className="field"><label>Início</label><input type="date" className="input" value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} /></div>
-            <div className="field"><label>Fim</label><input type="date" className="input" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} /></div>
+            <div className="field"><label>Titular</label><select id="ta-holder" className="input" value={form.titular} onChange={(e) => setForm({ ...form, titular: e.target.value })}>{SELLERS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div className="field"><label>Substituto</label><select id="ta-sub" className="input" value={form.sub} onChange={(e) => setForm({ ...form, sub: e.target.value })}>{SELLERS.filter((s) => s.id !== form.titular).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div className="field"><label>Início</label><input id="ta-from" type="date" className="input" value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} /></div>
+            <div className="field"><label>Fim</label><input id="ta-to" type="date" className="input" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} /></div>
           </div>
-          <div className="field"><label>Motivo</label><select className="input" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}><option>Férias</option><option>Afastamento</option><option>Cobertura temporária</option></select></div>
+          <div className="field"><label>Motivo</label><select id="ta-reason" className="input" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}><option>Férias</option><option>Afastamento</option><option>Cobertura temporária</option></select></div>
           <p className="xs muted mb">Acesso removido automaticamente no fim do período. Preparado para integração futura com RH.</p>
-          <button className="btn btn-primary btn-block" disabled={!form.to} onClick={() => commit(() => {}, `Carteira de ${sellerById.get(form.titular)?.name.split(" ")[0]} liberada para ${sellerById.get(form.sub)?.name.split(" ")[0]} até ${fmtDate(form.to)}`)}>Liberar acesso temporário</button>
+          <button className="btn btn-primary btn-block" disabled={!form.to || form.to < form.from} onClick={() => commit(() => {
+            TEMP_ACCESS.unshift({ id: `ta${Date.now()}`, holderSellerId: form.titular, substituteSellerId: form.sub, from: form.from, to: form.to, reason: form.reason, createdAt: new Date().toISOString() });
+            notify({ kind: "comercial", title: "Acesso temporário liberado", text: `Você cobre a carteira de ${sellerById.get(form.titular)?.name} de ${fmtDate(form.from)} a ${fmtDate(form.to)} (${form.reason}).`, to: [`seller:${form.sub}`] });
+          }, `Carteira de ${sellerById.get(form.titular)?.name.split(" ")[0]} liberada para ${sellerById.get(form.sub)?.name.split(" ")[0]} até ${fmtDate(form.to)}`)}>Liberar acesso temporário</button>
+          {TEMP_ACCESS.length > 0 && <div className="section-title" style={{ fontSize: 13 }}>Acessos ativos</div>}
+          {TEMP_ACCESS.map((t) => (
+            <div key={t.id} className="row"><span className="grow small">{sellerById.get(t.substituteSellerId)?.name} cobre {sellerById.get(t.holderSellerId)?.name}</span><span className="xs muted">{fmtDate(t.from)} → {fmtDate(t.to)}</span><Badge tone={t.to >= TODAY ? "success" : "neutral"}>{t.to >= TODAY ? t.reason : "Expirado"}</Badge></div>
+          ))}
         </Card>
       </div>
     </>

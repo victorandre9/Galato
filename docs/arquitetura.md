@@ -30,6 +30,10 @@ Seletor de perfil → 8 perfis. Cada tela usa as regras reais do pacote `domain`
 | Motorista | celular | checklist (gera não conformidade), **Iniciar o dia com confirmação**, entregas, comprovante (tipo configurável), não entrega com motivo obrigatório, ocorrência, EPI, **Finalizar o dia** bloqueado enquanto houver pendência |
 | Coord. transportes | **desktop** | rotas extraídas do sistema / lançamento manual com PDF e conferência, KPIs, alertas logísticos, tempo real por rota com ritmo esperado, ocorrências, não conformidades, frota |
 
+**Banco de teste compartilhado:** publicada no Claude, a demo grava cada alteração do teste (pedidos, comprovantes, liberações, faturamento, rotas, entregas com foto, EPI, ocorrências, notificações) num banco do próprio artifact. Outros perfis e aparelhos veem em tempo real. "Restaurar dados de demonstração" apaga tudo e volta aos dados fictícios. Integrações externas (ERP, estoque, boletos, roteirizador) continuam simuladas. Fora do Claude a demo roda só em memória.
+
+Fluxo ponta a ponta testável: vendedor emite pedido (soma na meta) → financeiro libera → faturamento fatura → coordenador inclui a nota numa rota → motorista inicia o dia, baixa a entrega com foto do comprovante → vendedor e coordenador são notificados.
+
 Offline na demo: o indicador "Sincronizado" no topo simula perda de conexão. Ações continuam funcionando, ficam como pendentes e sincronizam sozinhas ao reconectar.
 
 "Hoje" da demo = último dia útil real (fim de semana recua para sexta).

@@ -13,6 +13,8 @@ import {
 } from "../data/mock";
 import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
+import { notify, MANAGERS_KEYS } from "../data/notify";
+import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE } from "../data/mock";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
 
 const fmtDate = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—");
@@ -109,11 +111,21 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
         {mode === "transfer" ? (
           <ReasonForm title="Solicitar transferência para minha carteira" placeholder="Justificativa (ex.: cliente atendido por mim há 3 meses em outra unidade)"
             cta="Enviar para aprovação do gestor" onCancel={() => setMode(null)}
-            onSubmit={() => { commit(() => {}, "Solicitação enviada ao gerente/coordenador. Transferência só ocorre após aprovação."); onClose(); }} />
+            onSubmit={(reason) => {
+              commit(() => {
+                TRANSFER_REQUESTS.unshift({ id: `tr${Date.now()}`, customerId: c.id, fromSellerId: c.sellerId, toSellerId: viewerSellerId!, reason, createdAt: new Date().toISOString(), status: "pending" });
+                notify({ kind: "comercial", title: "Pedido de transferência de carteira", text: `${sellerById.get(viewerSellerId!)?.name} pediu ${c.tradeName} (carteira de ${sellerById.get(c.sellerId)?.name}).`, to: ["sales_coordinator", "sales_manager", "general_manager"] });
+              }, "Solicitação enviada ao gerente/coordenador. Transferência só ocorre após aprovação.");
+              onClose();
+            }} />
         ) : mode === "forward" ? (
           <ReasonForm title="Encaminhar oportunidade ao responsável" placeholder="Descreva a oportunidade (produto, volume, contato)"
             cta={`Encaminhar para ${v.responsibleSellerName.split(" ")[0]}`} onCancel={() => setMode(null)}
-            onSubmit={() => { commit(() => {}, "Oportunidade encaminhada. Comissão por indicação: regra a definir pela empresa."); onClose(); }} />
+            onSubmit={(text) => {
+              commit(() => notify({ kind: "comercial", title: "Oportunidade encaminhada", text: `${sellerById.get(viewerSellerId!)?.name} indicou ${c.tradeName}: ${text}`, to: [`seller:${c.sellerId}`] }),
+                "Oportunidade encaminhada. Comissão por indicação: regra a definir pela empresa.");
+              onClose();
+            }} />
         ) : (
           <div className="grid g2 mt">
             <button className="btn btn-primary" onClick={() => setMode("transfer")}><ArrowRightLeft size={16} /> Solicitar transferência</button>
@@ -158,7 +170,10 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
 
           <div className="grid g2" style={{ marginBottom: 0 }}>
             {!checkedIn ? (
-              <button className="btn btn-primary" onClick={() => { setCheckedIn(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })); commit(() => {}, "Check-in registrado · visita contabilizada"); }}>
+              <button className="btn btn-primary" onClick={() => { setCheckedIn(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })); commit(() => {
+                const s = SELLERS.find((x) => x.id === c.sellerId);
+                if (s) { s.visitsDoneToday += 1; if (c.routeCode !== TODAY_ROUTE?.code) s.visitsPlannedToday += 1; }
+              }, "Check-in registrado · visita contabilizada"); }}>
                 <LogIn size={17} /> Check-in
               </button>
             ) : (
@@ -251,7 +266,7 @@ function EditableContact({ c }: { c: Customer }) {
   );
 }
 
-function ReasonForm({ title, placeholder, cta, onSubmit, onCancel }: { title: string; placeholder: string; cta: string; onSubmit: () => void; onCancel: () => void }) {
+function ReasonForm({ title, placeholder, cta, onSubmit, onCancel }: { title: string; placeholder: string; cta: string; onSubmit: (text: string) => void; onCancel: () => void }) {
   const [text, setText] = useState("");
   return (
     <Card className="mt">
@@ -259,7 +274,7 @@ function ReasonForm({ title, placeholder, cta, onSubmit, onCancel }: { title: st
       <textarea className="input" rows={3} placeholder={placeholder} value={text} onChange={(e) => setText(e.target.value)} />
       <div className="grid g2 mt" style={{ marginBottom: 0 }}>
         <button className="btn btn-ghost" onClick={onCancel}>Voltar</button>
-        <button className="btn btn-primary" disabled={text.trim().length < 5} onClick={onSubmit}>{cta}</button>
+        <button className="btn btn-primary" disabled={text.trim().length < 5} onClick={() => onSubmit(text.trim())}>{cta}</button>
       </div>
     </Card>
   );
@@ -303,6 +318,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
             amountCents: target?.openCents ?? 0, receivableDoc: target?.doc ?? "Não identificado", createdAt: NOW.toISOString(),
             status: "pending", attachmentName: "comprovante-pagamento.jpg",
           });
+          notify({ kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance"] });
         }, "Comprovante enviado ao financeiro · acompanhe o status em Pendências");
         onClose();
       }}><Send size={16} /> Enviar ao financeiro</button>
@@ -341,6 +357,17 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
       };
       ORDERS.unshift(o);
+      if (kind === "ORDER" && status !== "draft") {
+        const s = SELLERS.find((x) => x.id === c.sellerId);
+        if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; }
+        c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
+        notify({
+          kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
+          title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido para análise de crédito",
+          text: `${o.number} · ${c.tradeName} · ${brl(total)} · prazo ${granted}d${granted !== recommended ? ` (recomendado ${recommended}d)` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
+          to: ["finance", ...(status === "blocked" ? MANAGERS_KEYS : [])],
+        });
+      }
     }, message);
     (onDone ?? onClose)();
   }

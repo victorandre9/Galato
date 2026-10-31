@@ -626,3 +626,7 @@ table.t tr.total-row td { border-top: 2px solid var(--border-strong); background
 .order-row.click { cursor: pointer; border-radius: 12px; }
 .order-row.click:hover { background: var(--neutral-soft); }
 .order-customer { font-weight: 600; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
+/* modo app (Adicionar à Tela de Início): respeita a área do relógio/notch */
+.app-header { padding-top: max(10px, env(safe-area-inset-top)); }
+.login { padding-top: max(30px, calc(env(safe-area-inset-top) + 12px)); }
+.offline-bar { padding-top: max(6px, env(safe-area-inset-top)); }

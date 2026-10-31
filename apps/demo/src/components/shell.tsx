@@ -175,7 +175,7 @@ export function DemoDataPanel() {
         {s.dbMode === "shared" ? "Banco compartilhado ativo: o que você faz aqui aparece nos outros perfis e aparelhos, em tempo real."
           : s.dbMode === "connecting" ? "Conectando ao banco compartilhado…"
           : s.dbMode === "readonly" ? <><b className="gold">Somente leitura.</b> Você vê o banco compartilhado, mas o que fizer fica salvo só neste aparelho. Para gravar para todos, o dono precisa te convidar por e-mail como Editor (com o link público desligado).</>
-          : "Modo local: os dados ficam só neste aparelho (fora do link do Claude)."}
+          : "Os dados ficam salvos neste aparelho: o que você faz aparece em todos os perfis aqui e continua lá mesmo se fechar ou recarregar."}
       </div>
       <button className="btn btn-ghost btn-block btn-sm" onClick={() => setConfirm(true)}><RotateCcw size={15} /> Restaurar dados de demonstração</button>
       {confirm && (

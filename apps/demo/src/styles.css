@@ -613,3 +613,11 @@ table.t tr.total-row td { border-top: 2px solid var(--border-strong); background
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+.steps { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 4px; position: relative; }
+.step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: var(--muted); position: relative; }
+.step-item::before { content: ""; position: absolute; top: 7px; left: -50%; width: 100%; height: 3px; background: var(--track); z-index: 0; }
+.step-item:first-child::before { display: none; }
+.step-item .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--track); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--border-strong); z-index: 1; }
+.step-item.done { color: var(--text-2); } .step-item.done .dot { background: var(--success); box-shadow: 0 0 0 1px var(--success); } .step-item.done::before { background: var(--success); }
+.step-item.now { color: var(--text); font-weight: 600; } .step-item.now .dot { background: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); } .step-item.now::before { background: var(--success); }
+.step-item.bad { color: var(--danger); font-weight: 600; } .step-item.bad .dot { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); } .step-item.bad::before { background: var(--success); }

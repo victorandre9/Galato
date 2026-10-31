@@ -432,6 +432,7 @@ export function OrderDetail({ o, onClose, onCustomer }: { o: HistOrder; onClose:
         </dl>
         {onCustomer && <button className="btn btn-soft btn-sm btn-block mt" onClick={() => onCustomer(c.id)}><History size={14} /> Ver histórico de compras do cliente</button>}
       </Card>
+      {o.status !== "cancelled" && <OrderSteps status={o.status} />}
       <Card title="Itens" className="mt">
         <div className="table-wrap">
           <table className="t">
@@ -577,5 +578,27 @@ function OrderBalloon({ o, onClick, hideCustomer }: { o: HistOrder; onClick: () 
         <span>{statusLabel(o.status)}</span>
       </div>
     </button>
+  );
+}
+
+const STEPS: { label: string; statuses: string[] }[] = [
+  { label: "Pedido", statuses: ["draft"] },
+  { label: "Crédito", statuses: ["awaiting_credit_review", "in_approval", "blocked"] },
+  { label: "Faturamento", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
+  { label: "Faturado", statuses: ["invoiced"] },
+  { label: "Em rota", statuses: ["in_delivery_route", "in_transit"] },
+  { label: "Entregue", statuses: ["delivered", "completed"] },
+];
+function OrderSteps({ status }: { status: string }) {
+  const idx = Math.max(0, STEPS.findIndex((s) => s.statuses.includes(status)));
+  const problem = status === "blocked" || status === "billing_error";
+  return (
+    <div className="steps mt">
+      {STEPS.map((s, i) => (
+        <div key={s.label} className={`step-item ${i < idx || status === "completed" || status === "delivered" ? "done" : i === idx ? (problem ? "bad" : "now") : ""}`}>
+          <span className="dot" /><span className="xs">{s.label}</span>
+        </div>
+      ))}
+    </div>
   );
 }

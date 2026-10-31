@@ -5,7 +5,9 @@ import {
   FileText, Hourglass, FileCheck2, Truck, Receipt, UserRound, Zap, ArrowUp, ArrowDown, CheckCircle2,
 } from "lucide-react";
 import { bucketLabel, PAYMENT_REQUEST_STATUS } from "@galato/domain";
-import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, type Customer, TODAY } from "../data/mock";
+import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, type Customer, type Order, TODAY } from "../data/mock";
+import { OrderDetail } from "./Reports";
+import type { HistOrder } from "../data/history";
 import {
   sellerGoal, todayRouteBuckets, ordersOf, quotesOf, countByStatus, OPEN_QUOTE, AWAITING_CREDIT, IN_ROUTE,
   sellerSalesToday, financeQueue, customerRow, dayLabel,
@@ -170,19 +172,61 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
 }
 
 function SellerOrders() {
+  useStore();
   const [kind, setKind] = useState<"ORDER" | "QUOTE">("ORDER");
-  const list = (kind === "ORDER" ? ordersOf(ME.id) : quotesOf(ME.id)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const [filter, setFilter] = useState<string>("all");
+  const [open, setOpen] = useState<Order | null>(null);
+  // pedidos tirados no teste primeiro, depois do mais recente para o mais antigo
+  const sortNewest = (a: Order, b: Order) => Number(b.id.startsWith("n")) - Number(a.id.startsWith("n")) || b.createdAt.localeCompare(a.createdAt);
+  const all = (kind === "ORDER" ? ordersOf(ME.id) : quotesOf(ME.id)).sort(sortNewest);
+  const groups: { id: string; label: string; statuses: string[] }[] = kind === "ORDER" ? [
+    { id: "all", label: "Todos", statuses: [] },
+    { id: "credit", label: "Aguardando crédito", statuses: AWAITING_CREDIT },
+    { id: "billing", label: "Em faturamento", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
+    { id: "invoiced", label: "Faturados", statuses: ["invoiced"] },
+    { id: "route", label: "Em rota", statuses: IN_ROUTE },
+    { id: "done", label: "Entregues", statuses: ["delivered", "completed"] },
+  ] : [
+    { id: "all", label: "Todos", statuses: [] },
+    { id: "open", label: "Em aberto", statuses: OPEN_QUOTE },
+    { id: "closed", label: "Encerrados", statuses: ["rejected", "expired", "cancelled", "converted"] },
+  ];
+  const g = groups.find((x) => x.id === filter) ?? groups[0]!;
+  const list = g.statuses.length ? all.filter((o) => g.statuses.includes(o.status)) : all;
+  const today = all.filter((o) => o.createdAt.startsWith(TODAY) && !["draft", "cancelled"].includes(o.status));
   return (
     <>
-      <h2 style={{ margin: "6px 0 12px" }}>Pedidos e orçamentos</h2>
+      <h2 style={{ margin: "6px 0 12px" }}>Meus pedidos</h2>
       <div className="chips mb">
-        <Chip on={kind === "ORDER"} onClick={() => setKind("ORDER")}>Pedidos</Chip>
-        <Chip on={kind === "QUOTE"} onClick={() => setKind("QUOTE")}>Orçamentos</Chip>
+        <Chip on={kind === "ORDER"} onClick={() => { setKind("ORDER"); setFilter("all"); }}>Pedidos</Chip>
+        <Chip on={kind === "QUOTE"} onClick={() => { setKind("QUOTE"); setFilter("all"); }}>Orçamentos</Chip>
       </div>
-      <Card><div className="list">{list.map((o) => <OrderRow key={o.id} o={o} />)}</div></Card>
+      {kind === "ORDER" && (
+        <div className="grid g2">
+          <Kpi icon={<ShoppingCart size={17} />} label="Tirados hoje" value={today.length} foot={brl(today.reduce((a, o) => a + o.totalCents, 0))} />
+          <Kpi icon={<Hourglass size={17} />} tone="gold" label="Aguardando crédito" value={countByStatus(all, AWAITING_CREDIT)} foot="toque no filtro abaixo" />
+        </div>
+      )}
+      <div className="chips mb">
+        {groups.map((x) => (
+          <Chip key={x.id} on={filter === x.id} onClick={() => setFilter(x.id)}>
+            {x.label} ({x.statuses.length ? all.filter((o) => x.statuses.includes(o.status)).length : all.length})
+          </Chip>
+        ))}
+      </div>
+      <Card title={g.label === "Todos" ? (kind === "ORDER" ? "Todos os pedidos" : "Todos os orçamentos") : g.label} sub="toque para ver itens e andamento">
+        <div className="list">{list.map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpen(o)} />)}</div>
+        {!list.length && <Empty icon={<FileCheck2 />} text="Nenhum pedido neste filtro." />}
+      </Card>
+      {open && <OrderDetail o={toHist(open)} onClose={() => setOpen(null)} />}
     </>
   );
 }
+
+const toHist = (o: Order): HistOrder => ({
+  id: o.id, number: o.number, invoiceNumber: o.invoiceNumber ?? null, customerId: o.customerId, sellerId: o.sellerId,
+  date: o.createdAt.slice(0, 10), status: o.status, totalCents: o.totalCents, paymentTermDays: o.paymentTermDays, items: o.items, live: true,
+});
 
 function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [day, setDay] = useState(TODAY_ROUTE?.code ?? "R1");

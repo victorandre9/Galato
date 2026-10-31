@@ -1,5 +1,16 @@
 /** Regras de pedido usadas pelas telas da demo. */
-import { TODAY, SELLERS, ORDERS, customerById, sellerById, type Order } from "./mock";
+import { TODAY, SELLERS, ORDERS, customerById, sellerById, nowStamp, type Order } from "./mock";
+import { statusLabel } from "./selectors";
+
+/** Registra um evento na linha do tempo do pedido (com hora real). */
+export function logOrder(o: Order, by: string, text: string) {
+  (o.log ??= []).push({ at: nowStamp(), by, text });
+}
+/** Muda o status e registra quem e quando. */
+export function setOrderStatus(o: Order, status: string, by: string, text?: string) {
+  o.status = status;
+  logOrder(o, by, text ?? statusLabel(status));
+}
 import { notify, MANAGERS_KEYS } from "./notify";
 import { formatBRL } from "@galato/domain";
 
@@ -35,7 +46,7 @@ export function applySalesDelta(o: Order, before: { total: number; counted: bool
 
 export function cancelOrder(o: Order, reason: string) {
   const before = { total: o.totalCents, counted: counts(o) };
-  o.status = "cancelled";
+  setOrderStatus(o, "cancelled", sellerById.get(o.sellerId)?.name ?? "Vendedor", `Cancelado pelo vendedor · ${reason}`);
   applySalesDelta(o, before);
   const c = customerById.get(o.customerId);
   notify({ kind: "comercial", priority: "high", title: "Pedido cancelado pelo vendedor", text: `${o.number} · ${c?.tradeName} · ${formatBRL(o.totalCents)} · ${reason} · ${sellerById.get(o.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });

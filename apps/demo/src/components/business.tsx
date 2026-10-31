@@ -9,20 +9,26 @@ import {
   PAYMENT_REQUEST_STATUS, limitedCustomerView, type StatusDef,
 } from "@galato/domain";
 import {
-  PARAMS, PRODUCTS, ORDERS, PAYMENT_REQUESTS, TODAY, NOW, sellerById, customerById, type Customer, type Order,
+  PARAMS, PRODUCTS, ORDERS, PAYMENT_REQUESTS, TODAY, NOW, nowStamp, sellerById, customerById, type Customer, type Order,
 } from "../data/mock";
 import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock";
 import { PhotoCapture } from "./photo";
-import { newestFirst, applySalesDelta } from "../data/orders";
+import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
+import { OrderOpen } from "./order-flow";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
 export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
 export const termLabel = (d: number) => (d === 0 ? "À vista/PIX" : `${d} dias`);
 export const termShort = (d: number) => (d === 0 ? "à vista" : `${d}d`);
+
+/** "30/10/2026 às 17:42" no fuso da empresa */
+export const fmtDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("pt-BR", { timeZone: PARAMS.timezone, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", " às");
+export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { timeZone: PARAMS.timezone, hour: "2-digit", minute: "2-digit" });
 
 const fmtDate = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—");
 
@@ -102,6 +108,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const r = customerRow(c);
   const history = ORDERS.filter((o) => o.customerId === c.id).sort(newestFirst<Order>((x) => x.createdAt));
   const requests = PAYMENT_REQUESTS.filter((p) => p.customerId === c.id);
+  const checkinsOfCustomer = CHECKINS.filter((k) => k.customerId === c.id);
+  const [openOrder, setOpenOrder] = useState<Order | null>(null);
 
   if (!own) {
     const v = limitedCustomerView({ ...c, responsibleSellerId: c.sellerId, responsibleSellerName: sellerById.get(c.sellerId)!.name });
@@ -122,7 +130,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             cta="Enviar para aprovação do gestor" onCancel={() => setMode(null)}
             onSubmit={(reason) => {
               commit(() => {
-                TRANSFER_REQUESTS.unshift({ id: `tr${Date.now()}`, customerId: c.id, fromSellerId: c.sellerId, toSellerId: viewerSellerId!, reason, createdAt: new Date().toISOString(), status: "pending" });
+                TRANSFER_REQUESTS.unshift({ id: `tr${Date.now()}`, customerId: c.id, fromSellerId: c.sellerId, toSellerId: viewerSellerId!, reason, createdAt: nowStamp(), status: "pending" });
                 notify({ kind: "comercial", title: "Pedido de transferência de carteira", text: `${sellerById.get(viewerSellerId!)?.name} pediu ${c.tradeName} (carteira de ${sellerById.get(c.sellerId)?.name}).`, to: ["sales_coordinator", "sales_manager", "general_manager"] });
               }, "Solicitação enviada ao gerente/coordenador. Transferência só ocorre após aprovação.");
               onClose();
@@ -145,6 +153,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
     );
   }
 
+  if (openOrder) return <OrderOpen order={openOrder} canEdit={!!viewerSellerId && viewerSellerId === openOrder.sellerId} onClose={() => setOpenOrder(null)} />;
   if (mode === "order" || mode === "quote")
     return <OrderBuilder c={c} kind={mode === "order" ? "ORDER" : "QUOTE"} onClose={() => setMode(null)} onDone={onClose} />;
   if (mode === "proof") return <PaymentProofSheet c={c} onClose={() => setMode(null)} />;
@@ -180,7 +189,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
           <div className="grid g2" style={{ marginBottom: 0 }}>
             {!openCheckin ? (
               <button className="btn btn-primary" onClick={() => commit(() => {
-                CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: new Date().toISOString(), date: TODAY });
+                CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
                 const s = SELLERS.find((x) => x.id === c.sellerId);
                 // a visita conta no check-in; repetir no mesmo cliente no mesmo dia não conta de novo
                 if (s && !doneToday.length) s.visitsDoneToday += 1;
@@ -190,7 +199,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             ) : (
               <button className="btn btn-ghost" onClick={() => {
                 const min = Math.max(1, Math.round((Date.now() - new Date(openCheckin.inAt).getTime()) / 60000));
-                commit(() => { openCheckin.outAt = new Date().toISOString(); }, `Checkout registrado · visita de ${min} min (desde ${hhmm(openCheckin.inAt)})`);
+                commit(() => { openCheckin.outAt = nowStamp(); }, `Checkout registrado · visita de ${min} min (desde ${hhmm(openCheckin.inAt)})`);
               }}>
                 <LogOutIc size={17} /> Checkout <span className="xs muted">(desde {hhmm(openCheckin.inAt)})</span>
               </button>
@@ -206,23 +215,31 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
                 : <>Visita de hoje concluída: {doneToday.map((k) => `${hhmm(k.inAt)}–${hhmm(k.outAt!)}`).join(", ")}.</>}
             </div>
           )}
-          <Card title="Histórico do cliente" icon={<History size={17} />}>
-            <div className="timeline">
-              {history.slice(0, 6).map((o) => (
-                <div key={o.id} className={`tl-item ${["completed", "delivered", "invoiced"].includes(o.status) ? "done" : ""}`}>
-                  <div className="flex between"><span className="semi">{o.number}</span><span className="num semi">{brl(o.totalCents)}</span></div>
-                  <div className="xs muted">{fmtDate(o.createdAt)} · {o.kind === "QUOTE" ? "Orçamento" : "Pedido"} · {(o.kind === "QUOTE" ? QUOTE_STATUS : ORDER_STATUS)[o.status as never]?.["label"]} {o.invoiceNumber ? `· ${o.invoiceNumber}` : "· sem NF"} · prazo {termShort(o.paymentTermDays)}</div>
-                </div>
-              ))}
-              {requests.map((p) => (
-                <div key={p.id} className="tl-item">
-                  <div className="flex between"><span className="semi">Comprovante {p.method} · {p.number}</span><span className="num">{brl(p.amountCents)}</span></div>
-                  <div className="xs muted">{PAYMENT_REQUEST_STATUS[p.status].label}</div>
-                </div>
-              ))}
-              <div className="tl-item done"><div className="semi">Visita · check-in</div><div className="xs muted">{fmtDate(c.lastPurchaseDate)} · duração 18 min</div></div>
-              {!history.length && <div className="small muted">Sem pedidos nos últimos dias.</div>}
+          <Card title={`Pedidos do cliente (${history.filter((o) => o.kind === "ORDER").length})`} icon={<History size={17} />} sub="toque no pedido para abrir">
+            <div className="list">
+              {history.filter((o) => o.kind === "ORDER").slice(0, 10).map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpenOrder(o)} />)}
+              {!history.some((o) => o.kind === "ORDER") && <div className="small muted">Nenhum pedido recente.</div>}
             </div>
+            {history.some((o) => o.kind === "QUOTE") && (
+              <>
+                <div className="xs muted semi mt mb">Orçamentos</div>
+                {history.filter((o) => o.kind === "QUOTE").slice(0, 4).map((o) => <OrderRow key={o.id} o={o} />)}
+              </>
+            )}
+            {(requests.length > 0 || checkinsOfCustomer.length > 0) && <div className="divider" />}
+            {requests.map((p) => (
+              <div key={p.id} className="row">
+                <Receipt size={16} className="muted" />
+                <div className="grow"><div className="title small">Comprovante {p.method} · {p.number}</div><div className="sub">{fmtDateTime(p.createdAt)}</div></div>
+                <Badge tone={PAYMENT_REQUEST_STATUS[p.status].tone}>{PAYMENT_REQUEST_STATUS[p.status].label}</Badge>
+              </div>
+            ))}
+            {checkinsOfCustomer.map((k) => (
+              <div key={k.id} className="row">
+                <LogIn size={16} className="muted" />
+                <div className="grow"><div className="title small">Visita · {sellerById.get(k.sellerId)?.name}</div><div className="sub">check-in {fmtDateTime(k.inAt)}{k.outAt ? ` · checkout ${fmtTime(k.outAt)}` : " · em andamento"}</div></div>
+              </div>
+            ))}
           </Card>
         </div>
 
@@ -333,7 +350,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
         commit(() => {
           PAYMENT_REQUESTS.unshift({
             id: `pr-new-${Date.now()}`, number: `SQ-${7500 + PAYMENT_REQUESTS.length}`, customerId: c.id, sellerId: c.sellerId, method,
-            amountCents: target?.openCents ?? 0, receivableDoc: target?.doc ?? "Não identificado", createdAt: NOW.toISOString(),
+            amountCents: target?.openCents ?? 0, receivableDoc: target?.doc ?? "Não identificado", createdAt: nowStamp(),
             status: "pending", attachmentName: "comprovante-pagamento.jpg", attachmentDataUrl: photo!,
           });
           notify({ kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
@@ -373,7 +390,8 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
         const oldTotal = editing.totalCents;
         editing.items = items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents }));
         editing.totalCents = total; editing.paymentTermDays = granted; editing.recommendedTermDays = recommended;
-        editing.status = status; editing.editedAt = new Date().toISOString(); editing.editCount = (editing.editCount ?? 0) + 1;
+        editing.status = status; editing.editedAt = nowStamp(); editing.editCount = (editing.editCount ?? 0) + 1;
+        logOrder(editing, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Alterado pelo vendedor · ${brl(oldTotal)} → ${brl(total)} · volta para análise`);
         applySalesDelta(editing, before);
         if (status !== "draft") {
           c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
@@ -390,10 +408,11 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
     commit(() => {
       const o: Order = {
         id: `n${Date.now()}`, number: kind === "ORDER" ? `PV-${58500 + ORDERS.length}` : `ORC-${3200 + ORDERS.length}`, kind,
-        customerId: c.id, sellerId: c.sellerId, status, createdAt: NOW.toISOString(), totalCents: total,
+        customerId: c.id, sellerId: c.sellerId, status, createdAt: nowStamp(), totalCents: total,
         paymentTermDays: granted, recommendedTermDays: recommended, expectedDelivery: null,
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
       };
+      o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : status === "blocked" ? "Pedido emitido · bloqueado por crédito" : "Pedido emitido · enviado para análise de crédito" }];
       ORDERS.unshift(o);
       if (kind === "ORDER" && status !== "draft") {
         const s = SELLERS.find((x) => x.id === c.sellerId);
@@ -511,7 +530,7 @@ export function OrderRow({ o, onClick }: { o: Order; onClick?: () => void }) {
         {c && <Curve c={c.abcd} />}<span className="order-customer">{c?.tradeName ?? "—"}</span>
       </div>
       <div className="flex between wrap" style={{ gap: 6, marginTop: 5 }}>
-        <span className="xs muted">{fmtDate(o.createdAt)} · {o.items.length} {o.items.length === 1 ? "item" : "itens"} · {termLabel(o.paymentTermDays)}{o.invoiceNumber ? ` · ${o.invoiceNumber}` : ""}</span>
+        <span className="xs muted">{fmtDateTime(o.createdAt)} · {o.items.length} {o.items.length === 1 ? "item" : "itens"} · {termLabel(o.paymentTermDays)}{o.invoiceNumber ? ` · ${o.invoiceNumber}` : ""}</span>
         <Badge tone={st[o.status]?.tone}>{st[o.status]?.label ?? o.status}</Badge>
       </div>
     </div>

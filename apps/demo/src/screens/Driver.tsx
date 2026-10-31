@@ -7,10 +7,11 @@ import {
 import { DELIVERY_STATUS, EPI_STATUS } from "@galato/domain";
 import {
   PARAMS, DELIVERY_ROUTES, CURRENT_DRIVER as ME, VEHICLES, CHECKLIST_ITEMS, EPI_REQUESTS, DRIVER_HISTORY,
-  NONCONFORMITIES, INCIDENTS, customerById, TODAY, ORDERS, PROOFS, type Delivery,
+  NONCONFORMITIES, INCIDENTS, customerById, TODAY, ORDERS, PROOFS, nowStamp, type Delivery,
 } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { PhotoCapture } from "../components/photo";
+import { setOrderStatus } from "../data/orders";
 import { routeProgress, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
@@ -55,11 +56,11 @@ function DriverHome() {
 
   function startDay() {
     commit(() => {
-      route.startedAt = new Date().toISOString();
+      route.startedAt = nowStamp();
       route.deliveries.forEach((d) => {
         if (d.status === "scheduled") d.status = "in_transit";
         const o = d.orderId ? ORDERS.find((x) => x.id === d.orderId) : undefined;
-        if (o) o.status = "in_transit";
+        if (o) setOrderStatus(o, "in_transit", ME.name, `Saiu para entrega · ${route.name}`);
       });
       const bySeller = new Map<string, number>();
       route.deliveries.forEach((d) => { const sid = customerById.get(d.customerId)?.sellerId; if (sid) bySeller.set(sid, (bySeller.get(sid) ?? 0) + 1); });
@@ -127,7 +128,7 @@ function DriverHome() {
         <ConfirmModal title="Finalizar o dia?" confirmLabel="Finalizar" danger disabled={!resolved} onClose={() => setConfirmFinish(false)}
           onConfirm={() => {
             commit(() => {
-              route.finishedAt = new Date().toISOString();
+              route.finishedAt = nowStamp();
               notify({ kind: "logistica", title: "Motorista finalizou o dia", text: `${ME.name} · ${route.name}: ${p.delivered} entregues, ${p.failed} não entregues.`, to: ["transport_coordinator"] });
             }, "Dia finalizado · resumo enviado à coordenação");
             setConfirmFinish(false);
@@ -173,9 +174,9 @@ function DeliverySheet({ d, onClose, onIncident }: { d: Delivery; onClose: () =>
 
   function confirmDelivery() {
     commit(() => {
-      d.status = "delivered"; d.deliveredAt = new Date().toISOString(); d.proofName = proofType;
-      PROOFS.unshift({ id: `pf-${d.id}`, deliveryId: d.id, routeId: route.id, type: proofType, dataUrl: photo!, at: new Date().toISOString(), driverId: ME.id });
-      if (order) order.status = "delivered";
+      d.status = "delivered"; d.deliveredAt = nowStamp(); d.proofName = proofType;
+      PROOFS.unshift({ id: `pf-${d.id}`, deliveryId: d.id, routeId: route.id, type: proofType, dataUrl: photo!, at: nowStamp(), driverId: ME.id });
+      if (order) setOrderStatus(order, "delivered", ME.name, `Entregue · comprovante ${proofType}`);
       notify({ kind: "logistica", title: "Entrega realizada", text: `${c.tradeName} · ${d.invoiceNumber} entregue por ${ME.name.split(" ")[0]} · comprovante ${proofType}.`, to: [`seller:${c.sellerId}`, "transport_coordinator", "general_manager"] });
     }, "Entrega baixada · comprovante enviado");
     onClose();
@@ -234,7 +235,7 @@ function DeliverySheet({ d, onClose, onIncident }: { d: Delivery; onClose: () =>
             <button className="btn btn-danger" disabled={!reason} onClick={() => {
               commit(() => {
                 d.status = "not_delivered"; d.nonDeliveryReason = reason!;
-                if (order) order.status = "invoiced";
+                if (order) setOrderStatus(order, "invoiced", ME.name, `Não entregue · ${reason} · volta para reprogramação`);
                 notify({ kind: "alerta", priority: "high", title: "Entrega não realizada", text: `${c.tradeName} · ${d.invoiceNumber}: ${reason}.`, to: ["transport_coordinator", `seller:${c.sellerId}`] });
               }, "Não entrega registrada · coordenação e vendedor avisados");
               onClose();
@@ -268,8 +269,8 @@ function ChecklistSheet({ onClose }: { onClose: () => void }) {
       {ncs.length > 0 && <div className="small mt" style={{ padding: 10, borderRadius: 12, background: "var(--warning-soft)" }}>{ncs.length} problema(s) vão gerar <b>não conformidade</b> para a coordenação (foto {PARAMS.catalogs.nonconformityPhotoRequired ? "obrigatória" : "opcional"}).</div>}
       <button className="btn btn-primary btn-block mt" disabled={!all} onClick={() => {
         commit(() => {
-          ncs.forEach((item, k) => NONCONFORMITIES.unshift({ id: `nc${Date.now()}${k}`, item, description: "Registrado no checklist do motorista.", vehicleId: vehicle, driverId: ME.id, severity: "medium", status: "open", createdAt: new Date().toISOString(), responsible: "Coord. transportes" }));
-          route.checklistDone = true; route.checklistVehicleId = vehicle; route.checklistAt = new Date().toISOString(); route.checklistNcs = ncs;
+          ncs.forEach((item, k) => NONCONFORMITIES.unshift({ id: `nc${Date.now()}${k}`, item, description: "Registrado no checklist do motorista.", vehicleId: vehicle, driverId: ME.id, severity: "medium", status: "open", createdAt: nowStamp(), responsible: "Coord. transportes" }));
+          route.checklistDone = true; route.checklistVehicleId = vehicle; route.checklistAt = nowStamp(); route.checklistNcs = ncs;
           notify({ kind: "logistica", priority: ncs.length ? "high" : "normal", title: ncs.length ? "Checklist com não conformidade" : "Checklist concluído", text: `${ME.name} · ${plate}${ncs.length ? ` · problemas: ${ncs.join(", ")}` : " · sem problemas"}.`, to: ["transport_coordinator", ...MANAGERS_KEYS] });
         }, ncs.length ? `Checklist salvo · ${ncs.length} não conformidade(s) aberta(s)` : "Checklist concluído · veículo liberado");
         onClose();
@@ -295,7 +296,7 @@ function IncidentSheet({ onClose, forDelivery }: { onClose: () => void; forDeliv
       <p className="xs muted mt">Horário, motorista, veículo e rota são registrados automaticamente.</p>
       <button className="btn btn-primary btn-block mt" disabled={!type || desc.trim().length < 5} onClick={() => {
         commit(() => {
-          INCIDENTS.unshift({ id: `i${Date.now()}`, type: type!, description: desc, routeId: route.id, driverId: ME.id, customerId: cust || undefined, createdAt: new Date().toISOString(), status: "open" });
+          INCIDENTS.unshift({ id: `i${Date.now()}`, type: type!, description: desc, routeId: route.id, driverId: ME.id, customerId: cust || undefined, createdAt: nowStamp(), status: "open" });
           notify({ kind: "alerta", priority: "high", title: `Ocorrência: ${type}`, text: `${ME.name.split(" ")[0]} · ${route.name}${cust ? ` · ${customerById.get(cust)?.tradeName}` : ""}: ${desc}`, to: ["transport_coordinator"] });
         }, "Ocorrência registrada · coordenação de transportes avisada");
         onClose();
@@ -326,7 +327,7 @@ function EpiSheet({ onClose }: { onClose: () => void }) {
       </div>
       <button className="btn btn-gold btn-block" disabled={!type || !reason.trim()} onClick={() => {
         commit(() => {
-          EPI_REQUESTS.unshift({ id: `e${Date.now()}`, type: type!, qty, reason, status: "requested", createdAt: new Date().toISOString(), driverId: ME.id });
+          EPI_REQUESTS.unshift({ id: `e${Date.now()}`, type: type!, qty, reason, status: "requested", createdAt: nowStamp(), driverId: ME.id });
           notify({ kind: "operacional", title: "Nova solicitação de EPI", text: `${ME.name} pediu ${qty}× ${type} (${reason}).`, to: ["transport_coordinator"] });
         }, "Solicitação de EPI enviada à coordenação");
         onClose();

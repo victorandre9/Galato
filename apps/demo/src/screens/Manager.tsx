@@ -9,7 +9,11 @@ import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, 
 import { notify } from "../data/notify";
 import { ReportsView, RankingSheet, SellerPanel } from "./Reports";
 import { RouteDetail, ChecklistSummary } from "./Ops";
-import { CHECKINS, PAYMENT_REQUESTS, NONCONFORMITIES, VEHICLES, type DeliveryRoute, type PaymentRequest } from "../data/mock";
+import { OrderOpen } from "../components/order-flow";
+import { OrderRow } from "../components/business";
+import { newestFirst } from "../data/orders";
+import type { Order } from "../data/mock";
+import { nowStamp, CHECKINS, PAYMENT_REQUESTS, NONCONFORMITIES, VEHICLES, type DeliveryRoute, type PaymentRequest } from "../data/mock";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
   inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
@@ -89,6 +93,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
   const [drill, setDrill] = useState<null | "visits" | "deliveries">(null);
   const [rankOpen, setRankOpen] = useState(false);
   const [routeOpen, setRouteOpen] = useState<DeliveryRoute | null>(null);
+  const [pipe, setPipe] = useState<string | null>(null);
   const [sellerOpen, setSellerOpen] = useState<string | null>(null);
   const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
     ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, tab: "sales" })),
@@ -187,7 +192,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             ["Em rota / trânsito", countByStatus(orders, IN_ROUTE), "brand"],
             ["Erro de faturamento", countByStatus(orders, ["billing_error"]), "danger"],
           ].map(([l, n, t]) => (
-            <div key={l as string} className="row"><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
+            <div key={l as string} className="row click" onClick={() => setPipe(l as string)}><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
           ))}
         </Card>
         <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")}>
@@ -212,6 +217,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
       </div>
 
       {routeOpen && <RouteDetail r={routeOpen} onClose={() => setRouteOpen(null)} />}
+      {pipe && <PipelineSheet title={pipe} scope={scope} onClose={() => setPipe(null)} />}
       {rankOpen && <RankingSheet scope={scope} initial={rankMode} onClose={() => setRankOpen(false)} />}
       {sellerOpen && <SellerPanel id={sellerOpen} onClose={() => setSellerOpen(null)} />}
       {drill === "visits" && (
@@ -504,7 +510,7 @@ function PortfolioView() {
   const [form, setForm] = useState({ titular: "s3", sub: "s1", from: TODAY, to: "", reason: "Férias" });
   const decide = (r: (typeof TRANSFER_REQUESTS)[number], ok: boolean) => commit(() => {
     const c = customerById.get(r.customerId)!;
-    r.status = ok ? "approved" : "rejected"; r.decidedAt = new Date().toISOString(); r.decidedBy = "Gestão";
+    r.status = ok ? "approved" : "rejected"; r.decidedAt = nowStamp(); r.decidedBy = "Gestão";
     if (ok) c.sellerId = r.toSellerId;
     notify({ kind: "comercial", title: ok ? "Transferência aprovada" : "Transferência recusada", text: `${c.tradeName}: ${ok ? `agora na carteira de ${sellerById.get(r.toSellerId)?.name}` : "permanece com o vendedor atual"}.`, to: [`seller:${r.toSellerId}`, `seller:${r.fromSellerId}`] });
   }, ok ? "Transferência aprovada · carteira anterior, aprovador e motivo registrados" : "Transferência rejeitada · histórico registrado");
@@ -545,7 +551,7 @@ function PortfolioView() {
           <div className="field"><label>Motivo</label><select id="ta-reason" className="input" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}><option>Férias</option><option>Afastamento</option><option>Cobertura temporária</option></select></div>
           <p className="xs muted mb">Acesso removido automaticamente no fim do período. Preparado para integração futura com RH.</p>
           <button className="btn btn-primary btn-block" disabled={!form.to || form.to < form.from} onClick={() => commit(() => {
-            TEMP_ACCESS.unshift({ id: `ta${Date.now()}`, holderSellerId: form.titular, substituteSellerId: form.sub, from: form.from, to: form.to, reason: form.reason, createdAt: new Date().toISOString() });
+            TEMP_ACCESS.unshift({ id: `ta${Date.now()}`, holderSellerId: form.titular, substituteSellerId: form.sub, from: form.from, to: form.to, reason: form.reason, createdAt: nowStamp() });
             notify({ kind: "comercial", title: "Acesso temporário liberado", text: `Você cobre a carteira de ${sellerById.get(form.titular)?.name} de ${fmtDate(form.from)} a ${fmtDate(form.to)} (${form.reason}).`, to: [`seller:${form.sub}`] });
           }, `Carteira de ${sellerById.get(form.titular)?.name.split(" ")[0]} liberada para ${sellerById.get(form.sub)?.name.split(" ")[0]} até ${fmtDate(form.to)}`)}>Liberar acesso temporário</button>
           {TEMP_ACCESS.length > 0 && <div className="section-title" style={{ fontSize: 13 }}>Acessos ativos</div>}
@@ -766,5 +772,22 @@ function ChecklistsCard() {
         </table>
       </div>
     </Card>
+  );
+}
+
+const PIPE: Record<string, string[]> = {
+  "Aguardando crédito": AWAITING_CREDIT, "Em faturamento": IN_BILLING, "Faturados": ["invoiced"],
+  "Em rota / trânsito": IN_ROUTE, "Erro de faturamento": ["billing_error"],
+};
+function PipelineSheet({ title, scope, onClose }: { title: string; scope: string[]; onClose: () => void }) {
+  useStore();
+  const [open, setOpen] = useState<Order | null>(null);
+  const list = ordersOf().filter((o) => scope.includes(o.sellerId) && (PIPE[title] ?? []).includes(o.status)).sort(newestFirst<Order>((x) => x.createdAt));
+  if (open) return <OrderOpen order={open} canEdit={false} onClose={() => setOpen(null)} />;
+  return (
+    <Sheet title={`${title} (${list.length})`} onClose={onClose} icon={<ClipboardList size={18} />}>
+      <p className="small muted mb">Com data e hora de emissão. Toque no pedido para ver itens e a linha do tempo.</p>
+      <div className="list">{list.map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpen(o)} />)}</div>
+    </Sheet>
   );
 }

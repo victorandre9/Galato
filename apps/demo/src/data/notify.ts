@@ -1,11 +1,11 @@
 /** Central de notificações: cria e filtra por quem está vendo. */
-import { NOTIFICATIONS, NOW, CURRENT_SELLER, CURRENT_DRIVER, type NotifKind, type Role } from "./mock";
+import { NOTIFICATIONS, CURRENT_SELLER, CURRENT_DRIVER, nowStamp, type NotifKind, type Role } from "./mock";
 
 let seq = 0;
 export function notify(n: { kind: NotifKind; title: string; text: string; to: string[]; priority?: "normal" | "high" }) {
   NOTIFICATIONS.unshift({
     id: `n${Date.now().toString(36)}${(seq++).toString(36)}`,
-    at: new Date().toISOString() > NOW.toISOString() ? new Date().toISOString() : NOW.toISOString(),
+    at: nowStamp(),
     kind: n.kind, priority: n.priority ?? "normal", title: n.title, text: n.text, to: n.to, readBy: [],
   });
 }

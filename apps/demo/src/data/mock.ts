@@ -28,8 +28,16 @@ function lastBusinessDay(d: IsoDate): IsoDate {
   return x;
 }
 export const TODAY: IsoDate = lastBusinessDay(isoDateInTimezone(new Date(), PARAMS.timezone));
-/** "agora" de demonstração: hoje às 14:20 (BRT) */
-export const NOW = new Date(`${TODAY}T17:20:00Z`);
+/**
+ * Carimbo de data/hora: data de demonstração (TODAY) + hora real de agora (fuso da empresa).
+ * Assim a hora de pedidos, liberações e entregas é a verdadeira.
+ */
+export function nowStamp(): string {
+  const hms = new Intl.DateTimeFormat("en-GB", { timeZone: PARAMS.timezone, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date());
+  return new Date(`${TODAY}T${hms}-03:00`).toISOString();
+}
+/** "agora" da demonstração = hora real no dia de demonstração */
+export const NOW = new Date(nowStamp());
 
 // ---------------------------------------------------------------- PRNG
 let seed = 20261031;
@@ -254,6 +262,8 @@ export interface Order {
   status: string; createdAt: string; totalCents: number; paymentTermDays: number; recommendedTermDays: number;
   expectedDelivery: IsoDate | null; items: OrderItem[]; invoiceNumber?: string; billingError?: string;
   editedAt?: string; editCount?: number;
+  /** linha do tempo com horário de cada etapa */
+  log?: { at: string; by: string; text: string }[];
 }
 const orderStatusPool: OrderStatus[] = [
   "awaiting_credit_review", "awaiting_credit_review", "in_approval", "credit_approved", "scheduled_for_billing",
@@ -509,3 +519,36 @@ export const YESTERDAY_ROUTES: YesterdayRoute[] = ydRoutes.map(([routeName, driv
 // ---------------------------------------------------------------- check-ins (visitas)
 export interface Checkin { id: string; customerId: string; sellerId: string; inAt: string; outAt?: string; date: IsoDate }
 export const CHECKINS: Checkin[] = [];
+
+// ---------------------------------------------------------------- linha do tempo dos pedidos fictícios
+(() => {
+  const flow: [string, number, string][] = [
+    ["credit_approved", 95, "Liberado pelo crédito"],
+    ["scheduled_for_billing", 130, "Programado para faturamento"],
+    ["sent_to_billing", 150, "Enviado ao faturamento"],
+    ["billing_in_progress", 190, "Em faturamento"],
+    ["invoiced", 240, "Faturado"],
+    ["in_delivery_route", 900, "Incluído na rota de entrega"],
+    ["in_transit", 1240, "Saiu para entrega"],
+    ["delivered", 1500, "Entregue"],
+    ["completed", 1520, "Concluído"],
+  ];
+  const pos = (st: string) => flow.findIndex((f) => f[0] === st);
+  for (const o of ORDERS) {
+    if (o.kind !== "ORDER" || o.log) continue;
+    const seller = sellerById.get(o.sellerId)?.name ?? "Vendedor";
+    const t0 = new Date(o.createdAt).getTime();
+    const at = (min: number) => new Date(t0 + min * 60_000).toISOString();
+    o.log = [{ at: o.createdAt, by: seller, text: "Pedido emitido · enviado para análise de crédito" }];
+    if (o.status === "blocked") { o.log.push({ at: at(40), by: FINANCE_USER.name, text: "Bloqueado pelo crédito" }); continue; }
+    if (o.status === "in_approval") { o.log.push({ at: at(35), by: FINANCE_USER.name, text: "Em aprovação" }); continue; }
+    if (o.status === "cancelled") { o.log.push({ at: at(60), by: seller, text: "Cancelado" }); continue; }
+    const target = o.status === "billing_error" ? pos("billing_in_progress") : pos(o.status);
+    for (let i = 0; i <= target; i++) {
+      const [, min, text] = flow[i]!;
+      if (t0 + min * 60_000 > NOW.getTime()) break;
+      o.log.push({ at: at(min), by: i === 0 ? FINANCE_USER.name : i <= 4 ? BILLING_USER.name : i <= 5 ? TRANSPORT_COORD.name : "Motorista", text });
+    }
+    if (o.status === "billing_error") o.log.push({ at: at(200), by: BILLING_USER.name, text: `Erro de faturamento · ${o.billingError}` });
+  }
+})();

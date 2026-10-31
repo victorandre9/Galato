@@ -4,7 +4,7 @@ import { BarChart3, Users, MapPin, Target, PieChart } from "lucide-react";
 import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainment, daysBetween, inactivityBucket, bucketLabel, ORDER_STATUS, type IsoDate } from "@galato/domain";
 import { FileText, UserX, History } from "lucide-react";
 import { sellerMonthOrders, customerOrders, customersWithoutPurchaseThisMonth, type HistOrder } from "../data/history";
-import { fmtDate, termLabel, termShort } from "../components/business";
+import { fmtDate, fmtDateTime, termLabel, termShort } from "../components/business";
 import { PARAMS, SELLERS, CUSTOMERS, ORDERS, TODAY, PRODUCTS, sellerById, customerById } from "../data/mock";
 import { sellerGoal, teamGoal, dayLabel, statusLabel, financial } from "../data/selectors";
 import { useStore } from "../data/store";
@@ -373,7 +373,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="click" onClick={() => setOrder(o)}>
-                  <td>{fmtDate(o.date)}</td><td className="semi">{o.number}</td><td>{o.invoiceNumber ?? <span className="muted">sem NF</span>}</td>
+                  <td>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</td><td className="semi">{o.number}</td><td>{o.invoiceNumber ?? <span className="muted">sem NF</span>}</td>
                   <td><span className="flex" style={{ gap: 6 }}><Curve c={customerById.get(o.customerId)!.abcd} /> {customerById.get(o.customerId)?.tradeName}</span></td>
                   <td className="r num semi">{brl(o.totalCents)}</td><td className="r">{termShort(o.paymentTermDays)}</td>
                   <td><Badge tone={(ORDER_STATUS as unknown as Record<string, { tone: "neutral" }>)[o.status]?.tone ?? "neutral"}>{statusLabel(o.status)}</Badge></td>
@@ -424,7 +424,7 @@ export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder;
           <dt>Cliente</dt><dd>{onCustomer ? <button className="linkbtn" onClick={() => onCustomer(c.id)}>{c.tradeName}</button> : c.tradeName}</dd>
           <dt>Código / CNPJ</dt><dd>{c.code} · {c.document}</dd>
           <dt>Vendedor</dt><dd>{sellerById.get(o.sellerId)?.name}</dd>
-          <dt>Data</dt><dd>{fmtDate(o.date)}</dd>
+          <dt>Emitido em</dt><dd>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</dd>
           <dt>Nota fiscal</dt><dd>{o.invoiceNumber ?? "Sem NF"}</dd>
           <dt>Condição</dt><dd>{termLabel(o.paymentTermDays)}</dd>
           <dt>Status</dt><dd>{statusLabel(o.status)}</dd>
@@ -434,6 +434,18 @@ export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder;
       </Card>
       {o.status !== "cancelled" ? <OrderSteps status={o.status} /> : <div className="mt"><Badge tone="neutral">Pedido cancelado</Badge></div>}
       {actions}
+      {o.log && o.log.length > 0 && (
+        <Card title="Linha do tempo" className="mt" sub="hora de cada etapa">
+          <div className="timeline">
+            {[...o.log].reverse().map((e, i) => (
+              <div key={i} className={`tl-item ${i === 0 ? "" : "done"}`}>
+                <div className="flex between wrap" style={{ gap: 6 }}><span className="semi">{e.text}</span><span className="small num">{fmtDateTime(e.at)}</span></div>
+                <div className="xs muted">{e.by}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
       <Card title="Itens" className="mt">
         <div className="table-wrap">
           <table className="t">
@@ -497,7 +509,7 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
             <tbody>
               {orders.map((o) => (
                 <tr key={o.id} className="click" onClick={() => setOrder(o)}>
-                  <td>{fmtDate(o.date)}</td><td className="semi">{o.number}</td><td>{o.invoiceNumber ?? <span className="muted">sem NF</span>}</td>
+                  <td>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</td><td className="semi">{o.number}</td><td>{o.invoiceNumber ?? <span className="muted">sem NF</span>}</td>
                   <td className="r num semi">{brl(o.totalCents)}</td><td className="r">{termShort(o.paymentTermDays)}</td><td className="r">{o.items.length}</td>
                   <td>{statusLabel(o.status)}</td>
                 </tr>
@@ -575,7 +587,7 @@ function OrderBalloon({ o, onClick, hideCustomer }: { o: HistOrder; onClick: () 
       <div className="flex between"><b>{o.number}</b><b className="num">{brl(o.totalCents)}</b></div>
       {!hideCustomer && <div className="flex" style={{ gap: 6, marginTop: 4 }}><Curve c={c.abcd} /><span className="semi small">{c.tradeName}</span></div>}
       <div className="flex between xs muted" style={{ marginTop: 4 }}>
-        <span>{fmtDate(o.date)} · {o.invoiceNumber ?? "sem NF"} · {o.items.length} itens · {termShort(o.paymentTermDays)}</span>
+        <span>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)} · {o.invoiceNumber ?? "sem NF"} · {o.items.length} itens · {termShort(o.paymentTermDays)}</span>
         <span>{statusLabel(o.status)}</span>
       </div>
     </button>

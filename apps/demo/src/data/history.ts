@@ -6,6 +6,7 @@
  */
 import { addDays, isBusinessDay, monthBounds, type IsoDate } from "@galato/domain";
 import { PARAMS, CUSTOMERS, SELLERS, PRODUCTS, ORDERS, TODAY, type Order, type OrderItem } from "./mock";
+import { newestFirst } from "./orders";
 
 function hash(s: string) {
   let h = 2166136261;
@@ -90,7 +91,7 @@ export function sellerMonthOrders(sellerId: string): HistOrder[] {
     });
     cache.set(key, synth);
   }
-  return [...live, ...synth].sort((a, b) => b.date.localeCompare(a.date));
+  return [...live, ...synth].sort(newestFirst<HistOrder>((x) => x.date));
 }
 
 /** Histórico completo de um cliente: mês atual + 6 meses anteriores. */
@@ -124,7 +125,7 @@ export function customerOrders(customerId: string): HistOrder[] {
     });
     cache.set(key, past);
   }
-  return [...month, ...past].sort((a, b) => b.date.localeCompare(a.date));
+  return [...month, ...past].sort(newestFirst<HistOrder>((x) => x.date));
 }
 
 /** Clientes da carteira sem pedido no mês atual. */

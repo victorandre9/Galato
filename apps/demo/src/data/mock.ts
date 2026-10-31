@@ -253,6 +253,7 @@ export interface Order {
   id: string; number: string; kind: "ORDER" | "QUOTE" | "SIMPLE_QUOTE"; customerId: string; sellerId: string;
   status: string; createdAt: string; totalCents: number; paymentTermDays: number; recommendedTermDays: number;
   expectedDelivery: IsoDate | null; items: OrderItem[]; invoiceNumber?: string; billingError?: string;
+  editedAt?: string; editCount?: number;
 }
 const orderStatusPool: OrderStatus[] = [
   "awaiting_credit_review", "awaiting_credit_review", "in_approval", "credit_approved", "scheduled_for_billing",

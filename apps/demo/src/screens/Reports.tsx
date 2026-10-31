@@ -414,7 +414,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
   );
 }
 
-export function OrderDetail({ o, onClose, onCustomer }: { o: HistOrder; onClose: () => void; onCustomer?: (id: string) => void }) {
+export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder; onClose: () => void; onCustomer?: (id: string) => void; actions?: React.ReactNode }) {
   const c = customerById.get(o.customerId)!;
   const days = c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null;
   return (
@@ -432,7 +432,8 @@ export function OrderDetail({ o, onClose, onCustomer }: { o: HistOrder; onClose:
         </dl>
         {onCustomer && <button className="btn btn-soft btn-sm btn-block mt" onClick={() => onCustomer(c.id)}><History size={14} /> Ver histórico de compras do cliente</button>}
       </Card>
-      {o.status !== "cancelled" && <OrderSteps status={o.status} />}
+      {o.status !== "cancelled" ? <OrderSteps status={o.status} /> : <div className="mt"><Badge tone="neutral">Pedido cancelado</Badge></div>}
+      {actions}
       <Card title="Itens" className="mt">
         <div className="table-wrap">
           <table className="t">

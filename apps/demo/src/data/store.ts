@@ -94,7 +94,10 @@ export function setOnline(online: boolean) {
 /** Atualização vinda de outro aparelho / outra pessoa. */
 startSync({
   onRemoteChange: () => setState({ version: state.version + 1 }),
-  onModeChange: (m) => setState({ dbMode: m }),
+  onModeChange: (m) => {
+    setState({ dbMode: m });
+    if (m === "readonly") toast("Somente leitura: você não tem permissão de gravar no banco compartilhado. O que fizer fica salvo só neste aparelho.", "warning", 8000);
+  },
 });
 
 export function setTheme(theme: Theme) {

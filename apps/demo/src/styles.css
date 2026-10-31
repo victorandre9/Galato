@@ -621,3 +621,8 @@ table.t tr.total-row td { border-top: 2px solid var(--border-strong); background
 .step-item.done { color: var(--text-2); } .step-item.done .dot { background: var(--success); box-shadow: 0 0 0 1px var(--success); } .step-item.done::before { background: var(--success); }
 .step-item.now { color: var(--text); font-weight: 600; } .step-item.now .dot { background: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); } .step-item.now::before { background: var(--success); }
 .step-item.bad { color: var(--danger); font-weight: 600; } .step-item.bad .dot { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-soft); } .step-item.bad::before { background: var(--success); }
+.order-row { padding: 12px 4px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.order-row:last-child { border-bottom: 0; }
+.order-row.click { cursor: pointer; border-radius: 12px; }
+.order-row.click:hover { background: var(--neutral-soft); }
+.order-customer { font-weight: 600; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }

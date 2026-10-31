@@ -40,7 +40,13 @@ function snapshotAll(into: Map<string, string>) {
 snapshotAll(pristine);
 snapshotAll(known);
 
-export type DbMode = "connecting" | "shared" | "local";
+/**
+ * shared   = grava no banco compartilhado (dono / editor)
+ * readonly = vê o banco compartilhado, mas não tem permissão de gravar (ex.: link público)
+ * local    = sem banco (fora do Claude)
+ * Em readonly/local o que a pessoa faz fica salvo só no aparelho dela.
+ */
+export type DbMode = "connecting" | "shared" | "readonly" | "local";
 type Listener = () => void;
 let mode: DbMode = "connecting";
 let db: any = null;
@@ -50,6 +56,26 @@ const offlineDirty = new Set<string>();
 let writeChain: Promise<unknown> = Promise.resolve();
 let online = true;
 
+// ---------------- alterações que ficam só neste aparelho
+const LOCAL_KEY = "galato-local-overlay";
+const localOnly = new Map<string, { type: string; id: string; json: string | null }>();
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) for (const [k, v] of Object.entries(JSON.parse(raw) as Record<string, { type: string; id: string; json: string | null }>)) localOnly.set(k, v);
+  } catch { /* sem storage */ }
+}
+function saveLocal() {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(Object.fromEntries(localOnly))); }
+  catch { /* cheio ou bloqueado: continua em memória nesta aba */ }
+}
+function keepLocal(k: string) {
+  const meta = keyMeta.get(k);
+  if (!meta) return;
+  localOnly.set(k, { ...meta, json: known.get(k) ?? null });
+  saveLocal();
+}
+
 export function getDbMode() { return mode; }
 
 function replaceInPlace(target: Record<string, unknown>, data: Record<string, unknown>) {
@@ -57,10 +83,12 @@ function replaceInPlace(target: Record<string, unknown>, data: Record<string, un
   Object.assign(target, structuredClone(data));
 }
 
-function applyDoc(type: string, id: string, json: string | null) {
+function applyDoc(type: string, id: string, json: string | null, fromRemote = false) {
   const list = REG[type];
   if (!list) return false;
   const k = keyOf(type, id);
+  // o que este aparelho fez sem conseguir gravar não pode ser apagado pelo banco
+  if (fromRemote && localOnly.has(k)) return false;
   const body = json ?? pristine.get(k) ?? null;
   const idx = list.findIndex((e) => e.id === id);
   if (body === null) {
@@ -80,14 +108,19 @@ function applyDoc(type: string, id: string, json: string | null) {
 }
 
 function writeKey(k: string) {
-  if (!db) return;
+  if (!db || mode === "readonly" || mode === "local") { keepLocal(k); return; }
   const meta = keyMeta.get(k);
   if (!meta) return;
   const json = known.get(k);
   const ref = db.collection(COLLECTION).doc(k);
+  keepLocal(k); // garante enquanto o banco não confirma
   writeChain = writeChain
     .then(() => (json === undefined ? ref.delete() : ref.set({ type: meta.type, id: meta.id, json, at: new Date().toISOString() })))
-    .catch((e: unknown) => console.warn("Falha ao gravar", k, e));
+    .then(() => { localOnly.delete(k); saveLocal(); })
+    .catch((e: { code?: string }) => {
+      console.warn("Falha ao gravar", k, e);
+      if (["invalid_argument", "not_granted", "revoked", "capability_disabled"].includes(e?.code ?? "")) onMode("readonly");
+    });
 }
 
 /** Chamado depois de cada ação: detecta entidades alteradas e grava. */
@@ -115,10 +148,13 @@ export function setSyncOnline(v: boolean) {
 
 /** Apaga todas as alterações do teste e volta à base fictícia. */
 export async function resetDemo() {
-  if (db) {
-    const snap = await db.collection(COLLECTION).get();
-    for (const d of snap.docs) await db.collection(COLLECTION).doc(d.id).delete();
+  if (db && mode === "shared") {
+    try {
+      const snap = await db.collection(COLLECTION).get();
+      for (const d of snap.docs) await db.collection(COLLECTION).doc(d.id).delete();
+    } catch (e) { console.warn("Falha ao restaurar banco", e); }
   }
+  localOnly.clear(); saveLocal();
   // restaura localmente também (para modo local e resposta imediata)
   for (const k of [...known.keys()]) {
     const meta = keyMeta.get(k)!;
@@ -130,10 +166,15 @@ export async function resetDemo() {
 
 export function startSync(opts: { onRemoteChange: Listener; onModeChange: (m: DbMode) => void }) {
   onRemote = opts.onRemoteChange;
-  onMode = (m) => { mode = m; opts.onModeChange(m); };
+  onMode = (m) => { if (mode === m) return; mode = m; opts.onModeChange(m); };
+  // reaplica o que este aparelho fez antes (modo leitura / local)
+  loadLocal();
+  for (const [k, v] of localOnly) { keyMeta.set(k, { type: v.type, id: v.id }); applyDoc(v.type, v.id, v.json); }
   const claude = (window as unknown as { claude?: { use?: (n: string) => Promise<unknown> } }).claude;
   if (!claude?.use) { onMode("local"); return; }
   const timer = setTimeout(() => { if (mode === "connecting") onMode("local"); }, 10_000);
+  let canWrite: boolean | null = null;
+  claude.use("user").then(async (u: any) => { try { canWrite = u ? await u.can("data.write") : null; } catch { canWrite = null; } if (canWrite === false && db) onMode("readonly"); }).catch(() => {});
   claude.use("db").then((ns) => {
     if (!ns) { clearTimeout(timer); onMode("local"); return; }
     db = ns;
@@ -143,9 +184,9 @@ export function startSync(opts: { onRemoteChange: Listener; onModeChange: (m: Db
         for (const ch of snap.docChanges()) {
           const data = ch.doc.data() as { type: string; id: string; json: string } | undefined;
           if (!data) continue;
-          touched = applyDoc(data.type, data.id, ch.type === "removed" ? null : data.json) || touched;
+          touched = applyDoc(data.type, data.id, ch.type === "removed" ? null : data.json, true) || touched;
         }
-        if (!snap.metadata.fromCache) { clearTimeout(timer); if (mode !== "shared") onMode("shared"); }
+        if (!snap.metadata.fromCache) { clearTimeout(timer); if (mode === "connecting") onMode(canWrite === false ? "readonly" : "shared"); }
         if (touched) onRemote();
       },
       (e: { code: string }) => { clearTimeout(timer); console.warn("db", e.code); onMode("local"); },

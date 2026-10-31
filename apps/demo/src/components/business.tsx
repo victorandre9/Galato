@@ -16,6 +16,7 @@ import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock";
 import { PhotoCapture } from "./photo";
+import { newestFirst, applySalesDelta } from "../data/orders";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
@@ -99,7 +100,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward">(null);
   const fin = financial(c);
   const r = customerRow(c);
-  const history = ORDERS.filter((o) => o.customerId === c.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const history = ORDERS.filter((o) => o.customerId === c.id).sort(newestFirst<Order>((x) => x.createdAt));
   const requests = PAYMENT_REQUESTS.filter((p) => p.customerId === c.id);
 
   if (!own) {
@@ -344,11 +345,11 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
 }
 
 // ------------------------------------------------------------------ pedido / orçamento
-export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: "ORDER" | "QUOTE" | "SIMPLE_QUOTE"; onClose: () => void; onDone?: () => void }) {
+export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Customer; kind: "ORDER" | "QUOTE" | "SIMPLE_QUOTE"; onClose: () => void; onDone?: () => void; editing?: Order }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
-  const [items, setItems] = useState<{ productId: string; qty: number }[]>([]);
-  const [term, setTerm] = useState<number | null>(null);
+  const [items, setItems] = useState<{ productId: string; qty: number }[]>(() => editing ? editing.items.map((it) => ({ productId: it.productId, qty: it.qty })) : []);
+  const [term, setTerm] = useState<number | null>(editing ? editing.paymentTermDays : null);
   const fin = financial(c);
   const cats = [...new Set(PRODUCTS.map((p) => p.category))];
   const filtered = PRODUCTS.filter((p) => (!cat || p.category === cat) && (`${p.commercialName} ${p.code} ${p.category} ${p.fiscalName}`.toLowerCase().includes(q.toLowerCase())));
@@ -363,9 +364,29 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
   const notice = orderSubmissionNotice(fin.creditStatus);
   const setQty = (id: string, qty: number) => setItems((xs) => (qty <= 0 ? xs.filter((x) => x.productId !== id) : xs.map((x) => (x.productId === id ? { ...x, qty } : x))));
   const add = (id: string) => setItems((xs) => (xs.some((x) => x.productId === id) ? xs.map((x) => (x.productId === id ? { ...x, qty: x.qty + 1 } : x)) : [...xs, { productId: id, qty: 1 }]));
-  const title = kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
+  const title = editing ? `Editar ${editing.number}` : kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
 
   function save(status: string, message: string) {
+    if (editing) {
+      commit(() => {
+        const before = { total: editing.totalCents, counted: !["draft", "cancelled"].includes(editing.status) };
+        const oldTotal = editing.totalCents;
+        editing.items = items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents }));
+        editing.totalCents = total; editing.paymentTermDays = granted; editing.recommendedTermDays = recommended;
+        editing.status = status; editing.editedAt = new Date().toISOString(); editing.editCount = (editing.editCount ?? 0) + 1;
+        applySalesDelta(editing, before);
+        if (status !== "draft") {
+          c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
+          notify({
+            kind: "financeiro", priority: "high", title: "Pedido alterado pelo vendedor",
+            text: `${editing.number} · ${c.tradeName} · ${brl(oldTotal)} → ${brl(total)} · prazo ${termLabel(granted)} · volta para análise de crédito.`,
+            to: ["finance", ...MANAGERS_KEYS],
+          });
+        }
+      }, message);
+      (onDone ?? onClose)();
+      return;
+    }
     commit(() => {
       const o: Order = {
         id: `n${Date.now()}`, number: kind === "ORDER" ? `PV-${58500 + ORDERS.length}` : `ORC-${3200 + ORDERS.length}`, kind,
@@ -459,9 +480,9 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
             <>
               <button className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue}
                 onClick={() => save(fin.creditStatus === "blocked" ? "blocked" : "awaiting_credit_review", fin.creditStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : "Pedido enviado para análise de crédito")}>
-                {stock.canIssue ? "Emitir pedido" : `Resolva ${stock.blockingCount} item(ns) sem estoque`}
+                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
               </button>
-              <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>
+              {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
             </>
           ) : kind === "QUOTE" ? (
             <div className="grid g2" style={{ marginBottom: 0 }}>
@@ -479,14 +500,18 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
 
 export function OrderRow({ o, onClick }: { o: Order; onClick?: () => void }) {
   const st = (o.kind === "QUOTE" ? QUOTE_STATUS : ORDER_STATUS) as unknown as Record<string, StatusDef>;
+  const c = customerById.get(o.customerId);
   return (
-    <div className={`row ${onClick ? "click" : ""}`} onClick={onClick}>
-      <div className="grow">
-        <div className="title">{o.number} · <CustomerName id={o.customerId} /></div>
-        <div className="sub">{fmtDate(o.createdAt)} · {o.items.length} itens · prazo {termShort(o.paymentTermDays)} {o.invoiceNumber ? `· ${o.invoiceNumber}` : ""}</div>
+    <div className={`order-row ${onClick ? "click" : ""}`} onClick={onClick}>
+      <div className="flex between" style={{ gap: 8 }}>
+        <span className="semi">{o.number}{o.editCount ? <span className="xs muted"> · alterado</span> : null}</span>
+        <b className="num">{brl(o.totalCents)}</b>
       </div>
-      <div className="end">
-        <div className="num semi">{brl(o.totalCents)}</div>
+      <div className="flex" style={{ gap: 6, marginTop: 3 }}>
+        {c && <Curve c={c.abcd} />}<span className="order-customer">{c?.tradeName ?? "—"}</span>
+      </div>
+      <div className="flex between wrap" style={{ gap: 6, marginTop: 5 }}>
+        <span className="xs muted">{fmtDate(o.createdAt)} · {o.items.length} {o.items.length === 1 ? "item" : "itens"} · {termLabel(o.paymentTermDays)}{o.invoiceNumber ? ` · ${o.invoiceNumber}` : ""}</span>
         <Badge tone={st[o.status]?.tone}>{st[o.status]?.label ?? o.status}</Badge>
       </div>
     </div>

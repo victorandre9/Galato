@@ -16,7 +16,8 @@ import { EPI_STATUS } from "@galato/domain";
 import { logisticsOverview, routeProgress, financeQueue, financial, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle } from "../components/ui";
+import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle, scrollToId } from "../components/ui";
+import { DeliveryListSheet } from "./Manager";
 import { fmtDate, fmtDateTime, CustomerName } from "../components/business";
 import { OrderOpen } from "../components/order-flow";
 
@@ -47,6 +48,7 @@ function TransportHome({ goTab }: { goTab: (t: string) => void }) {
   const log = logisticsOverview();
   const [importing, setImporting] = useState<null | "system" | "manual">(null);
   const [detail, setDetail] = useState<DeliveryRoute | null>(null);
+  const [list, setList] = useState<null | "all" | "delivered">(null);
   return (
     <>
       <Greeting icon={<Layers size={22} />} title={`Olá, ${TRANSPORT_COORD.name.split(" ")[0]}!`} sub="Gestão e controle das rotas" />
@@ -56,18 +58,18 @@ function TransportHome({ goTab }: { goTab: (t: string) => void }) {
       </div>
 
       <div className="grid g3 gd-4">
-        <Kpi icon={<Route size={17} />} label="Rotas do dia" value={log.routes.length} foot={`${log.activeRoutes} em operação`} />
-        <Kpi icon={<Package size={17} />} tone="gold" label="Entregas previstas" value={log.total} />
-        <Kpi icon={<CheckCircle2 size={17} />} tone="success" label="Entregas realizadas" value={log.delivered} foot={`${log.pending} pendentes`} />
-        <Kpi icon={<Activity size={17} />} tone="info" label="% concluído" value={pct(log.pct)}>
+        <Kpi icon={<Route size={17} />} label="Rotas do dia" value={log.routes.length} foot={`${log.activeRoutes} em operação`} onClick={() => goTab("routes")} />
+        <Kpi icon={<Package size={17} />} tone="gold" label="Entregas previstas" value={log.total} onClick={() => setList("all")} />
+        <Kpi icon={<CheckCircle2 size={17} />} tone="success" label="Entregas realizadas" value={log.delivered} foot={`${log.pending} pendentes`} onClick={() => setList("delivered")} />
+        <Kpi icon={<Activity size={17} />} tone="info" label="% concluído" value={pct(log.pct)} onClick={() => scrollToId("tempo-real")}>
           <Progress value={log.pct} />
         </Kpi>
       </div>
       <div className="grid g3 gd-4">
-        <Kpi icon={<Users size={17} />} label="Motoristas em operação" value={`${log.activeRoutes}/${DRIVERS.length}`} />
+        <Kpi icon={<Users size={17} />} label="Motoristas em operação" value={`${log.activeRoutes}/${DRIVERS.length}`} onClick={() => goTab("fleet")} />
         <Kpi icon={<AlertTriangle size={17} />} tone="gold" label="Ocorrências" value={log.openIncidents.length} onClick={() => goTab("issues")} />
         <Kpi icon={<XCircle size={17} />} label="Não conformidades" value={log.openNc.length} onClick={() => goTab("issues")} />
-        <Kpi icon={<Clock size={17} />} tone="info" label="Pendências do dia anterior" value={log.yesterdayPending} />
+        <Kpi icon={<Clock size={17} />} tone="info" label="Pendências do dia anterior" value={log.yesterdayPending} onClick={() => goTab("issues")} />
       </div>
 
       <div className="grid gd gd-2">
@@ -80,7 +82,8 @@ function TransportHome({ goTab }: { goTab: (t: string) => void }) {
         </div>
         <div className="xs muted mt">Limites configuráveis: motorista sem iniciar após {PARAMS.logistics.driverNotStartedAlertAfter}; rota {PARAMS.logistics.routeBehindPacePercent} p.p. abaixo do ritmo.</div>
       </Card>
-      <Card title="Entregas em tempo real" icon={<MapPin size={17} />} link="Rotas" onLink={() => goTab("routes")}>
+      {list && <DeliveryListSheet filter={list} onClose={() => setList(null)} />}
+      <Card id="tempo-real" title="Entregas em tempo real" icon={<MapPin size={17} />} link="Rotas" onLink={() => goTab("routes")}>
         <RoutesTable onOpen={setDetail} />
       </Card>
       {importing && <ImportSheet mode={importing} onClose={() => setImporting(null)} />}
@@ -319,13 +322,13 @@ function FinanceQueue() {
     <>
       <Greeting icon={<Wallet size={22} />} title={`Olá, ${FINANCE_USER.name.split(" ")[0]}!`} sub="Pagamentos que precisam ser verificados agora" />
       <div className="grid g2 gd-4">
-        <Kpi icon={<Receipt size={17} />} label="Pendentes" value={fq.queue.length} foot={`${fq.carryOver} do dia anterior`} />
-        <Kpi icon={<Clock size={17} />} tone="red" label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} value={fq.breached} foot="alerta para gerente, coordenação e vendedor" />
-        <Kpi tone="gold" label="PIX" value={fq.pix} foot="prioridade" />
-        <Kpi tone="info" label="Pedidos aguardando crédito" value={blocked.length} />
+        <Kpi icon={<Receipt size={17} />} label="Pendentes" value={fq.queue.length} foot={`${fq.carryOver} do dia anterior`} onClick={() => { setFilter("all"); scrollToId("fila"); }} />
+        <Kpi icon={<Clock size={17} />} tone="red" label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} value={fq.breached} onClick={() => { setFilter("late"); scrollToId("fila"); }} foot="alerta para gerente, coordenação e vendedor" />
+        <Kpi tone="gold" label="PIX" value={fq.pix} foot="prioridade" onClick={() => { setFilter("PIX"); scrollToId("fila"); }} />
+        <Kpi tone="info" label="Pedidos aguardando crédito" value={blocked.length} onClick={() => scrollToId("aguardando-credito")} />
       </div>
       <div className="grid gd gd-21">
-        <Card title="Fila priorizada" sub="dia anterior → PIX → boleto">
+        <Card id="fila" title="Fila priorizada" sub="dia anterior → PIX → boleto">
           <div className="chips mb">
             <Chip on={filter === "all"} onClick={() => setFilter("all")}>Todas</Chip>
             <Chip on={filter === "PIX"} onClick={() => setFilter("PIX")}>PIX</Chip>
@@ -348,7 +351,7 @@ function FinanceQueue() {
           ))}
           {!list.length && <Empty icon={<CheckCircle2 />} text="Fila zerada." />}
         </Card>
-        <Card title="Pedidos aguardando crédito">
+        <Card id="aguardando-credito" title="Pedidos aguardando crédito">
           {blocked.slice(0, 8).map((o) => (
             <div key={o.id} className="row">
               <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
@@ -456,13 +459,13 @@ function BillingBoard() {
     <>
       <Greeting icon={<FileCheck2 size={22} />} title={`Olá, ${BILLING_USER.name.split(" ")[0]}!`} sub="Pedidos liberados pelo crédito → notas → logística" />
       <div className="grid g2 gd-4">
-        {cols.slice(0, 4).map((c) => <Kpi key={c.id} label={c.title} tone={c.id === "error" ? "red" : "gold"} value={orders.filter((o) => c.statuses.includes(o.status)).length} />)}
+        {cols.slice(0, 4).map((c) => <Kpi key={c.id} onClick={() => scrollToId(`col-${c.id}`)} label={c.title} tone={c.id === "error" ? "red" : "gold"} value={orders.filter((o) => c.statuses.includes(o.status)).length} />)}
       </div>
       <div className="grid gd" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         {cols.map((col) => {
           const list = orders.filter((o) => col.statuses.includes(o.status));
           return (
-            <Card key={col.id} title={`${col.title} (${list.length})`}>
+            <Card key={col.id} id={`col-${col.id}`} title={`${col.title} (${list.length})`}>
               {list.slice(0, 10).map((o) => (
                 <div key={o.id} className="row" style={{ alignItems: "flex-start" }}>
                   <div className="grow">

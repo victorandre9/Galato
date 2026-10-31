@@ -8,7 +8,7 @@ import { fmtDate, fmtDateTime, termLabel, termShort } from "../components/busine
 import { PARAMS, SELLERS, CUSTOMERS, ORDERS, TODAY, PRODUCTS, sellerById, customerById } from "../data/mock";
 import { sellerGoal, teamGoal, dayLabel, statusLabel, financial } from "../data/selectors";
 import { useStore } from "../data/store";
-import { Card, Kpi, Chip, Badge, Progress, brl0, brl, pct, Sheet, Curve } from "../components/ui";
+import { Card, Kpi, Chip, Badge, Progress, brl0, brl, pct, Sheet, Curve, scrollToId } from "../components/ui";
 
 const cal = PARAMS.workCalendar;
 
@@ -226,6 +226,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
   const [sortBy, setSortBy] = useState<"pct" | "value">("pct");
   const [period, setPeriod] = useState<"month" | "day">("month");
   const [open, setOpen] = useState<string | null>(null);
+  const [rank, setRank] = useState(false);
   const g = teamGoal(scope);
   const daily = useMemo(() => teamDaily(scope), [scope.join(",")]);
   const daysHit = daily.filter((d) => d.sales >= d.goal).length;
@@ -260,15 +261,15 @@ export function ReportsView({ scope }: { scope: string[] }) {
       </div>
 
       <div className="grid g2 gd-4">
-        <Kpi icon={<Target size={17} />} label="Meta do mês" value={brl0(g.monthlyGoalCents)} foot={`meta diária ${brl0(g.dailyGoalCents)}`} />
-        <Kpi icon={<BarChart3 size={17} />} tone="gold" label="Vendido no mês" value={brl0(g.achievedMonthCents)}>
+        <Kpi icon={<Target size={17} />} label="Meta do mês" value={brl0(g.monthlyGoalCents)} foot={`meta diária ${brl0(g.dailyGoalCents)}`} onClick={() => setRank(true)} />
+        <Kpi icon={<BarChart3 size={17} />} tone="gold" label="Vendido no mês" value={brl0(g.achievedMonthCents)} onClick={() => setRank(true)}>
           <div className="progress-row"><Progress value={g.monthAttainmentPct} /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
         </Kpi>
-        <Kpi icon={<MapPin size={17} />} tone="info" label="Visitas no mês" value={<>{vt.done} <small>/ {vt.planned}</small></>} foot={`conversão em pedido ${pct((vt.withOrder / Math.max(1, vt.done)) * 100)}`} />
-        <Kpi icon={<Users size={17} />} tone="success" label="Ticket médio" value={brl0(ticket)} foot={`${daysHit} de ${daily.length} dias com meta batida`} />
+        <Kpi icon={<MapPin size={17} />} tone="info" label="Visitas no mês" onClick={() => scrollToId("rel-visitas")} value={<>{vt.done} <small>/ {vt.planned}</small></>} foot={`conversão em pedido ${pct((vt.withOrder / Math.max(1, vt.done)) * 100)}`} />
+        <Kpi icon={<Users size={17} />} tone="success" label="Ticket médio" onClick={() => scrollToId("rel-diario")} value={brl0(ticket)} foot={`${daysHit} de ${daily.length} dias com meta batida`} />
       </div>
 
-      <Card title="Vendas por dia útil x meta diária" icon={<BarChart3 size={17} />} sub="equipe · passe o mouse ou toque na barra">
+      <Card id="rel-diario" title="Vendas por dia útil x meta diária" icon={<BarChart3 size={17} />} sub="equipe · passe o mouse ou toque na barra">
         <DailyChart data={daily} />
       </Card>
 
@@ -296,7 +297,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
       </Card>
 
       <div className="grid gd gd-21 mt">
-        <Card title="Visitas e conversão no mês" icon={<MapPin size={17} />}>
+        <Card id="rel-visitas" title="Visitas e conversão no mês" icon={<MapPin size={17} />}>
           <div className="table-wrap">
             <table className="t">
               <thead><tr><th>Vendedor</th><th className="r">Planejadas</th><th className="r">Realizadas</th><th>% realizadas</th><th className="r">Com pedido</th><th className="r">Sem venda</th><th className="r">Conversão</th></tr></thead>
@@ -328,6 +329,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
 
       <p className="xs muted mt">Pedidos no período: {orders.length} registrados no sistema de demonstração. Dados fictícios.</p>
       {open && <SellerPanel id={open} onClose={() => setOpen(null)} />}
+      {rank && <RankingSheet scope={scope} onClose={() => setRank(false)} />}
     </>
   );
 }

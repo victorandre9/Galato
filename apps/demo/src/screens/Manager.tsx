@@ -12,7 +12,8 @@ import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
 import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
-import type { Order } from "../data/mock";
+import { PROOFS, type Order } from "../data/mock";
+import { DELIVERY_STATUS } from "@galato/domain";
 import { nowStamp, CHECKINS, PAYMENT_REQUESTS, NONCONFORMITIES, VEHICLES, type DeliveryRoute, type PaymentRequest } from "../data/mock";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
@@ -24,7 +25,7 @@ import { History, CheckCircle2, XCircle, CalendarClock, ChevronRight, Package } 
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId } from "../components/ui";
 import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
@@ -108,11 +109,11 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
       <Greeting icon={<Crown size={22} />} title={`Olá, ${info.name.split(" ")[0]}!`} sub={`${info.label} · ${role === "sales_manager" ? "sua equipe" : "visão executiva da operação"}`} />
 
       <div className="grid g2 gd-4">
-        <Kpi icon={<Target size={17} />} label="Meta do dia" value={brl0(g.dailyGoalCents)}>
+        <Kpi icon={<Target size={17} />} label="Meta do dia" value={brl0(g.dailyGoalCents)} onClick={() => { setRankMode("day"); setRankOpen(true); }}>
           <div className="progress-row"><Progress value={g.dayAttainmentPct} /><b className="num xs">{pct(g.dayAttainmentPct)}</b></div>
           <div className="kpi-foot">Realizado {brl0(g.achievedTodayCents)} · falta {brl0(g.missingTodayCents)}</div>
         </Kpi>
-        <Kpi icon={<BarChart3 size={17} />} tone="gold" label="Vendas do mês" value={brl0(g.achievedMonthCents)}>
+        <Kpi icon={<BarChart3 size={17} />} tone="gold" label="Vendas do mês" value={brl0(g.achievedMonthCents)} onClick={() => { setRankMode("month"); setRankOpen(true); }}>
           <div className="progress-row"><Progress value={g.monthAttainmentPct} color="red" /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
           <div className="kpi-foot">Meta {brl0(g.monthlyGoalCents)} · {g.remainingBusinessDays} {g.remainingBusinessDays === 1 ? "dia útil restante" : "dias úteis rest."}</div>
         </Kpi>
@@ -150,7 +151,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
 
       <div className="grid gd gd-3">
         <Card title="Ranking de visitas" icon={<MapPin size={17} />} sub="% realizadas/planejadas" link="Ver" onLink={() => goTab("visits")}>
-          <RankingList rows={vr} format={(r) => `${r.achieved}/${r.target} visitas`} />
+          <RankingList rows={vr} format={(r) => `${r.achieved}/${r.target} visitas`} onRow={setSellerOpen} />
         </Card>
         <Card title="Clientes sem compra" icon={<UserX size={17} />} link="Filtrar" onLink={() => goTab("inactive")}>
           <div className="buckets">
@@ -165,7 +166,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             <dt>Ticket médio</dt><dd className="num">{brl(Math.round(g.achievedMonthCents / SELLERS.filter((s) => scope.includes(s.id)).reduce((a, s) => a + s.ordersMonth, 0)))}</dd>
           </dl>
         </Card>
-        <Card title="Financeiro" icon={<Receipt size={17} />} link="Ver fila" onLink={() => goTab("finance")}>
+        <Card title="Financeiro" icon={<Receipt size={17} />} link="Ver fila" onLink={() => goTab("finance")} onClick={() => goTab("finance")}>
           <div className="grid g3" style={{ marginBottom: 10 }}>
             <MiniStat label="Pendentes" n={fq.queue.length} />
             <MiniStat label={`> ${PARAMS.financialSla.responseHours}h`} n={fq.breached} danger />
@@ -195,7 +196,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             <div key={l as string} className="row click" onClick={() => setPipe(l as string)}><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
           ))}
         </Card>
-        <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")}>
+        <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")} onClick={() => goTab("assets")}>
           <div className="flex" style={{ gap: 16 }}>
             <Ring value={(1 - assets.idleCount / Math.max(1, assets.onStreet)) * 100} size={96} stroke={10} label={assets.onStreet} sub="freezers" />
             <dl className="kv" style={{ flex: 1 }}>
@@ -242,18 +243,20 @@ function MiniStat({ label, n, danger }: { label: string; n: number; danger?: boo
 function SalesView({ scope }: { scope: string[] }) {
   const rows = salesRanking("month").filter((r) => scope.includes(r.id));
   const [open, setOpen] = useState<string | null>(null);
+  const [rank, setRank] = useState(false);
   const g = teamGoal(scope);
   return (
     <>
+      {rank && <RankingSheet scope={scope} initial="month" onClose={() => setRank(false)} />}
       <h2 style={{ margin: "6px 0 4px" }}>Metas e ranking proporcional</h2>
       <p className="small muted mb">Meta diária = meta mensal ÷ {g.businessDaysInMonth} dias úteis. Ranking pelo % de atingimento, nunca pelo valor absoluto.</p>
       <div className="grid g2 gd-4">
-        <Kpi label="Meta mensal (equipe)" value={brl0(g.monthlyGoalCents)} foot={`${g.businessDaysInMonth} dias úteis no mês`} />
-        <Kpi label="Realizado no mês" tone="gold" value={brl0(g.achievedMonthCents)} foot={pct(g.monthAttainmentPct, 1)} />
-        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} foot={`${g.remainingBusinessDays} dia(s) útil(eis) restante(s)`} />
-        <Kpi label="Necessário por dia útil" tone="success" value={brl0(g.requiredPerRemainingDayCents)} foot={`meta diária original ${brl0(g.dailyGoalCents)}`} />
+        <Kpi label="Meta mensal (equipe)" value={brl0(g.monthlyGoalCents)} foot={`${g.businessDaysInMonth} dias úteis no mês`} onClick={() => setRank(true)} />
+        <Kpi label="Realizado no mês" tone="gold" value={brl0(g.achievedMonthCents)} foot={pct(g.monthAttainmentPct, 1)} onClick={() => setRank(true)} />
+        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} foot={`${g.remainingBusinessDays} dia(s) útil(eis) restante(s)`} onClick={() => scrollToId("metas-tabela")} />
+        <Kpi label="Necessário por dia útil" tone="success" onClick={() => scrollToId("metas-tabela")} value={brl0(g.requiredPerRemainingDayCents)} foot={`meta diária original ${brl0(g.dailyGoalCents)}`} />
       </div>
-      <Card>
+      <Card id="metas-tabela">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Vendedor</th><th className="r">Meta mês</th><th className="r">Realizado</th><th>% mês</th><th className="r">Meta dia</th><th className="r">Hoje</th><th className="r">% dia</th><th className="r">Falta</th><th className="r">Por dia útil</th></tr></thead>
@@ -319,11 +322,11 @@ function VisitsView({ scope }: { scope: string[] }) {
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Visitas do dia</h2>
       <div className="grid g3">
-        <Kpi label="Planejadas" value={vt.planned} />
-        <Kpi label="Realizadas" tone="success" value={vt.done} foot="check-in = visita" />
-        <Kpi label="Atingimento" tone="gold" value={pct(vt.pct)} />
+        <Kpi label="Planejadas" value={vt.planned} onClick={() => scrollToId("visitas-ranking")} />
+        <Kpi label="Realizadas" tone="success" value={vt.done} foot="check-in = visita" onClick={() => scrollToId("visitas-checkins")} />
+        <Kpi label="Atingimento" tone="gold" value={pct(vt.pct)} onClick={() => scrollToId("visitas-ranking")} />
       </div>
-      <Card title="Ranking por % de visitas realizadas"><VisitsTable scope={scope} /></Card>
+      <Card id="visitas-ranking" title="Ranking por % de visitas realizadas"><VisitsTable scope={scope} /></Card>
       <CheckinsCard scope={scope} />
     </>
   );
@@ -399,16 +402,19 @@ function DeliveriesTable() {
 }
 
 function DeliveriesView() {
+  useStore();
   const log = logisticsOverview();
+  const [list, setList] = useState<null | "all" | "delivered" | "pending" | "not_delivered">(null);
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Entregas do dia</h2>
       <div className="grid g2 gd-4">
-        <Kpi label="Programadas" value={log.total} />
-        <Kpi label="Realizadas" tone="success" value={log.delivered} foot={pct(log.pct)} />
-        <Kpi label="Pendentes" tone="gold" value={log.pending} />
-        <Kpi label="Não realizadas" tone="red" value={log.failed} />
+        <Kpi label="Programadas" value={log.total} onClick={() => setList("all")} />
+        <Kpi label="Realizadas" tone="success" value={log.delivered} foot={pct(log.pct)} onClick={() => setList("delivered")} />
+        <Kpi label="Pendentes" tone="gold" value={log.pending} onClick={() => setList("pending")} />
+        <Kpi label="Não realizadas" tone="red" value={log.failed} onClick={() => setList("not_delivered")} />
       </div>
+      {list && <DeliveryListSheet filter={list} onClose={() => setList(null)} />}
       <Card title="Por rota, motorista e veículo" sub="toque na rota para ver entregas e comprovantes"><DeliveriesTable /></Card>
       <ChecklistsCard />
       <Card title="Entregas com atenção" icon={<AlertTriangle size={17} />} className="mt">
@@ -422,23 +428,25 @@ function FinanceView() {
   useStore();
   const fq = financeQueue();
   const [open, setOpen] = useState<PaymentRequest | null>(null);
+  const [f, setF] = useState<"all" | "late" | "PIX" | "BOLETO">("all");
+  const shown = fq.queue.filter((q) => f === "all" || (f === "late" ? q.sla.level === "breached" : q.method === f));
   const answered = PAYMENT_REQUESTS.filter((p) => !["pending", "in_analysis"].includes(p.status) && p.respondedAt).sort((a, b) => (b.respondedAt ?? "").localeCompare(a.respondedAt ?? "")).slice(0, 8);
   return (
     <>
       <h2 style={{ margin: "6px 0 4px" }}>Solicitações financeiras</h2>
       <p className="small muted mb">Nenhuma solicitação some: só sai da fila com resposta do financeiro. Ordem: pendências de ontem → PIX → boleto.</p>
       <div className="grid g2 gd-4">
-        <Kpi label="Pendentes" value={fq.queue.length} />
-        <Kpi label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} tone="red" value={fq.breached} />
-        <Kpi label="PIX" tone="gold" value={fq.pix} />
-        <Kpi label="Boleto" tone="info" value={fq.boleto} />
+        <Kpi label="Pendentes" value={fq.queue.length} onClick={() => setF("all")} />
+        <Kpi label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} tone="red" value={fq.breached} onClick={() => setF("late")} />
+        <Kpi label="PIX" tone="gold" value={fq.pix} onClick={() => setF("PIX")} />
+        <Kpi label="Boleto" tone="info" value={fq.boleto} onClick={() => setF("BOLETO")} />
       </div>
       <Card>
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Solicitação</th><th>Cliente</th><th>Vendedor</th><th>Método</th><th className="r">Valor</th><th>Status</th><th>SLA</th></tr></thead>
             <tbody>
-              {fq.queue.map((p, i) => (
+              {shown.map((p, i) => (
                 <tr key={p.id} className="click" onClick={() => setOpen(p)}>
                   <td>{i + 1}</td><td className="semi">{p.number}{p.carryOver && <> <Badge tone="danger">dia anterior</Badge></>}</td>
                   <td>{customerById.get(p.customerId)?.tradeName}</td><td>{sellerById.get(p.sellerId)?.name}</td>
@@ -471,18 +479,18 @@ function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) 
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Ativos / freezers</h2>
       <div className="grid g2 gd-4">
-        <Kpi icon={<Snowflake size={17} />} label="Freezers na rua" value={a.onStreet} foot={`${a.inStock} em estoque · ${a.maintenance} em manutenção`} />
-        <Kpi tone="gold" label="Valor na rua" value={brl0(a.valueOnStreet)} />
-        <Kpi tone="red" label="Ativos sem giro" value={a.idleCount} foot={`clientes ≥ ${PARAMS.inactivity.idleAssetThresholdDays} dias sem compra`} />
-        <Kpi tone="red" label="Valor de ativos sem giro" value={brl0(a.idleValue)} />
+        <Kpi icon={<Snowflake size={17} />} label="Freezers na rua" onClick={() => scrollToId("ativos-vendedor")} value={a.onStreet} foot={`${a.inStock} em estoque · ${a.maintenance} em manutenção`} />
+        <Kpi tone="gold" label="Valor na rua" value={brl0(a.valueOnStreet)} onClick={() => scrollToId("ativos-vendedor")} />
+        <Kpi tone="red" label="Ativos sem giro" onClick={() => scrollToId("ativos-sem-giro")} value={a.idleCount} foot={`clientes ≥ ${PARAMS.inactivity.idleAssetThresholdDays} dias sem compra`} />
+        <Kpi tone="red" label="Valor de ativos sem giro" value={brl0(a.idleValue)} onClick={() => scrollToId("ativos-sem-giro")} />
       </div>
       <div className="grid gd gd-12">
-        <Card title="Por vendedor">
+        <Card id="ativos-vendedor" title="Por vendedor">
           {a.bySeller.filter((x) => scope.includes(x.seller.id)).map((x) => (
             <div key={x.seller.id} className="row"><span className="grow semi">{x.seller.name}</span><span className="muted small">{x.count} un.</span><span className="num semi">{brl0(x.value)}</span></div>
           ))}
         </Card>
-        <Card title="Ativos sem giro" icon={<AlertTriangle size={17} />}>
+        <Card id="ativos-sem-giro" title="Ativos sem giro" icon={<AlertTriangle size={17} />}>
           <div className="table-wrap">
             <table className="t">
               <thead><tr><th>Cliente</th><th>Vendedor</th><th className="r">Dias s/ compra</th><th className="r">Freezers</th><th className="r">Valor</th><th>Última compra</th></tr></thead>
@@ -735,7 +743,7 @@ function CheckinsCard({ scope }: { scope: string[] }) {
   const list = CHECKINS.filter((k) => k.date === TODAY && scope.includes(k.sellerId));
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return (
-    <Card title={`Check-ins registrados agora (${list.length})`} className="mt" sub="visitas feitas no app durante o teste">
+    <Card id="visitas-checkins" title={`Check-ins registrados agora (${list.length})`} className="mt" sub="visitas feitas no app durante o teste">
       {list.map((k) => (
         <div key={k.id} className="row">
           <div className="grow"><div className="title small">{customerById.get(k.customerId)?.tradeName}</div><div className="sub">{sellerById.get(k.sellerId)?.name}</div></div>
@@ -788,6 +796,40 @@ function PipelineSheet({ title, scope, onClose }: { title: string; scope: string
     <Sheet title={`${title} (${list.length})`} onClose={onClose} icon={<ClipboardList size={18} />}>
       <p className="small muted mb">Com data e hora de emissão. Toque no pedido para ver itens e a linha do tempo.</p>
       <div className="list">{list.map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpen(o)} />)}</div>
+    </Sheet>
+  );
+}
+
+/** Lista de entregas do dia, filtrada pelo card clicado. */
+export function DeliveryListSheet({ filter, onClose }: { filter: "all" | "delivered" | "pending" | "not_delivered"; onClose: () => void }) {
+  useStore();
+  const [route, setRoute] = useState<DeliveryRoute | null>(null);
+  const rows = DELIVERY_ROUTES.flatMap((r) => r.deliveries.map((d) => ({ r, d })))
+    .filter(({ d }) => filter === "all" || (filter === "pending" ? d.status === "scheduled" || d.status === "in_transit" : d.status === filter));
+  const title = { all: "Entregas programadas", delivered: "Entregas realizadas", pending: "Entregas pendentes", not_delivered: "Entregas não realizadas" }[filter];
+  if (route) return <RouteDetail r={route} onClose={() => setRoute(null)} />;
+  return (
+    <Sheet title={`${title} (${rows.length})`} onClose={onClose} wide icon={<Truck size={18} />}>
+      <p className="small muted mb">Toque na entrega para abrir a rota, com comprovantes e checklist.</p>
+      <div className="table-wrap">
+        <table className="t">
+          <thead><tr><th>Cliente</th><th>Nota</th><th>Rota</th><th>Motorista</th><th>Status</th><th>Hora</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            {rows.map(({ r, d }) => {
+              const pf = PROOFS.find((x) => x.deliveryId === d.id);
+              return (
+                <tr key={d.id} className="click" onClick={() => setRoute(r)}>
+                  <td className="semi">{customerById.get(d.customerId)?.tradeName}</td><td>{d.invoiceNumber}</td><td>{r.name}</td>
+                  <td>{DRIVERS.find((x) => x.id === r.driverId)?.name}</td>
+                  <td><Badge tone={DELIVERY_STATUS[d.status].tone}>{DELIVERY_STATUS[d.status].label}</Badge></td>
+                  <td className="small">{d.deliveredAt ? new Date(d.deliveredAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone }) : "—"}</td>
+                  <td className="small">{pf ? <span className="flex"><img className="proof-thumb" src={pf.dataUrl} alt="" /> {pf.type}</span> : d.nonDeliveryReason ?? (d.proofName ? `✓ ${d.proofName}` : "")}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </Sheet>
   );
 }

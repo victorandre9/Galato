@@ -8,6 +8,8 @@ import { bucketLabel, PAYMENT_REQUEST_STATUS } from "@galato/domain";
 import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, customerById, type Customer, type Order, TODAY } from "../data/mock";
 import { newestFirst } from "../data/orders";
 import { OrderOpen } from "../components/order-flow";
+import { SellerPanel } from "./Reports";
+import { ChevronRight, BarChart3 } from "lucide-react";
 import {
   sellerGoal, todayRouteBuckets, ordersOf, quotesOf, countByStatus, OPEN_QUOTE, AWAITING_CREDIT, IN_ROUTE,
   sellerSalesToday, financeQueue, customerRow, dayLabel,
@@ -34,7 +36,7 @@ export function SellerApp() {
       {tab === "customers" && <SellerCustomers onOpen={setOpen} />}
       {tab === "orders" && <SellerOrders />}
       {tab === "route" && <SellerRoute onOpen={setOpen} />}
-      {tab === "more" && <ProfilePanel name={ME.name} role={`Vendedor externo · ${ME.region}`} />}
+      {tab === "more" && <ProfilePanel name={ME.name} role={`Vendedor externo · ${ME.region}`} extra={<MyPerfButton />} />}
       {open && <CustomerSheet c={open} viewerSellerId={ME.id} onClose={() => setOpen(null)} />}
     </Shell>
   );
@@ -49,6 +51,7 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
   const sales = sellerSalesToday(ME.id);
   const [bucket, setBucket] = useState<number | null>(null);
   const [quick, setQuick] = useState(false);
+  const [perf, setPerf] = useState(false);
   const buckets = PARAMS.inactivity.dashboardBuckets;
   const dayVsGoal = g.dayAttainmentPct;
 
@@ -57,13 +60,13 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
       <Greeting icon={<UserRound size={22} />} title={`Olá, ${ME.name.split(" ")[0]}!`} sub="Seu desempenho comercial" />
 
       <div className="grid g2">
-        <Kpi icon={<ShoppingCart size={17} />} label="Venda do dia" value={brl0(ME.todayAchievedCents)}
+        <Kpi icon={<ShoppingCart size={17} />} label="Venda do dia" value={brl0(ME.todayAchievedCents)} onClick={() => goTab("orders")}
           foot={<><span className={dayVsGoal >= 100 ? "up" : "down"}>{dayVsGoal >= 100 ? <ArrowUp size={12} /> : <ArrowDown size={12} />} {pct(dayVsGoal)}</span> da meta do dia ({brl0(g.dailyGoalCents)})</>} />
-        <Kpi icon={<Coins size={17} />} tone="gold" label="Acumulado do mês" value={brl0(g.achievedMonthCents)}
+        <Kpi icon={<Coins size={17} />} tone="gold" label="Acumulado do mês" value={brl0(g.achievedMonthCents)} onClick={() => setPerf(true)}
           foot={<>{sales.count} pedidos hoje · ticket {brl0(sales.ticketCents)}</>} />
       </div>
 
-      <Card className="mb">
+      <Card className="mb" onClick={() => setPerf(true)}>
         <div className="flex" style={{ gap: 18, alignItems: "center" }}>
           <Ring value={g.monthAttainmentPct} size={118} label={pct(g.monthAttainmentPct)} sub="da meta" />
           <dl className="kv" style={{ flex: 1 }}>
@@ -73,9 +76,10 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
             <dt>Dias úteis rest.</dt><dd>{g.remainingBusinessDays} de {g.businessDaysInMonth}</dd>
           </dl>
         </div>
+        <div className="small red semi flex mt" style={{ gap: 2, justifyContent: "flex-end" }}>Meu desempenho <ChevronRight size={14} /></div>
       </Card>
 
-      <Card className="mb">
+      <Card className="mb" onClick={() => goTab("route")}>
         <div className="flex between"><span className="semi flex" style={{ gap: 8 }}><MapPinned size={17} className="red" /> Visitas de hoje</span>
           <b className="num">{ME.visitsDoneToday} <span className="muted small">/ {ME.visitsPlannedToday}</span></b></div>
         <div className="progress-row mt"><Progress value={(ME.visitsDoneToday / Math.max(1, ME.visitsPlannedToday)) * 100} color="green" /><b className="num xs">{pct((ME.visitsDoneToday / Math.max(1, ME.visitsPlannedToday)) * 100)}</b></div>
@@ -102,7 +106,7 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
 
       <Card title="Quitações pendentes" icon={<Receipt size={17} />} sub={`SLA ${PARAMS.financialSla.responseHours}h`}>
         {fq.queue.slice(0, 4).map((p) => (
-          <div key={p.id} className="row">
+          <div key={p.id} className="row click" onClick={() => { const c = CUSTOMERS.find((x) => x.id === p.customerId); if (c) onOpen(c); }}>
             <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
             <div className="grow"><div className="title small">{CUSTOMERS.find((c) => c.id === p.customerId)?.tradeName}</div><div className="sub">{p.number} · {PAYMENT_REQUEST_STATUS[p.status].label}</div></div>
             <div className="end"><div className="num semi small">{brl(p.amountCents)}</div>
@@ -124,6 +128,17 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
         </Sheet>
       )}
       {quick && <QuickQuote onClose={() => setQuick(false)} />}
+      {perf && <SellerPanel id={ME.id} onClose={() => setPerf(false)} />}
+    </>
+  );
+}
+
+function MyPerfButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="btn btn-primary btn-block" onClick={() => setOpen(true)}><BarChart3 size={17} /> Meu desempenho e relatórios</button>
+      {open && <SellerPanel id={ME.id} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -190,8 +205,9 @@ function SellerOrders() {
     { id: "open", label: "Em aberto", statuses: OPEN_QUOTE },
     { id: "closed", label: "Encerrados", statuses: ["rejected", "expired", "cancelled", "converted"] },
   ];
-  const g = groups.find((x) => x.id === filter) ?? groups[0]!;
-  const list = g.statuses.length ? all.filter((o) => g.statuses.includes(o.status)) : all;
+  const g = filter === "today" ? { id: "today", label: "Tirados hoje", statuses: [] as string[] } : (groups.find((x) => x.id === filter) ?? groups[0]!);
+  const list = filter === "today" ? all.filter((o) => o.createdAt.startsWith(TODAY) && !["draft", "cancelled"].includes(o.status))
+    : g.statuses.length ? all.filter((o) => g.statuses.includes(o.status)) : all;
   const today = all.filter((o) => o.createdAt.startsWith(TODAY) && !["draft", "cancelled"].includes(o.status));
   return (
     <>
@@ -202,8 +218,8 @@ function SellerOrders() {
       </div>
       {kind === "ORDER" && (
         <div className="grid g2">
-          <Kpi icon={<ShoppingCart size={17} />} label="Tirados hoje" value={today.length} foot={brl(today.reduce((a, o) => a + o.totalCents, 0))} />
-          <Kpi icon={<Hourglass size={17} />} tone="gold" label="Aguardando crédito" value={countByStatus(all, AWAITING_CREDIT)} foot="toque no filtro abaixo" />
+          <Kpi icon={<ShoppingCart size={17} />} label="Tirados hoje" onClick={() => setFilter("today")} value={today.length} foot={brl(today.reduce((a, o) => a + o.totalCents, 0))} />
+          <Kpi icon={<Hourglass size={17} />} tone="gold" label="Aguardando crédito" value={countByStatus(all, AWAITING_CREDIT)} foot="ver pedidos" onClick={() => setFilter("credit")} />
         </div>
       )}
       <div className="chips mb">

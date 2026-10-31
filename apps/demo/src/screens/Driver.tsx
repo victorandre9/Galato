@@ -102,9 +102,9 @@ function DriverHome() {
       )}
 
       <div className="grid g3 mt">
-        <Card className="kpi"><div className="kpi-head"><span className="kpi-ic"><Truck size={16} /></span>Entregas</div><div className="kpi-value num">{p.total}</div></Card>
-        <Card className="kpi"><div className="kpi-head"><span className="kpi-ic gold"><Package size={16} /></span>Volumes</div><div className="kpi-value num">{route.deliveries.reduce((a, d) => a + d.volumes, 0)}</div></Card>
-        <Card className="kpi"><div className="kpi-head"><span className="kpi-ic info"><MapPin size={16} /></span>Rota</div><div className="kpi-value num">{route.code}</div></Card>
+        <Card className="kpi" onClick={() => setSheet("deliveries")}><div className="kpi-head"><span className="kpi-ic"><Truck size={16} /></span>Entregas</div><div className="kpi-value num">{p.total}</div></Card>
+        <Card className="kpi" onClick={() => setSheet("deliveries")}><div className="kpi-head"><span className="kpi-ic gold"><Package size={16} /></span>Volumes</div><div className="kpi-value num">{route.deliveries.reduce((a, d) => a + d.volumes, 0)}</div></Card>
+        <Card className="kpi" onClick={() => setSheet("deliveries")}><div className="kpi-head"><span className="kpi-ic info"><MapPin size={16} /></span>Rota</div><div className="kpi-value num">{route.code}</div></Card>
       </div>
 
       <Card title="Checklist do veículo" icon={<ClipboardCheck size={17} />} link={route.checklistDone ? "Ver" : "Fazer agora"} onLink={() => setSheet("checklist")} onClick={() => setSheet("checklist")}>

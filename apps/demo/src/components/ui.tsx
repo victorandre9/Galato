@@ -8,12 +8,14 @@ export const brl = (c: number) => formatBRL(c);
 export const brl0 = (c: number) => formatBRL(c, true);
 export const pct = (v: number, d = 0) => formatPct(v, d);
 
-export function Card({ children, title, icon, link, onLink, onClick, className = "", sub }: {
+export const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+export function Card({ children, title, icon, link, onLink, onClick, className = "", sub, id }: {
   children?: ReactNode; title?: ReactNode; icon?: ReactNode; link?: string; onLink?: () => void;
-  onClick?: () => void; className?: string; sub?: string;
+  onClick?: () => void; className?: string; sub?: string; id?: string;
 }) {
   return (
-    <div className={`card ${onClick ? "click" : ""} ${className}`} onClick={onClick}>
+    <div id={id} className={`card ${onClick ? "click" : ""} ${className}`} onClick={onClick}>
       {title && (
         <div className="card-title">
           {icon && <span className="ic">{icon}</span>}

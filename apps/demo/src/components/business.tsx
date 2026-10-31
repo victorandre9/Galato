@@ -18,6 +18,11 @@ import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock"
 import { PhotoCapture } from "./photo";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
 
+/** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
+export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
+export const termLabel = (d: number) => (d === 0 ? "À vista/PIX" : `${d} dias`);
+export const termShort = (d: number) => (d === 0 ? "à vista" : `${d}d`);
+
 const fmtDate = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—");
 
 export function creditBadge(c: Customer) {
@@ -205,7 +210,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
               {history.slice(0, 6).map((o) => (
                 <div key={o.id} className={`tl-item ${["completed", "delivered", "invoiced"].includes(o.status) ? "done" : ""}`}>
                   <div className="flex between"><span className="semi">{o.number}</span><span className="num semi">{brl(o.totalCents)}</span></div>
-                  <div className="xs muted">{fmtDate(o.createdAt)} · {o.kind === "QUOTE" ? "Orçamento" : "Pedido"} · {(o.kind === "QUOTE" ? QUOTE_STATUS : ORDER_STATUS)[o.status as never]?.["label"]} {o.invoiceNumber ? `· ${o.invoiceNumber}` : "· sem NF"} · prazo {o.paymentTermDays}d</div>
+                  <div className="xs muted">{fmtDate(o.createdAt)} · {o.kind === "QUOTE" ? "Orçamento" : "Pedido"} · {(o.kind === "QUOTE" ? QUOTE_STATUS : ORDER_STATUS)[o.status as never]?.["label"]} {o.invoiceNumber ? `· ${o.invoiceNumber}` : "· sem NF"} · prazo {termShort(o.paymentTermDays)}</div>
                 </div>
               ))}
               {requests.map((p) => (
@@ -376,7 +381,7 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
         notify({
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
           title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido para análise de crédito",
-          text: `${o.number} · ${c.tradeName} · ${brl(total)} · prazo ${granted}d${granted !== recommended ? ` (recomendado ${recommended}d)` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
+          text: `${o.number} · ${c.tradeName} · ${brl(total)} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
           to: ["finance", ...MANAGERS_KEYS],
         });
       }
@@ -441,8 +446,8 @@ export function OrderBuilder({ c, kind, onClose, onDone }: { c: Customer; kind: 
           </Card>
           {kind !== "SIMPLE_QUOTE" && (
             <Card title="Condição de pagamento">
-              <div className="small t2 mb">Prazo recomendado para {brl(total)}: <b>{recommended} dias</b></div>
-              <div className="chips">{[7, 14, 21, 28].map((d) => <Chip key={d} on={granted === d} onClick={() => setTerm(d)}>{d} dias</Chip>)}</div>
+              <div className="small t2 mb">Prazo recomendado para {brl(total)}: <b>{termLabel(recommended)}</b></div>
+              <div className="chips">{PAYMENT_TERM_OPTIONS.map((d) => <Chip key={d} on={granted === d} onClick={() => setTerm(d)}>{termLabel(d)}</Chip>)}</div>
               {decision && granted !== recommended && (
                 <div className="mt"><Badge tone={granted > recommended ? "warning" : "info"}>
                   Prazo {granted > recommended ? "maior" : "menor"} que o recomendado · será registrado no KPI de prazo
@@ -478,7 +483,7 @@ export function OrderRow({ o, onClick }: { o: Order; onClick?: () => void }) {
     <div className={`row ${onClick ? "click" : ""}`} onClick={onClick}>
       <div className="grow">
         <div className="title">{o.number} · <CustomerName id={o.customerId} /></div>
-        <div className="sub">{fmtDate(o.createdAt)} · {o.items.length} itens · prazo {o.paymentTermDays}d {o.invoiceNumber ? `· ${o.invoiceNumber}` : ""}</div>
+        <div className="sub">{fmtDate(o.createdAt)} · {o.items.length} itens · prazo {termShort(o.paymentTermDays)} {o.invoiceNumber ? `· ${o.invoiceNumber}` : ""}</div>
       </div>
       <div className="end">
         <div className="num semi">{brl(o.totalCents)}</div>

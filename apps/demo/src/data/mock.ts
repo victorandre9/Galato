@@ -275,7 +275,7 @@ for (let i = 0; i < 140; i++) {
   ORDERS.push({
     id: `o${i}`, number: `PV-${++orderSeq}`, kind: "ORDER", customerId: c.id, sellerId: c.sellerId, status,
     createdAt: `${created}T${String(between(11, 20)).padStart(2, "0")}:${String(between(0, 59)).padStart(2, "0")}:00Z`,
-    totalCents: total, paymentTermDays: rnd() < 0.8 ? recommended : recommended + 7, recommendedTermDays: recommended,
+    totalCents: total, paymentTermDays: rnd() < 0.8 ? recommended : Math.min(21, recommended + 7), recommendedTermDays: recommended,
     expectedDelivery: addDays(created, between(1, 3)), items,
     invoiceNumber: ["invoiced", "in_delivery_route", "in_transit", "delivered", "completed"].includes(status) ? `NF ${between(120000, 129999)}` : undefined,
     billingError: status === "billing_error" ? pick(["Rejeição SEFAZ 539: duplicidade de NF-e", "CFOP incompatível com UF do destinatário", "Cadastro do cliente com IE inválida"]) : undefined,

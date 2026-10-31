@@ -53,10 +53,10 @@ export function useStore(): UiState {
 }
 
 let toastId = 0;
-export function toast(text: string, tone: Toast["tone"] = "success") {
+export function toast(text: string, tone: Toast["tone"] = "success", ms = 3200) {
   const t = { id: ++toastId, text, tone };
   setState({ toasts: [...state.toasts, t] });
-  setTimeout(() => setState({ toasts: state.toasts.filter((x) => x.id !== t.id) }), 3200);
+  setTimeout(() => setState({ toasts: state.toasts.filter((x) => x.id !== t.id) }), ms);
 }
 
 /**

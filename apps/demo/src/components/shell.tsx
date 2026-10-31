@@ -8,11 +8,19 @@ import { notificationsFor, viewerId } from "../data/notify";
 import { persistChanges, resetDemo } from "../data/sync";
 import { SyncIndicator, Sheet, Badge, ConfirmModal, Empty } from "./ui";
 
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isMac = () => /Mac/.test(navigator.platform) && !isIOS();
+const IOS_TIP = "No iPhone/iPad a Apple não permite tela cheia em sites. No Safari, toque em “aA” ao lado do endereço → “Ocultar Barra de Ferramentas”. Virar o celular na horizontal também ajuda.";
+const desktopTip = () => (isMac() ? "Para tela cheia use Ctrl + Cmd + F." : "Para tela cheia aperte F11.");
+
 export function toggleFullscreen() {
+  if (isIOS()) { toast(IOS_TIP, "info", 9000); return; }
   try {
-    if (document.fullscreenElement) document.exitFullscreen?.();
-    else document.documentElement.requestFullscreen?.().catch(() => toast("Use F11 para tela cheia neste navegador", "info"));
-  } catch { toast("Use F11 para tela cheia neste navegador", "info"); }
+    if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
+    const req = document.documentElement.requestFullscreen?.();
+    if (!req) { toast(desktopTip(), "info", 6000); return; }
+    req.catch(() => toast(desktopTip(), "info", 6000));
+  } catch { toast(desktopTip(), "info", 6000); }
 }
 
 export interface Tab { id: string; label: string; icon: ReactNode; count?: number }

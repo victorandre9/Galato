@@ -90,12 +90,15 @@ export function Chip({ on, children, onClick }: { on?: boolean; children: ReactN
   return <button className={`chip ${on ? "on" : ""}`} onClick={onClick}>{children}</button>;
 }
 
+let openSheets = 0;
 export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; icon?: ReactNode }) {
   useEffect(() => {
-    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // só a folha de cima fecha com Esc; trava a rolagem enquanto houver alguma aberta
+    const depth = ++openSheets;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape" && depth === openSheets) onClose(); };
     window.addEventListener("keydown", h);
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = ""; };
+    return () => { window.removeEventListener("keydown", h); if (--openSheets === 0) document.body.style.overflow = ""; };
   }, [onClose]);
   return (
     <div className="overlay" onClick={onClose}>

@@ -222,6 +222,21 @@ for (const s of SELLERS) {
     }
   }
 }
+// coerência: sem compras registradas depois da última compra; quem nunca comprou não tem histórico
+function monthsBackOf(d: IsoDate) {
+  const [y1, m1] = TODAY.split("-").map(Number) as [number, number];
+  const [y2, m2] = d.split("-").map(Number) as [number, number];
+  return (y1 - y2) * 12 + (m1 - m2);
+}
+for (const c of CUSTOMERS) {
+  const back = c.lastPurchaseDate ? monthsBackOf(c.lastPurchaseDate) : 99;
+  const n = c.monthlyHistoryCents.length;
+  c.monthlyHistoryCents = c.monthlyHistoryCents.map((v, i) => (n - i < back ? 0 : v));
+  c.avgMonthlyCents = Math.round(c.monthlyHistoryCents.slice(-PARAMS.abcd.averageWindowMonths).reduce((a, b) => a + b, 0) / PARAMS.abcd.averageWindowMonths);
+  c.abcd = classifyAbcd(c.avgMonthlyCents, PARAMS.abcd.rules);
+  if (!c.lastPurchaseDate) { c.receivables = []; c.manualCreditBlock = false; }
+}
+export { monthsBackOf };
 // estoque de freezers ainda não instalados
 for (let i = 0; i < 14; i++) {
   const t = pick(ASSET_TYPES);

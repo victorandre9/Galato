@@ -7,6 +7,7 @@ import {
 import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/domain";
 import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
 import { notify } from "../data/notify";
+import { ReportsView, RankingSheet, SellerPanel } from "./Reports";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
   inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
@@ -40,6 +41,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "visits", label: "Visitas", icon: <MapPin size={20} /> },
     { id: "deliveries", label: "Entregas", icon: <Truck size={20} /> },
     { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
+    { id: "reports", label: "Relatórios", icon: <BarChart3 size={20} /> },
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
@@ -49,6 +51,7 @@ export function ManagerApp({ role }: { role: Role }) {
     <Shell tabs={tabs} tab={tab} onTab={setTab} roleLabel={info.label} userName={info.name}>
       {tab === "home" && <ManagerHome scope={scope} role={role} info={info} goTab={setTab} />}
       {tab === "sales" && <SalesView scope={scope} />}
+      {tab === "reports" && <ReportsView scope={scope} />}
       {tab === "visits" && <VisitsView scope={scope} />}
       {tab === "inactive" && <InactiveView scope={scope} onOpen={setOpen} />}
       {tab === "deliveries" && <DeliveriesView />}
@@ -82,6 +85,8 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
   const vr = visitsRanking().filter((r) => scope.includes(r.id));
   const vPlanned = vr.reduce((a, r) => a + r.target, 0), vDone = vr.reduce((a, r) => a + r.achieved, 0);
   const [drill, setDrill] = useState<null | "visits" | "deliveries">(null);
+  const [rankOpen, setRankOpen] = useState(false);
+  const [sellerOpen, setSellerOpen] = useState<string | null>(null);
   const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
     ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, tab: "sales" })),
     ...(fq.breached ? [{ tone: "danger" as const, text: `${fq.breached} solicitações financeiras sem resposta há +${PARAMS.financialSla.responseHours}h`, tab: "finance" }] : []),
@@ -116,12 +121,15 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
       <YesterdayCard scope={scope} />
 
       <div className="grid gd gd-21">
-        <Card title="Ranking por vendedor" icon={<Trophy size={17} />} sub="ordenado por % da meta" link="Detalhar" onLink={() => goTab("sales")}>
+        <Card title="Ranking por vendedor" icon={<Trophy size={17} />} sub="ordenado por % da meta" link="Ver ranking completo" onLink={() => setRankOpen(true)}>
           <div className="chips mb">
             <Chip on={rankMode === "day"} onClick={() => setRankMode("day")}>Meta do dia</Chip>
             <Chip on={rankMode === "month"} onClick={() => setRankMode("month")}>Meta do mês</Chip>
           </div>
-          <RankingList rows={ranking} format={(r) => `${brl0(r.achieved)} / ${brl0(r.target)}`} />
+          <RankingList rows={ranking} format={(r) => `${brl0(r.achieved)} / ${brl0(r.target)}`} onRow={setSellerOpen} />
+          {(() => { const tA = ranking.reduce((a, r) => a + r.achieved, 0), tT = ranking.reduce((a, r) => a + r.target, 0); return (
+            <div className="bullet-total" style={{ cursor: "pointer" }} onClick={() => setRankOpen(true)}><span className="semi">Total da equipe</span><span className="num"><b>{brl0(tA)}</b> <span className="muted xs">/ {brl0(tT)}</span></span><b className={`num ${tA >= tT ? "green" : "red"}`}>{pct(tT ? (tA / tT) * 100 : 0)}</b></div>
+          ); })()}
         </Card>
         <Card title={`Exceções e alertas (${alerts.length})`} icon={<AlertTriangle size={17} />}>
           {alerts.map((a, i) => (
@@ -200,6 +208,8 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
         </Card>
       </div>
 
+      {rankOpen && <RankingSheet scope={scope} initial={rankMode} onClose={() => setRankOpen(false)} />}
+      {sellerOpen && <SellerPanel id={sellerOpen} onClose={() => setSellerOpen(null)} />}
       {drill === "visits" && (
         <Sheet title={`Visitas do dia · ${dayLabel(TODAY)}`} onClose={() => setDrill(null)} wide><VisitsTable scope={scope} /></Sheet>
       )}
@@ -221,6 +231,7 @@ function MiniStat({ label, n, danger }: { label: string; n: number; danger?: boo
 
 function SalesView({ scope }: { scope: string[] }) {
   const rows = salesRanking("month").filter((r) => scope.includes(r.id));
+  const [open, setOpen] = useState<string | null>(null);
   const g = teamGoal(scope);
   return (
     <>
@@ -240,7 +251,7 @@ function SalesView({ scope }: { scope: string[] }) {
               {rows.map((r) => {
                 const sg = sellerGoal(r.id);
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className="click" onClick={() => setOpen(r.id)}>
                     <td><span className={`pos p${r.position}`}>{r.position}º</span></td>
                     <td className="semi">{r.name}</td>
                     <td className="r num">{brl0(sg.monthlyGoalCents)}</td>
@@ -254,10 +265,19 @@ function SalesView({ scope }: { scope: string[] }) {
                   </tr>
                 );
               })}
+              <tr className="total-row">
+                <td></td><td className="bold">Total da equipe</td>
+                <td className="r num bold">{brl0(g.monthlyGoalCents)}</td><td className="r num bold">{brl0(g.achievedMonthCents)}</td>
+                <td><div className="progress-row"><Progress value={g.monthAttainmentPct} color="red" /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div></td>
+                <td className="r num">{brl0(g.dailyGoalCents)}</td><td className="r num">{brl0(g.achievedTodayCents)}</td>
+                <td className="r bold num">{pct(g.dayAttainmentPct)}</td><td className="r num red bold">{brl0(g.missingMonthCents)}</td><td className="r num">{brl0(g.requiredPerRemainingDayCents)}</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </Card>
+      {open && <SellerPanel id={open} onClose={() => setOpen(null)} />}
+      <p className="xs muted mt">Toque em um vendedor para ver os pedidos do mês e os clientes sem compra.</p>
     </>
   );
 }

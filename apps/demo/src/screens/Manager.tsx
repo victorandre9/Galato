@@ -1,0 +1,492 @@
+/** Gestão comercial (gerente geral, gerente, coordenador) — desktop-first, responsivo. */
+import { useState } from "react";
+import {
+  LayoutDashboard, TrendingUp, MapPin, UserX, Truck, Wallet, Snowflake, Briefcase, MoreHorizontal, Crown, Target,
+  BarChart3, AlertTriangle, Trophy, Receipt, ClipboardList, Clock, ArrowRightLeft, CalendarRange, Check, X as XIcon,
+} from "lucide-react";
+import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/domain";
+import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, type Customer, type Role } from "../data/mock";
+import {
+  teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
+  inactiveTotals, ordersOf, countByStatus, AWAITING_CREDIT, IN_BILLING, IN_ROUTE, termKpi, customerRow, dayLabel,
+} from "../data/selectors";
+import { filterCustomers } from "@galato/domain";
+import { commit, useStore } from "../data/store";
+import { Shell, Greeting, ProfilePanel } from "../components/shell";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList } from "../components/ui";
+import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
+
+const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
+  general_manager: { label: "Gerente geral", name: "Paulo Henrique Lopes" },
+  sales_coordinator: { label: "Coordenador comercial", name: "Ricardo Nunes" },
+  sales_manager: { label: "Gerente comercial", name: MANAGERS[0]!.name },
+};
+
+export function ManagerApp({ role }: { role: Role }) {
+  const [tab, setTab] = useState("home");
+  const [open, setOpen] = useState<Customer | null>(null);
+  useStore();
+  const info = ROLE_INFO[role]!;
+  // gerente comercial vê só a própria equipe; coordenação/gerente geral veem tudo
+  const scope = role === "sales_manager" ? SELLERS.filter((s) => s.managerId === "m1").map((s) => s.id) : SELLERS.map((s) => s.id);
+  const fq = financeQueue();
+  const tabs = [
+    { id: "home", label: "Início", icon: <LayoutDashboard size={20} /> },
+    { id: "sales", label: "Metas", icon: <TrendingUp size={20} /> },
+    { id: "visits", label: "Visitas", icon: <MapPin size={20} /> },
+    { id: "deliveries", label: "Entregas", icon: <Truck size={20} /> },
+    { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
+    { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
+    { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
+    { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
+    { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: 2 },
+  ];
+  return (
+    <Shell tabs={tabs} tab={tab} onTab={setTab} roleLabel={info.label} userName={info.name}>
+      {tab === "home" && <ManagerHome scope={scope} role={role} info={info} goTab={setTab} />}
+      {tab === "sales" && <SalesView scope={scope} />}
+      {tab === "visits" && <VisitsView scope={scope} />}
+      {tab === "inactive" && <InactiveView scope={scope} onOpen={setOpen} />}
+      {tab === "deliveries" && <DeliveriesView />}
+      {tab === "finance" && <FinanceView />}
+      {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
+      {tab === "portfolio" && <PortfolioView />}
+      {tab === "more" && (
+        <div className="stack">
+          <div className="grid g2 only-mobile" style={{ marginBottom: 0 }}>
+            {tabs.slice(5).map((t) => <button key={t.id} className="action-tile" onClick={() => setTab(t.id)}><span className="ic">{t.icon}</span>{t.label}</button>)}
+          </div>
+          <ProfilePanel name={info.name} role={info.label} />
+        </div>
+      )}
+      {open && <CustomerSheet c={open} onClose={() => setOpen(null)} />}
+    </Shell>
+  );
+}
+
+function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role; info: { label: string; name: string }; goTab: (t: string) => void }) {
+  const g = teamGoal(scope);
+  const vt = visitsTotal();
+  const log = logisticsOverview();
+  const fq = financeQueue();
+  const assets = assetsOverview(scope);
+  const inactive = inactiveTotals(scope);
+  const orders = ordersOf().filter((o) => scope.includes(o.sellerId));
+  const term = termKpi();
+  const [rankMode, setRankMode] = useState<"day" | "month">("day");
+  const ranking = salesRanking(rankMode).filter((r) => scope.includes(r.id));
+  const vr = visitsRanking().filter((r) => scope.includes(r.id));
+  const vPlanned = vr.reduce((a, r) => a + r.target, 0), vDone = vr.reduce((a, r) => a + r.achieved, 0);
+  const [drill, setDrill] = useState<null | "visits" | "deliveries">(null);
+  const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
+    ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, tab: "sales" })),
+    ...(fq.breached ? [{ tone: "danger" as const, text: `${fq.breached} solicitações financeiras sem resposta há +${PARAMS.financialSla.responseHours}h`, tab: "finance" }] : []),
+    ...log.alerts.slice(0, 3).map((a) => ({ ...a, tab: "deliveries" })),
+    { tone: "warning", text: `${countByStatus(orders, ["blocked"])} pedidos bloqueados por crédito`, tab: "finance" },
+    { tone: "warning", text: `${assets.idleCount} freezers sem giro (${brl0(assets.idleValue)})`, tab: "assets" },
+  ];
+
+  return (
+    <>
+      <Greeting icon={<Crown size={22} />} title={`Olá, ${info.name.split(" ")[0]}!`} sub={`${info.label} · ${role === "sales_manager" ? "sua equipe" : "visão executiva da operação"}`} />
+
+      <div className="grid g2 gd-4">
+        <Kpi icon={<Target size={17} />} label="Meta do dia" value={brl0(g.dailyGoalCents)}>
+          <div className="progress-row"><Progress value={g.dayAttainmentPct} /><b className="num xs">{pct(g.dayAttainmentPct)}</b></div>
+          <div className="kpi-foot">Realizado {brl0(g.achievedTodayCents)} · falta {brl0(g.missingTodayCents)}</div>
+        </Kpi>
+        <Kpi icon={<BarChart3 size={17} />} tone="gold" label="Vendas do mês" value={brl0(g.achievedMonthCents)}>
+          <div className="progress-row"><Progress value={g.monthAttainmentPct} color="red" /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
+          <div className="kpi-foot">Meta {brl0(g.monthlyGoalCents)} · {g.remainingBusinessDays} {g.remainingBusinessDays === 1 ? "dia útil restante" : "dias úteis rest."}</div>
+        </Kpi>
+        <Kpi icon={<MapPin size={17} />} tone="info" label="Visitas do dia" value={<>{vDone} <small>/ {vPlanned}</small></>} onClick={() => setDrill("visits")}>
+          <div className="progress-row"><Progress value={(vDone / vPlanned) * 100} color="green" /><b className="num xs">{pct((vDone / vPlanned) * 100)}</b></div>
+          <div className="kpi-foot">Check-in conta como visita · toque p/ detalhar</div>
+        </Kpi>
+        <Kpi icon={<Truck size={17} />} tone="success" label="Entregas do dia" value={<>{log.delivered} <small>/ {log.total}</small></>} onClick={() => setDrill("deliveries")}>
+          <div className="progress-row"><Progress value={log.pct} color="green" /><b className="num xs">{pct(log.pct)}</b></div>
+          <div className="kpi-foot">{log.pending} pendentes · {log.failed} não realizadas</div>
+        </Kpi>
+      </div>
+
+      <div className="grid gd gd-21">
+        <Card title="Ranking por vendedor" icon={<Trophy size={17} />} sub="ordenado por % da meta" link="Detalhar" onLink={() => goTab("sales")}>
+          <div className="chips mb">
+            <Chip on={rankMode === "day"} onClick={() => setRankMode("day")}>Meta do dia</Chip>
+            <Chip on={rankMode === "month"} onClick={() => setRankMode("month")}>Meta do mês</Chip>
+          </div>
+          <RankingList rows={ranking} format={(r) => `${brl0(r.achieved)} / ${brl0(r.target)}`} />
+        </Card>
+        <Card title={`Exceções e alertas (${alerts.length})`} icon={<AlertTriangle size={17} />}>
+          {alerts.map((a, i) => (
+            <div key={i} className="alert-line click" style={{ cursor: "pointer" }} onClick={() => goTab(a.tab)}>
+              <span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      <div className="grid gd gd-3">
+        <Card title="Ranking de visitas" icon={<MapPin size={17} />} sub="% realizadas/planejadas" link="Ver" onLink={() => goTab("visits")}>
+          <RankingList rows={vr} format={(r) => `${r.achieved}/${r.target} visitas`} />
+        </Card>
+        <Card title="Clientes sem compra" icon={<UserX size={17} />} link="Filtrar" onLink={() => goTab("inactive")}>
+          <div className="buckets">
+            {inactive.map((b, i) => (
+              <div key={b.bucket} className={`bucket b${i}`} onClick={() => goTab("inactive")}><span>{bucketLabel(b.bucket, PARAMS.inactivity.dashboardBuckets)}</span><b className="num">{b.count}</b></div>
+            ))}
+          </div>
+          <div className="divider" />
+          <dl className="kv">
+            <dt>Prazo médio vendido</dt><dd>{term.avg.toFixed(1)} dias</dd>
+            <dt>Prazo acima do recomendado</dt><dd className="gold">{term.longer} pedidos</dd>
+            <dt>Ticket médio</dt><dd className="num">{brl(Math.round(g.achievedMonthCents / SELLERS.filter((s) => scope.includes(s.id)).reduce((a, s) => a + s.ordersMonth, 0)))}</dd>
+          </dl>
+        </Card>
+        <Card title="Financeiro" icon={<Receipt size={17} />} link="Ver fila" onLink={() => goTab("finance")}>
+          <div className="grid g3" style={{ marginBottom: 10 }}>
+            <MiniStat label="Pendentes" n={fq.queue.length} />
+            <MiniStat label={`> ${PARAMS.financialSla.responseHours}h`} n={fq.breached} danger />
+            <MiniStat label="Do dia anterior" n={fq.carryOver} />
+          </div>
+          <div className="list">
+            {fq.queue.slice(0, 3).map((p) => (
+              <div key={p.id} className="row">
+                <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
+                <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{sellerById.get(p.sellerId)?.name}</div></div>
+                <Badge tone={p.sla.level === "breached" ? "danger" : p.sla.level === "warning" ? "warning" : "neutral"}>{Math.floor(p.sla.elapsedHours)}h</Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gd gd-3">
+        <Card title="Pipeline de pedidos" icon={<ClipboardList size={17} />}>
+          {[
+            ["Aguardando crédito", countByStatus(orders, AWAITING_CREDIT), "warning"],
+            ["Em faturamento", countByStatus(orders, IN_BILLING), "info"],
+            ["Faturados", countByStatus(orders, ["invoiced"]), "success"],
+            ["Em rota / trânsito", countByStatus(orders, IN_ROUTE), "brand"],
+            ["Erro de faturamento", countByStatus(orders, ["billing_error"]), "danger"],
+          ].map(([l, n, t]) => (
+            <div key={l as string} className="row"><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
+          ))}
+        </Card>
+        <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")}>
+          <div className="flex" style={{ gap: 16 }}>
+            <Ring value={(1 - assets.idleCount / Math.max(1, assets.onStreet)) * 100} size={96} stroke={10} label={assets.onStreet} sub="freezers" />
+            <dl className="kv" style={{ flex: 1 }}>
+              <dt>Valor na rua</dt><dd className="num">{brl0(assets.valueOnStreet)}</dd>
+              <dt>Sem giro</dt><dd className="red">{assets.idleCount}</dd>
+              <dt>Valor parado</dt><dd className="num red">{brl0(assets.idleValue)}</dd>
+            </dl>
+          </div>
+        </Card>
+        <Card title="Logística agora" icon={<Truck size={17} />} link="Ver" onLink={() => goTab("deliveries")}>
+          {log.routes.slice(0, 4).map(({ r, p, driver }) => (
+            <div key={r.id} className="row">
+              <div className="grow"><div className="title small">{r.name}</div><div className="sub">{driver.name.split(" ")[0]} · {p.status}</div>
+                <div className="mt" style={{ marginTop: 4 }}><Progress thin value={p.pct} color="green" /></div></div>
+              <div className="end num semi small">{p.delivered}/{p.total}</div>
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {drill === "visits" && (
+        <Sheet title={`Visitas do dia · ${dayLabel(TODAY)}`} onClose={() => setDrill(null)} wide><VisitsTable scope={scope} /></Sheet>
+      )}
+      {drill === "deliveries" && (
+        <Sheet title="Entregas do dia por rota" onClose={() => setDrill(null)} wide><DeliveriesTable /></Sheet>
+      )}
+    </>
+  );
+}
+
+function MiniStat({ label, n, danger }: { label: string; n: number; danger?: boolean }) {
+  return (
+    <div style={{ textAlign: "center", padding: 8, borderRadius: 12, background: danger && n ? "var(--danger-soft)" : "var(--neutral-soft)" }}>
+      <b className={`num ${danger && n ? "red" : ""}`} style={{ fontSize: 20 }}>{n}</b>
+      <div className="xs muted">{label}</div>
+    </div>
+  );
+}
+
+function SalesView({ scope }: { scope: string[] }) {
+  const rows = salesRanking("month").filter((r) => scope.includes(r.id));
+  const g = teamGoal(scope);
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 4px" }}>Metas e ranking proporcional</h2>
+      <p className="small muted mb">Meta diária = meta mensal ÷ {g.businessDaysInMonth} dias úteis. Ranking pelo % de atingimento, nunca pelo valor absoluto.</p>
+      <div className="grid g2 gd-4">
+        <Kpi label="Meta mensal (equipe)" value={brl0(g.monthlyGoalCents)} foot={`${g.businessDaysInMonth} dias úteis no mês`} />
+        <Kpi label="Realizado no mês" tone="gold" value={brl0(g.achievedMonthCents)} foot={pct(g.monthAttainmentPct, 1)} />
+        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} foot={`${g.remainingBusinessDays} dia(s) útil(eis) restante(s)`} />
+        <Kpi label="Necessário por dia útil" tone="success" value={brl0(g.requiredPerRemainingDayCents)} foot={`meta diária original ${brl0(g.dailyGoalCents)}`} />
+      </div>
+      <Card>
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>#</th><th>Vendedor</th><th className="r">Meta mês</th><th className="r">Realizado</th><th>% mês</th><th className="r">Meta dia</th><th className="r">Hoje</th><th className="r">% dia</th><th className="r">Falta</th><th className="r">Por dia útil</th></tr></thead>
+            <tbody>
+              {rows.map((r) => {
+                const sg = sellerGoal(r.id);
+                return (
+                  <tr key={r.id}>
+                    <td><span className={`pos p${r.position}`}>{r.position}º</span></td>
+                    <td className="semi">{r.name}</td>
+                    <td className="r num">{brl0(sg.monthlyGoalCents)}</td>
+                    <td className="r num">{brl0(sg.achievedMonthCents)}</td>
+                    <td style={{ minWidth: 130 }}><div className="progress-row"><Progress value={sg.monthAttainmentPct} /><b className="num xs">{pct(sg.monthAttainmentPct)}</b></div></td>
+                    <td className="r num">{brl0(sg.dailyGoalCents)}</td>
+                    <td className="r num">{brl0(sg.achievedTodayCents)}</td>
+                    <td className={`r bold num ${sg.dayAttainmentPct >= 100 ? "green" : sg.dayAttainmentPct < 70 ? "red" : ""}`}>{pct(sg.dayAttainmentPct)}</td>
+                    <td className="r num red">{brl0(sg.missingMonthCents)}</td>
+                    <td className="r num">{brl0(sg.requiredPerRemainingDayCents)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function VisitsTable({ scope }: { scope: string[] }) {
+  const rows = visitsRanking().filter((r) => scope.includes(r.id));
+  return (
+    <div className="table-wrap">
+      <table className="t">
+        <thead><tr><th>#</th><th>Vendedor</th><th className="r">Planejadas</th><th className="r">Realizadas</th><th>%</th><th className="r">Pendentes</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td><span className={`pos p${r.position}`}>{r.position}º</span></td>
+              <td className="semi">{r.name}</td><td className="r">{r.target}</td><td className="r">{r.achieved}</td>
+              <td style={{ minWidth: 140 }}><div className="progress-row"><Progress value={r.attainmentPct ?? 0} color="green" /><b className="xs num">{pct(r.attainmentPct ?? 0)}</b></div></td>
+              <td className="r red semi">{r.pending}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function VisitsView({ scope }: { scope: string[] }) {
+  const vt = visitsTotal();
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 12px" }}>Visitas do dia</h2>
+      <div className="grid g3">
+        <Kpi label="Planejadas" value={vt.planned} />
+        <Kpi label="Realizadas" tone="success" value={vt.done} foot="check-in = visita" />
+        <Kpi label="Atingimento" tone="gold" value={pct(vt.pct)} />
+      </div>
+      <Card title="Ranking por % de visitas realizadas"><VisitsTable scope={scope} /></Card>
+    </>
+  );
+}
+
+function InactiveView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) => void }) {
+  const [days, setDays] = useState<number | null>(15);
+  const [month, setMonth] = useState(false);
+  const [curves, setCurves] = useState<AbcdClass[]>([]);
+  const [freezer, setFreezer] = useState<boolean | undefined>(undefined);
+  const [routes, setRoutes] = useState<string[]>([]);
+  const [seller, setSeller] = useState<string | null>(null);
+  const base = CUSTOMERS.filter((c) => scope.includes(c.sellerId) && (!seller || c.sellerId === seller));
+  const list = filterCustomers(
+    base.map((c) => ({ ...c, commercialRouteCode: c.routeCode, freezerCount: c.assets.length })),
+    { minDaysWithoutPurchase: days ?? undefined, noPurchaseThisMonth: month, curves, hasFreezer: freezer, routeCodes: routes },
+    TODAY,
+  ).map((x) => customerById.get(x.id)!).sort((a, b) => (customerRow(b).days ?? 999) - (customerRow(a).days ?? 999));
+  const toggle = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 4px" }}>Clientes sem compra</h2>
+      <p className="small muted mb">Filtros combináveis. Ex.: Curva A + mais de 15 dias + Rota 2.</p>
+      <Card className="mb">
+        <div className="stack">
+          <div className="chips"><span className="xs muted semi" style={{ alignSelf: "center" }}>Período</span>
+            <Chip on={month} onClick={() => setMonth(!month)}>Sem compra no mês</Chip>
+            {[7, 15, 30].map((d) => <Chip key={d} on={days === d} onClick={() => setDays(days === d ? null : d)}>+{d} dias</Chip>)}
+          </div>
+          <div className="chips"><span className="xs muted semi" style={{ alignSelf: "center" }}>Curva</span>
+            {(["A", "B", "C", "D"] as AbcdClass[]).map((c) => <Chip key={c} on={curves.includes(c)} onClick={() => setCurves(toggle(curves, c))}>Curva {c}</Chip>)}
+            <Chip on={freezer === true} onClick={() => setFreezer(freezer === true ? undefined : true)}>Com freezer</Chip>
+            <Chip on={freezer === false} onClick={() => setFreezer(freezer === false ? undefined : false)}>Sem freezer</Chip>
+          </div>
+          <div className="chips"><span className="xs muted semi" style={{ alignSelf: "center" }}>Rota</span>
+            {PARAMS.commercialRoutes.map((r) => <Chip key={r.code} on={routes.includes(r.code)} onClick={() => setRoutes(toggle(routes, r.code))}>{r.name}</Chip>)}
+          </div>
+          <div className="chips"><span className="xs muted semi" style={{ alignSelf: "center" }}>Vendedor</span>
+            <Chip on={!seller} onClick={() => setSeller(null)}>Todos</Chip>
+            {SELLERS.filter((s) => scope.includes(s.id)).map((s) => <Chip key={s.id} on={seller === s.id} onClick={() => setSeller(s.id)}>{s.name.split(" ")[0]}</Chip>)}
+          </div>
+        </div>
+      </Card>
+      <Card title={`${list.length} clientes encontrados`}>
+        <CustomerTable list={list.slice(0, 120)} onOpen={onOpen} />
+      </Card>
+    </>
+  );
+}
+
+function DeliveriesTable() {
+  const log = logisticsOverview();
+  return (
+    <div className="table-wrap">
+      <table className="t">
+        <thead><tr><th>Rota</th><th>Motorista</th><th>Veículo</th><th>Status</th><th className="r">Programadas</th><th className="r">Realizadas</th><th className="r">Pendentes</th><th className="r">Não realiz.</th><th>%</th></tr></thead>
+        <tbody>
+          {log.routes.map(({ r, p, driver, vehicle }) => (
+            <tr key={r.id}>
+              <td className="semi">{r.code} · {r.name}</td><td>{driver.name}</td><td>{vehicle.plate}</td>
+              <td><Badge tone={p.status === "Em rota" ? (p.behind ? "warning" : "brand") : p.status === "Não iniciada" ? "danger" : "success"}>{p.behind ? "Atrasada" : p.status}</Badge></td>
+              <td className="r">{p.total}</td><td className="r green semi">{p.delivered}</td><td className="r">{p.pending}</td><td className="r red">{p.failed}</td>
+              <td style={{ minWidth: 130 }}><div className="progress-row"><Progress value={p.pct} color="green" /><b className="xs num">{pct(p.pct)}</b></div></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DeliveriesView() {
+  const log = logisticsOverview();
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 12px" }}>Entregas do dia</h2>
+      <div className="grid g2 gd-4">
+        <Kpi label="Programadas" value={log.total} />
+        <Kpi label="Realizadas" tone="success" value={log.delivered} foot={pct(log.pct)} />
+        <Kpi label="Pendentes" tone="gold" value={log.pending} />
+        <Kpi label="Não realizadas" tone="red" value={log.failed} />
+      </div>
+      <Card title="Por rota, motorista e veículo"><DeliveriesTable /></Card>
+      <Card title="Entregas com atenção" icon={<AlertTriangle size={17} />} className="mt">
+        {log.alerts.map((a, i) => <div key={i} className="alert-line"><span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}</div>)}
+      </Card>
+    </>
+  );
+}
+
+function FinanceView() {
+  const fq = financeQueue();
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 4px" }}>Solicitações financeiras</h2>
+      <p className="small muted mb">Nenhuma solicitação some: só sai da fila com resposta do financeiro. Ordem: pendências de ontem → PIX → boleto.</p>
+      <div className="grid g2 gd-4">
+        <Kpi label="Pendentes" value={fq.queue.length} />
+        <Kpi label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} tone="red" value={fq.breached} />
+        <Kpi label="PIX" tone="gold" value={fq.pix} />
+        <Kpi label="Boleto" tone="info" value={fq.boleto} />
+      </div>
+      <Card>
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>#</th><th>Solicitação</th><th>Cliente</th><th>Vendedor</th><th>Método</th><th className="r">Valor</th><th>Status</th><th>SLA</th></tr></thead>
+            <tbody>
+              {fq.queue.map((p, i) => (
+                <tr key={p.id}>
+                  <td>{i + 1}</td><td className="semi">{p.number}{p.carryOver && <> <Badge tone="danger">dia anterior</Badge></>}</td>
+                  <td>{customerById.get(p.customerId)?.tradeName}</td><td>{sellerById.get(p.sellerId)?.name}</td>
+                  <td><Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge></td><td className="r num">{brl(p.amountCents)}</td>
+                  <td>{PAYMENT_REQUEST_STATUS[p.status].label}</td>
+                  <td><Badge tone={p.sla.level === "breached" ? "danger" : p.sla.level === "warning" ? "warning" : "success"}><Clock size={11} /> {Math.floor(p.sla.elapsedHours)}h</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) => void }) {
+  const a = assetsOverview(scope);
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 12px" }}>Ativos / freezers</h2>
+      <div className="grid g2 gd-4">
+        <Kpi icon={<Snowflake size={17} />} label="Freezers na rua" value={a.onStreet} foot={`${a.inStock} em estoque · ${a.maintenance} em manutenção`} />
+        <Kpi tone="gold" label="Valor na rua" value={brl0(a.valueOnStreet)} />
+        <Kpi tone="red" label="Ativos sem giro" value={a.idleCount} foot={`clientes ≥ ${PARAMS.inactivity.idleAssetThresholdDays} dias sem compra`} />
+        <Kpi tone="red" label="Valor de ativos sem giro" value={brl0(a.idleValue)} />
+      </div>
+      <div className="grid gd gd-12">
+        <Card title="Por vendedor">
+          {a.bySeller.filter((x) => scope.includes(x.seller.id)).map((x) => (
+            <div key={x.seller.id} className="row"><span className="grow semi">{x.seller.name}</span><span className="muted small">{x.count} un.</span><span className="num semi">{brl0(x.value)}</span></div>
+          ))}
+        </Card>
+        <Card title="Ativos sem giro" icon={<AlertTriangle size={17} />}>
+          <div className="table-wrap">
+            <table className="t">
+              <thead><tr><th>Cliente</th><th>Vendedor</th><th className="r">Dias s/ compra</th><th className="r">Freezers</th><th className="r">Valor</th><th>Última compra</th></tr></thead>
+              <tbody>
+                {a.idle.slice(0, 30).map((r) => (
+                  <tr key={r.c.id} className="click" onClick={() => onOpen(r.c)}>
+                    <td className="semi">{r.c.tradeName}</td><td>{sellerById.get(r.c.sellerId)?.name.split(" ")[0]}</td>
+                    <td className="r red bold">{r.days ?? "nunca"}</td><td className="r">{r.c.assets.length}</td>
+                    <td className="r num">{brl0(r.value)}</td><td>{fmtDate(r.c.lastPurchaseDate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function PortfolioView() {
+  const [reqs, setReqs] = useState([
+    { id: "t1", customer: CUSTOMERS[70]!, from: "s3", to: "s1", reason: "Cliente vizinho da minha rota de terça, já pediu atendimento comigo.", at: "há 3h" },
+    { id: "t2", customer: CUSTOMERS[200]!, from: "s5", to: "s4", reason: "Cliente mudou de endereço para Sabará.", at: "ontem" },
+  ]);
+  const [form, setForm] = useState({ titular: "s3", sub: "s1", from: TODAY, to: "", reason: "Férias" });
+  return (
+    <>
+      <h2 style={{ margin: "6px 0 12px" }}>Carteiras</h2>
+      <div className="grid gd gd-2">
+        <Card title="Transferências pendentes" icon={<ArrowRightLeft size={17} />}>
+          {reqs.map((r) => (
+            <div key={r.id} className="row" style={{ alignItems: "flex-start" }}>
+              <div className="grow">
+                <div className="title">{r.customer.tradeName}</div>
+                <div className="sub">{sellerById.get(r.from)?.name} → {sellerById.get(r.to)?.name} · {r.at}</div>
+                <div className="small t2" style={{ whiteSpace: "normal", marginTop: 4 }}>“{r.reason}”</div>
+              </div>
+              <div className="flex" style={{ gap: 6 }}>
+                <button className="icon-btn" onClick={() => commit(() => setReqs(reqs.filter((x) => x.id !== r.id)), "Transferência rejeitada · histórico registrado")}><XIcon size={16} /></button>
+                <button className="icon-btn" style={{ background: "var(--success)", color: "#fff" }} onClick={() => commit(() => { r.customer.sellerId = r.to; setReqs(reqs.filter((x) => x.id !== r.id)); }, "Transferência aprovada · carteira anterior, aprovador e motivo registrados")}><Check size={16} /></button>
+              </div>
+            </div>
+          ))}
+          {!reqs.length && <div className="small muted">Nenhuma transferência pendente.</div>}
+        </Card>
+        <Card title="Acesso temporário à carteira" icon={<CalendarRange size={17} />} sub="férias, afastamento, cobertura">
+          <div className="grid g2" style={{ marginBottom: 0 }}>
+            <div className="field"><label>Titular</label><select className="input" value={form.titular} onChange={(e) => setForm({ ...form, titular: e.target.value })}>{SELLERS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div className="field"><label>Substituto</label><select className="input" value={form.sub} onChange={(e) => setForm({ ...form, sub: e.target.value })}>{SELLERS.filter((s) => s.id !== form.titular).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div className="field"><label>Início</label><input type="date" className="input" value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} /></div>
+            <div className="field"><label>Fim</label><input type="date" className="input" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} /></div>
+          </div>
+          <div className="field"><label>Motivo</label><select className="input" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}><option>Férias</option><option>Afastamento</option><option>Cobertura temporária</option></select></div>
+          <p className="xs muted mb">Acesso removido automaticamente no fim do período. Preparado para integração futura com RH.</p>
+          <button className="btn btn-primary btn-block" disabled={!form.to} onClick={() => commit(() => {}, `Carteira de ${sellerById.get(form.titular)?.name.split(" ")[0]} liberada para ${sellerById.get(form.sub)?.name.split(" ")[0]} até ${fmtDate(form.to)}`)}>Liberar acesso temporário</button>
+        </Card>
+      </div>
+    </>
+  );
+}

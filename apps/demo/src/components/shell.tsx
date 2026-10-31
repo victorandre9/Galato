@@ -1,0 +1,110 @@
+/** AppShell: sidebar no desktop, bottom navigation no mobile. */
+import type { ReactNode } from "react";
+import { Bell, Menu, Moon, Sun, CalendarDays, LogOut } from "lucide-react";
+import { setState, setTheme, useStore } from "../data/store";
+import { TODAY } from "../data/mock";
+import { dayLabel } from "../data/selectors";
+import { SyncIndicator } from "./ui";
+
+export interface Tab { id: string; label: string; icon: ReactNode; count?: number }
+
+export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children }: {
+  tabs: Tab[]; tab: string; onTab: (t: string) => void; roleLabel: string; userName: string; narrow?: boolean; children: ReactNode;
+}) {
+  const s = useStore();
+  return (
+    <>
+      {!s.online && <div className="offline-bar">Sem conexão · você continua trabalhando, tudo é salvo no aparelho e sincroniza sozinho</div>}
+      <div className={`shell ${narrow ? "narrow" : ""}`}>
+        <aside className="sidebar">
+          <div className="brand">
+            <img src="./galato-logo.png" alt="Galato Sorvetes" />
+            <div><b>Galato</b><span>Plataforma integrada</span></div>
+          </div>
+          {tabs.filter((t) => t.id !== "more").map((t) => (
+            <button key={t.id} className={`side-item ${tab === t.id ? "active" : ""}`} onClick={() => onTab(t.id)}>
+              {t.icon} {t.label}
+              {!!t.count && <span className="count badge tone-danger">{t.count}</span>}
+            </button>
+          ))}
+          <div className="spacer" />
+          <div className="card" style={{ padding: 12 }}>
+            <div className="semi small">{userName}</div>
+            <div className="xs muted">{roleLabel}</div>
+            <div className="flex mt" style={{ gap: 6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")}>
+                {s.theme === "light" ? <Moon size={15} /> : <Sun size={15} />} {s.theme === "light" ? "Escuro" : "Claro"}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setState({ role: null })}><LogOut size={15} /> Trocar</button>
+            </div>
+          </div>
+        </aside>
+        <main className="main">
+          <header className="app-header">
+            <button className="icon-btn menu-btn" onClick={() => setState({ role: null })} aria-label="Trocar perfil"><Menu size={20} /></button>
+            <img className="logo" src="./galato-logo.png" alt="Galato" />
+            <div className="only-desktop flex">
+              <span className="pill"><CalendarDays size={14} /> Hoje, {dayLabel(TODAY)}</span>
+            </div>
+            <div className="header-right">
+              <span className="only-desktop"><SyncIndicator /></span>
+              <button className="icon-btn only-desktop" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")} aria-label="Tema">
+                {s.theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
+              <button className="icon-btn" aria-label="Notificações"><Bell size={19} /><span className="dot" /></button>
+            </div>
+          </header>
+          {children}
+        </main>
+      </div>
+      <nav className="bottom-nav">
+        {tabs.slice(0, 5).map((t) => (
+          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { onTab(t.id); window.scrollTo({ top: 0 }); }}>
+            {t.icon}<span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+export function Greeting({ icon, title, sub }: { icon: ReactNode; title: string; sub: string }) {
+  return (
+    <div className="greeting">
+      <span className="avatar">{icon}</span>
+      <div>
+        <h1>{title}</h1>
+        <p>{sub}</p>
+      </div>
+      <span className="date-pill only-mobile"><SyncIndicator /></span>
+    </div>
+  );
+}
+
+export function ProfilePanel({ name, role, extra }: { name: string; role: string; extra?: ReactNode }) {
+  const s = useStore();
+  return (
+    <div className="stack">
+      <div className="card flex" style={{ gap: 14 }}>
+        <span className="avatar" style={{ width: 56, height: 56, borderRadius: 18, display: "grid", placeItems: "center", background: "var(--brand-soft)", color: "var(--brand)", fontWeight: 700, fontSize: 20 }}>
+          {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
+        </span>
+        <div><div className="bold">{name}</div><div className="small muted">{role}</div></div>
+      </div>
+      {extra}
+      <div className="card">
+        <div className="card-title">Preferências</div>
+        <div className="flex between row">
+          <span>Tema</span>
+          <div className="chips">
+            <button className={`chip ${s.theme === "light" ? "on" : ""}`} onClick={() => setTheme("light")}><Sun size={13} /> Claro</button>
+            <button className={`chip ${s.theme === "dark" ? "on" : ""}`} onClick={() => setTheme("dark")}><Moon size={13} /> Escuro</button>
+          </div>
+        </div>
+        <div className="flex between row"><span>Conexão (simulação)</span><SyncIndicator /></div>
+        <div className="row xs muted">Clique no indicador para simular perda de internet. Ações continuam funcionando e sincronizam sozinhas ao reconectar.</div>
+      </div>
+      <button className="btn btn-ghost btn-block" onClick={() => setState({ role: null })}><LogOut size={16} /> Trocar perfil de demonstração</button>
+    </div>
+  );
+}

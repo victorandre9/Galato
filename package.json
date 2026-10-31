@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "build": "node scripts/build-demo.mjs",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },

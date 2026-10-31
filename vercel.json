@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @galato/demo build",
-  "outputDirectory": "apps/demo/dist",
-  "framework": null
+  "outputDirectory": "apps/demo/dist"
 }

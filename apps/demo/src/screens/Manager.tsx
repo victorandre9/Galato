@@ -436,12 +436,17 @@ function FinanceView() {
       <h2 style={{ margin: "6px 0 4px" }}>Solicitações financeiras</h2>
       <p className="small muted mb">Nenhuma solicitação some: só sai da fila com resposta do financeiro. Ordem: pendências de ontem → PIX → boleto.</p>
       <div className="grid g2 gd-4">
-        <Kpi label="Pendentes" value={fq.queue.length} onClick={() => setF("all")} />
-        <Kpi label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} tone="red" value={fq.breached} onClick={() => setF("late")} />
-        <Kpi label="PIX" tone="gold" value={fq.pix} onClick={() => setF("PIX")} />
-        <Kpi label="Boleto" tone="info" value={fq.boleto} onClick={() => setF("BOLETO")} />
+        <Kpi label="Pendentes" value={fq.queue.length} onClick={() => { setF("all"); scrollToId("fin-tabela"); }} />
+        <Kpi label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} tone="red" value={fq.breached} onClick={() => { setF("late"); scrollToId("fin-tabela"); }} />
+        <Kpi label="PIX" tone="gold" value={fq.pix} onClick={() => { setF("PIX"); scrollToId("fin-tabela"); }} />
+        <Kpi label="Boleto" tone="info" value={fq.boleto} onClick={() => { setF("BOLETO"); scrollToId("fin-tabela"); }} />
       </div>
-      <Card>
+      <Card id="fin-tabela">
+        <div className="chips mb">
+          {([["all", "Todas"], ["late", `Sem resposta > ${PARAMS.financialSla.responseHours}h`], ["PIX", "PIX"], ["BOLETO", "Boleto"]] as const).map(([k, l]) => (
+            <Chip key={k} on={f === k} onClick={() => setF(k)}>{l}</Chip>
+          ))}
+        </div>
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Solicitação</th><th>Cliente</th><th>Vendedor</th><th>Método</th><th className="r">Valor</th><th>Status</th><th>SLA</th></tr></thead>

@@ -8,7 +8,16 @@ export const brl = (c: number) => formatBRL(c);
 export const brl0 = (c: number) => formatBRL(c, true);
 export const pct = (v: number, d = 0) => formatPct(v, d);
 
-export const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+/** Leva até a seção e destaca com um brilho, para o toque sempre ter resposta visível. */
+export const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.remove("flash");
+  void el.offsetWidth; // reinicia a animação
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1600);
+};
 
 export function Card({ children, title, icon, link, onLink, onClick, className = "", sub, id }: {
   children?: ReactNode; title?: ReactNode; icon?: ReactNode; link?: string; onLink?: () => void;

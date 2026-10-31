@@ -272,3 +272,11 @@ select.input { border-radius: 16px; }
 /* ícones 3D com aro fino */
 .kpi .kpi-ic, .action-tile .ic, .role-card .ic, .greeting .avatar { outline: 1.5px solid rgba(255,255,255,.55); outline-offset: -3px; }
 [data-theme="dark"] .kpi .kpi-ic, [data-theme="dark"] .action-tile .ic, [data-theme="dark"] .role-card .ic, [data-theme="dark"] .greeting .avatar { outline-color: rgba(255,220,150,.35); }
+
+/* destaque ao chegar numa seção pelo toque num card */
+.flash { animation: flash 1.5s ease-out; }
+@keyframes flash {
+  0% { box-shadow: 0 0 0 0 rgba(255,180,0,0); }
+  20% { box-shadow: 0 0 0 4px rgba(255,180,0,.55), 0 0 40px rgba(255,150,30,.45); }
+  100% { box-shadow: var(--shadow); }
+}

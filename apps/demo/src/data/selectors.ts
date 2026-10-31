@@ -190,7 +190,7 @@ export const dayLabel = (d: IsoDate) =>
   new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 
 // ---------------------------------------------------------------- dia anterior
-import { YESTERDAY, YESTERDAY_SELLERS, YESTERDAY_DELIVERIES } from "./mock";
+import { YESTERDAY, YESTERDAY_SELLERS, YESTERDAY_DELIVERIES, YESTERDAY_ROUTES } from "./mock";
 export function yesterdaySummary(scope: string[]) {
   const rows = YESTERDAY_SELLERS.filter((y) => scope.includes(y.sellerId)).map((y) => {
     const s = SELLERS.find((x) => x.id === y.sellerId)!;
@@ -209,11 +209,19 @@ export function yesterdaySummary(scope: string[]) {
   const openPayments = PAYMENT_REQUESTS.filter((p) => OPEN_PR.includes(p.status) && isoDateInTimezone(new Date(p.createdAt), PARAMS.timezone) <= YESTERDAY).length;
   const openIncidents = INCIDENTS.filter((i) => i.status !== "resolved" && i.createdAt.slice(0, 10) <= YESTERDAY).length;
   const incomplete = rows.filter((r) => r.visitsDone < r.visitsPlanned);
-  const ok = sales >= goal && vDone >= vPlanned && failed.length === 0;
+  const routes = YESTERDAY_ROUTES.map((r) => {
+    const list = dl.filter((d) => d.routeName === r.routeName);
+    const done = list.filter((d) => d.status === "delivered").length;
+    return { ...r, total: list.length, delivered: done, driver: DRIVERS.find((x) => x.id === r.driverId)!, vehicle: VEHICLES.find((v) => v.id === r.vehicleId)! };
+  });
+  const unfinished = routes.filter((r) => !r.finishedAt);
+  const belowGoal = rows.filter((r) => r.salesCents < r.goalCents);
+  const ok = sales >= goal && vDone >= vPlanned && failed.length === 0 && unfinished.length === 0;
   return {
     date: YESTERDAY, rows, salesRank, visitRank, goal, sales, salesPct: goal ? (sales / goal) * 100 : 0,
     vPlanned, vDone, visitsPct: vPlanned ? (vDone / vPlanned) * 100 : 0,
     deliveriesTotal: dl.length, delivered, deliveriesPct: dl.length ? (delivered / dl.length) * 100 : 0, failed,
     pendingFailed: failed.filter((f) => !f.rescheduledTo), openPayments, openIncidents, incomplete, ok,
+    routes, unfinished, belowGoal,
   };
 }

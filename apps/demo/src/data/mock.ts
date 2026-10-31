@@ -390,7 +390,7 @@ export const CHECKLIST_ITEMS = [
 ];
 
 export const DRIVER_HISTORY = [
-  { date: addDays(TODAY, -1), route: "Belo Horizonte 1", delivered: 11, notDelivered: 1, checklist: "8/8 ok", incidents: 0 },
+  { date: addDays(TODAY, -1), route: "Belo Horizonte 1", delivered: 12, notDelivered: 0, checklist: "8/8 ok", incidents: 0 },
   { date: addDays(TODAY, -2), route: "Belo Horizonte 1", delivered: 12, notDelivered: 0, checklist: "7/8 · 1 NC", incidents: 1 },
   { date: addDays(TODAY, -3), route: "Contagem / Betim", delivered: 10, notDelivered: 0, checklist: "8/8 ok", incidents: 0 },
   { date: addDays(TODAY, -6), route: "Belo Horizonte 1", delivered: 13, notDelivered: 1, checklist: "8/8 ok", incidents: 0 },
@@ -472,3 +472,19 @@ export const YESTERDAY_DELIVERIES: YesterdayDelivery[] = ydRoutes.flatMap(([rout
     } as YesterdayDelivery;
   }),
 );
+
+export interface YesterdayRoute { routeName: string; driverId: string; vehicleId: string; startedAt: string; finishedAt: string | null; note?: string }
+/** fechamento das rotas de ontem: quem finalizou o dia no app */
+export const YESTERDAY_ROUTES: YesterdayRoute[] = ydRoutes.map(([routeName, driverId, vehicleId], i) => {
+  const notFinished: Record<string, string> = {
+    "Belo Horizonte 3": "Não finalizou o dia no app · 1 entrega sem baixa",
+    "Nova Lima / Sabará": "Não finalizou · veículo parado por problema mecânico",
+  };
+  const end = 15 * 60 + 40 + i * 17;
+  return {
+    routeName, driverId, vehicleId,
+    startedAt: `${YESTERDAY}T${String(10 + (i % 2)).padStart(2, "0")}:${String(5 + i * 6).padStart(2, "0")}:00Z`,
+    finishedAt: notFinished[routeName] ? null : `${YESTERDAY}T${String(Math.floor(end / 60) + 3).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}:00Z`,
+    note: notFinished[routeName],
+  };
+});

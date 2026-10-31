@@ -13,7 +13,7 @@ import {
   yesterdaySummary,
 } from "../data/selectors";
 import { DRIVERS, DELIVERY_ROUTES, YESTERDAY_ROUTE, type YesterdayDelivery } from "../data/mock";
-import { History, CheckCircle2, XCircle, CalendarClock } from "lucide-react";
+import { History, CheckCircle2, XCircle, CalendarClock, ChevronRight, Package } from "lucide-react";
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
@@ -521,50 +521,40 @@ function YesterdayCard({ scope }: { scope: string[] }) {
   useStore();
   const y = yesterdaySummary(scope);
   const [open, setOpen] = useState(false);
-  const Stat = ({ label, done, target, pctV, fmt }: { label: string; done: string; target: string; pctV: number; fmt?: string }) => (
+  const Stat = ({ label, done, target, pctV }: { label: string; done: string; target: string; pctV: number }) => (
     <div className="yd-stat">
       <div className="xs muted semi">{label}</div>
       <div className="flex between" style={{ alignItems: "baseline" }}>
-        <b className="num" style={{ fontSize: 20 }}>{done} <small className="muted" style={{ fontSize: 12, fontWeight: 500 }}>/ {target}</small></b>
+        <b className="num" style={{ fontSize: 19 }}>{done} <small className="muted" style={{ fontSize: 12, fontWeight: 500 }}>/ {target}</small></b>
         <b className={`num small ${pctV >= 100 ? "green" : pctV < 80 ? "red" : "gold"}`}>{pct(pctV)}</b>
       </div>
       <Progress thin value={pctV} color={pctV >= 100 ? "green" : pctV < 80 ? "red" : undefined} />
-      {fmt && <div className="xs muted" style={{ marginTop: 4 }}>{fmt}</div>}
     </div>
   );
+  const issues = [
+    y.belowGoal.length && `${y.belowGoal.length} vendedor(es) abaixo da meta`,
+    y.incomplete.length && `${y.incomplete.length} com visitas incompletas`,
+    y.unfinished.length && `${y.unfinished.length} motorista(s) não finalizaram a rota`,
+    y.pendingFailed.length && `${y.pendingFailed.length} entrega(s) não concluída(s)`,
+  ].filter(Boolean) as string[];
   return (
     <>
-      <Card title={<>Fechamento de ontem · {dayLabel(y.date)}</>} icon={<History size={17} />} link="Ver detalhes" onLink={() => setOpen(true)} className="mb yd-card">
-        <div className="flex wrap mb" style={{ gap: 8 }}>
-          {y.ok ? <Badge tone="success"><CheckCircle2 size={12} /> Dia concluído com sucesso</Badge> : <Badge tone="danger"><XCircle size={12} /> Dia com pendências</Badge>}
-          {y.incomplete.length > 0 && <Badge tone="warning">{y.incomplete.length} vendedor(es) não concluíram as visitas</Badge>}
-          {y.pendingFailed.length > 0 && <Badge tone="warning">{y.pendingFailed.length} entrega(s) a resolver</Badge>}
+      <div className="card click yd-card mb" role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => e.key === "Enter" && setOpen(true)}>
+        <div className="card-title">
+          <span className="ic"><History size={17} /></span>
+          <span>Fechamento de ontem <span className="card-sub">{dayLabel(y.date)}</span></span>
+          <span style={{ marginLeft: "auto" }}>{y.ok ? <Badge tone="success"><CheckCircle2 size={12} /> Concluído</Badge> : <Badge tone="danger"><XCircle size={12} /> Com pendências</Badge>}</span>
         </div>
-        <div className="grid g3" style={{ marginBottom: 12 }}>
+        <div className="grid g3" style={{ marginBottom: 10 }}>
           <Stat label="Faturamento x meta" done={brl0(y.sales)} target={brl0(y.goal)} pctV={y.salesPct} />
-          <Stat label="Visitas x planejadas" done={String(y.vDone)} target={String(y.vPlanned)} pctV={y.visitsPct} fmt={YESTERDAY_ROUTE ? `rota: ${YESTERDAY_ROUTE.name}` : undefined} />
+          <Stat label="Visitas x planejadas" done={String(y.vDone)} target={String(y.vPlanned)} pctV={y.visitsPct} />
           <Stat label="Entregas x programadas" done={String(y.delivered)} target={String(y.deliveriesTotal)} pctV={y.deliveriesPct} />
         </div>
-        <div className="grid gd gd-2" style={{ marginBottom: 0, gap: 18 }}>
-          <div>
-            <div className="xs muted semi mb">Visitas não concluídas</div>
-            {y.incomplete.map((r) => (
-              <div key={r.sellerId} className="alert-line"><span className="dotc" style={{ background: r.visitsPct < 80 ? "var(--danger)" : "var(--gold)" }} />
-                <span><b>{r.name}</b>: {r.visitsDone}/{r.visitsPlanned} visitas · faltaram {r.visitsPlanned - r.visitsDone} · vendeu {pct(r.salesPct)} da meta</span></div>
-            ))}
-            {!y.incomplete.length && <div className="small green semi">Todos concluíram as visitas planejadas.</div>}
-          </div>
-          <div>
-            <div className="xs muted semi mb">Entregas não concluídas</div>
-            {y.failed.slice(0, 5).map((d) => (
-              <div key={d.id} className="alert-line"><span className="dotc" style={{ background: d.rescheduledTo ? "var(--success)" : d.status === "no_record" ? "var(--danger)" : "var(--gold)" }} />
-                <span><b>{customerById.get(d.customerId)?.tradeName}</b> · {d.routeName} · {d.status === "no_record" ? "sem baixa do motorista" : d.reason}{d.rescheduledTo ? " · reprogramada hoje" : ""}</span></div>
-            ))}
-            {!y.failed.length && <div className="small green semi">Todas as entregas concluídas.</div>}
-            {(y.openPayments > 0 || y.openIncidents > 0) && <div className="xs muted mt">Ainda abertos de ontem: {y.openPayments} comprovante(s) no financeiro · {y.openIncidents} ocorrência(s).</div>}
-          </div>
+        <div className="flex between wrap" style={{ gap: 8 }}>
+          <span className="small t2">{issues.length ? issues.join(" · ") : "Equipe concluiu tudo o que foi planejado."}</span>
+          <span className="small red semi flex" style={{ gap: 2 }}>Toque para ver detalhes <ChevronRight size={14} /></span>
         </div>
-      </Card>
+      </div>
       {open && <YesterdaySheet scope={scope} onClose={() => setOpen(false)} />}
     </>
   );
@@ -588,7 +578,38 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
         <Kpi label="Visitas x planejadas" tone="info" value={`${y.vDone}/${y.vPlanned}`} foot={pct(y.visitsPct)} />
         <Kpi label="Entregas x programadas" tone="success" value={`${y.delivered}/${y.deliveriesTotal}`} foot={pct(y.deliveriesPct)} />
       </div>
-      <Card title="Por vendedor" sub="ordenado por % da meta">
+      <Card title={`Vendedores abaixo da meta do dia (${y.belowGoal.length})`} icon={<Target size={17} />}>
+        {y.belowGoal.sort((a, b) => a.salesPct - b.salesPct).map((r) => (
+          <div key={r.sellerId} className="row">
+            <div className="grow">
+              <div className="title">{r.name}</div>
+              <div className="sub">Meta {brl0(r.goalCents)} · vendeu {brl0(r.salesCents)} · faltou <b className="red">{brl0(r.goalCents - r.salesCents)}</b></div>
+              <div style={{ marginTop: 5 }}><Progress thin value={r.salesPct} color={r.salesPct < 80 ? "red" : undefined} /></div>
+            </div>
+            <b className={`num ${r.salesPct < 80 ? "red" : "gold"}`}>{pct(r.salesPct)}</b>
+          </div>
+        ))}
+        {!y.belowGoal.length && <div className="small green semi">Todos bateram a meta do dia.</div>}
+      </Card>
+      <Card title={`Motoristas que não finalizaram a rota (${y.unfinished.length})`} icon={<Truck size={17} />} className="mt">
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>Motorista</th><th>Veículo</th><th>Rota</th><th className="r">Entregues</th><th>Início</th><th>Fim</th><th>Situação</th></tr></thead>
+            <tbody>
+              {y.routes.sort((a, b) => Number(!!a.finishedAt) - Number(!!b.finishedAt)).map((r) => (
+                <tr key={r.routeName}>
+                  <td className="semi">{r.driver.name}</td><td>{r.vehicle.plate} · {r.vehicle.model.split(" ").slice(0, 2).join(" ")}</td><td>{r.routeName}</td>
+                  <td className={`r semi ${r.delivered < r.total ? "red" : "green"}`}>{r.delivered}/{r.total}</td>
+                  <td>{new Date(r.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone })}</td>
+                  <td>{r.finishedAt ? new Date(r.finishedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone }) : "—"}</td>
+                  <td style={{ whiteSpace: "normal", minWidth: 200 }}>{r.finishedAt ? <Badge tone="success">Finalizou</Badge> : <><Badge tone="danger">Não finalizou</Badge> <span className="xs muted">{r.note}</span></>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      <Card title="Metas e visitas por vendedor" sub="ordenado por % da meta" className="mt">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Vendedor</th><th className="r">Meta do dia</th><th className="r">Vendido</th><th className="r">%</th><th className="r">Pedidos</th><th className="r">Visitas</th><th>Não visitados</th></tr></thead>
@@ -611,7 +632,7 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
           </table>
         </div>
       </Card>
-      <Card title={`Entregas não concluídas (${y.failed.length})`} className="mt">
+      <Card title={`Entregas não concluídas (${y.failed.length})`} icon={<Package size={17} />} className="mt">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>Cliente</th><th>Nota</th><th>Rota</th><th>Motorista</th><th>Situação</th><th></th></tr></thead>
@@ -629,6 +650,12 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
           </table>
         </div>
       </Card>
+      {(y.openPayments > 0 || y.openIncidents > 0) && (
+        <Card title="Ainda abertos desde ontem" icon={<AlertTriangle size={17} />} className="mt">
+          <div className="alert-line"><span className="dotc" style={{ background: "var(--danger)" }} />{y.openPayments} comprovante(s) de pagamento sem resposta do financeiro</div>
+          <div className="alert-line"><span className="dotc" style={{ background: "var(--gold)" }} />{y.openIncidents} ocorrência(s) logística(s) em aberto</div>
+        </Card>
+      )}
     </Sheet>
   );
 }

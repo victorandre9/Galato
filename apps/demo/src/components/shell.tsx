@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
-import { setState, setTheme, useStore, toast } from "../data/store";
+import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, type Theme } from "../data/store";
 import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest } from "../data/mock";
 import { daysBetween } from "@galato/domain";
 import { CustomerSheet } from "./business";
@@ -75,8 +75,8 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
             <div className="semi small">{userName}</div>
             <div className="xs muted">{roleLabel}</div>
             <div className="flex mt" style={{ gap: 6 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")}>
-                {s.theme === "light" ? <Moon size={15} /> : <Sun size={15} />} {s.theme === "light" ? "Escuro" : "Claro"}
+              <button className="btn btn-ghost btn-sm" onClick={() => toggleDark(s.theme)}>
+                {s.theme !== "dark" ? <Moon size={15} /> : <Sun size={15} />} {s.theme !== "dark" ? "Escuro" : "Claro"}
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => setState({ role: null })}><LogOut size={15} /> Trocar</button>
             </div>
@@ -92,8 +92,8 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
             </div>
             <div className="header-right">
               <span className="only-desktop"><SyncIndicator /></span>
-              <button className="icon-btn only-desktop" onClick={() => setTheme(s.theme === "light" ? "dark" : "light")} aria-label="Tema">
-                {s.theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+              <button className="icon-btn only-desktop" onClick={() => toggleDark(s.theme)} aria-label="Tema">
+                {s.theme !== "dark" ? <Moon size={18} /> : <Sun size={18} />}
               </button>
               <button className="icon-btn only-desktop" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
               <button className="icon-btn" aria-label="Notificações" onClick={() => setNotifOpen(true)}>
@@ -142,12 +142,9 @@ export function ProfilePanel({ name, role, extra }: { name: string; role: string
       {extra}
       <div className="card">
         <div className="card-title">Preferências</div>
-        <div className="flex between row">
-          <span>Tema</span>
-          <div className="chips">
-            <button className={`chip ${s.theme === "light" ? "on" : ""}`} onClick={() => setTheme("light")}><Sun size={13} /> Claro</button>
-            <button className={`chip ${s.theme === "dark" ? "on" : ""}`} onClick={() => setTheme("dark")}><Moon size={13} /> Escuro</button>
-          </div>
+        <div className="row" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+          <span>Aparência</span>
+          <ThemePicker />
         </div>
         <div className="flex between row"><span>Conexão (simulação)</span><SyncIndicator /></div>
         <div className="row xs muted">Clique no indicador para simular perda de internet. Ações continuam funcionando e sincronizam sozinhas ao reconectar.</div>
@@ -242,6 +239,20 @@ export function DemoDataPanel() {
           onConfirm={async () => { setConfirm(false); await resetDemo(); toast("Dados de demonstração restaurados", "success"); }}
           text={s.dbMode === "shared" ? "Apaga pedidos, comprovantes, entregas e demais alterações feitas no teste, para todos os aparelhos. Os dados fictícios originais voltam." : "Apaga as alterações feitas neste aparelho. Os dados fictícios originais voltam."} />
       )}
+    </div>
+  );
+}
+
+/** Escolha de aparência: Empresarial (novo), Clássico (claro anterior) ou Escuro. */
+export function ThemePicker() {
+  const s = useStore();
+  return (
+    <div className="chips" role="radiogroup" aria-label="Aparência">
+      {(["light", "classic", "dark"] as Theme[]).map((t) => (
+        <button key={t} role="radio" aria-checked={s.theme === t} className={`chip ${s.theme === t ? "on" : ""}`} onClick={() => setTheme(t)}>
+          {t === "dark" ? <Moon size={13} /> : <Sun size={13} />} {THEME_LABEL[t]}
+        </button>
+      ))}
     </div>
   );
 }

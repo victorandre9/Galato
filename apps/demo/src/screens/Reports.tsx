@@ -367,7 +367,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
           <div className="progress-row"><Progress value={g.monthAttainmentPct} /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
         </Kpi>
         <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} onClick={() => scrollToId(`sp-daily-${id}`)}
-          foot={g.remainingBusinessDays > 0
+          foot={g.missingMonthCents <= 0 ? "meta do mês batida ✓" : g.remainingBusinessDays > 0
             ? `${brl0(g.requiredPerRemainingDayCents)}/dia × ${g.remainingBusinessDays} dia${g.remainingBusinessDays === 1 ? "" : "s"} út${g.remainingBusinessDays === 1 ? "il" : "eis"} = ${brl0(g.requiredPerRemainingDayCents * g.remainingBusinessDays)}`
             : "sem dias úteis restantes no mês"} />
         <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido · toque p/ ver clientes`} onClick={() => setBuyersOpen(true)} />

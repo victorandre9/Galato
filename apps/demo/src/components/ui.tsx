@@ -78,8 +78,8 @@ export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: nu
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
           <linearGradient id={id} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#FFD35C" />
-            <stop offset="100%" stopColor="#F5A800" />
+            <stop offset="0%" style={{ stopColor: "var(--ring-a, #FFD35C)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--ring-b, #F5A800)" }} />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />

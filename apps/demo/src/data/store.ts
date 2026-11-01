@@ -7,7 +7,8 @@ import { useSyncExternalStore } from "react";
 import type { Role } from "./mock";
 import { persistChanges, setSyncOnline, startSync, type DbMode } from "./sync";
 
-export type Theme = "light" | "dark";
+/** light = Empresarial (novo, padrão) · classic = visual anterior claro · dark = escuro */
+export type Theme = "light" | "classic" | "dark";
 export interface Toast { id: number; text: string; tone: "success" | "info" | "warning" | "danger" }
 export type SyncState = "synced" | "pending" | "syncing";
 
@@ -26,7 +27,7 @@ interface UiState {
 function initialTheme(): Theme {
   try {
     const t = localStorage.getItem("galato-theme");
-    if (t === "light" || t === "dark") return t;
+    if (t === "light" || t === "dark" || t === "classic") return t;
   } catch { /* storage indisponível */ }
   try {
     const attr = document.documentElement.dataset.theme;
@@ -104,3 +105,12 @@ export function setTheme(theme: Theme) {
   try { localStorage.setItem("galato-theme", theme); } catch { /* ok */ }
   setState({ theme });
 }
+
+/** Botão sol/lua: alterna entre o claro escolhido e o escuro. */
+export function toggleDark(current: Theme) {
+  let lastLight: Theme = "light";
+  try { const v = localStorage.getItem("galato-light-theme"); if (v === "classic") lastLight = "classic"; } catch { /* ok */ }
+  if (current === "dark") setTheme(lastLight);
+  else { try { localStorage.setItem("galato-light-theme", current); } catch { /* ok */ } setTheme("dark"); }
+}
+export const THEME_LABEL: Record<Theme, string> = { light: "Empresarial (claro)", classic: "Clássico (claro anterior)", dark: "Escuro" };

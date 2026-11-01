@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import "./future.css";
+import "./enterprise.css";
 import App from "./App";
 import { CHECKINS } from "./data/mock";
 import { deleteVideo, daysUntilPurge, retryPendingUploads } from "./components/video";

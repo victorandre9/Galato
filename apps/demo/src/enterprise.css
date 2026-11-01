@@ -437,3 +437,22 @@ html.ent .ent-login { padding: 0 0 40px; align-items: stretch; min-height: 100vh
 html.ent { --ring-a: var(--accent); --ring-b: var(--accent); }
 html.ent .bullet-bar { background: var(--chart-bar); }
 html.ent .bullet-bar.hit { background: var(--chart-hit); }
+
+/* ---------------------------------------------------------------- fundo em degradê suave de cinza */
+html.ent { --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 45%, #DFE5EC 100%); }
+html.ent body { background: #EEF2F6; }
+html.ent .app-bg { background: var(--bg-grad); }
+html.ent .ent-login { background: transparent; }
+html.ent .app-header { background: rgba(248, 250, 252, .78); }
+html.ent .sheet { background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%); }
+html.ent .sheet-head { background: rgba(248, 250, 252, .92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* ---------------------------------------------------------------- área do relógio do iPhone (notch / ilha) */
+html.ent .ent-login { padding-top: 0; }
+html.ent .ent-top { padding-top: calc(14px + env(safe-area-inset-top)); }
+html.ent .app-header { padding-top: calc(8px + env(safe-area-inset-top)); }
+@media (min-width: 1024px) { html.ent .app-header { padding-top: calc(14px + env(safe-area-inset-top)); } }
+html.ent .toasts { top: calc(12px + env(safe-area-inset-top)); }
+html.ent .sheet { max-height: calc(100vh - env(safe-area-inset-top) - 24px); max-height: calc(100dvh - env(safe-area-inset-top) - 24px); }
+@media (max-width: 520px) { html.ent .ent-top { padding-top: calc(12px + env(safe-area-inset-top)); } }
+html.ent .ent-hero p.lead { text-align: left; margin-left: 0; }

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BEBDC2"/>
+      <stop offset="1" stop-color="#ADACB1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="1000" fill="url(#g)"/>
+  <!-- metade de cima limpa (logo e títulos); curvas só na parte de baixo -->
+  <path d="M0 700 C 300 600, 620 800, 960 700 S 1300 610, 1440 660 L1440 1000 L0 1000 Z" fill="#C6C5CA" fill-opacity=".55"/>
+  <path d="M0 830 C 380 740, 760 930, 1140 830 S 1440 760, 1440 760 L1440 1000 L0 1000 Z" fill="#A4A3A9" fill-opacity=".45"/>
+  <path d="M-40 620 C 320 530, 700 720, 1060 620 S 1480 540, 1480 540" fill="none" stroke="#C9C8CD" stroke-width="2"/>
+  <path d="M-40 665 C 340 580, 720 765, 1080 665 S 1480 590, 1480 590" fill="none" stroke="#C3C2C7" stroke-width="1.5"/>
+</svg>

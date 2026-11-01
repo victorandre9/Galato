@@ -39,6 +39,7 @@ export default function App() {
   return (
     <>
       <div className="app-bg" />
+      <div className="statusbar-shield" aria-hidden="true" />
       <Toasts />
       {s.role === null && (s.theme === "light" ? <LoginEnterprise /> : <Login />)}
       {s.role === "seller" && <SellerApp />}
@@ -59,6 +60,7 @@ function Login() {
         <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
         <button className="icon-btn" onClick={() => toggleDark(s.theme)} aria-label="Tema">{s.theme !== "dark" ? <Moon size={18} /> : <Sun size={18} />}</button>
       </div>
+      <div className="theme-top"><ThemePicker /></div>
       <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
       <h1>Plataforma Galato</h1>
       <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)}. Escolha um perfil.</p>
@@ -75,7 +77,8 @@ function Login() {
           </div>
         </div>
       ))}
-      <div style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><DemoDataPanel /></div>
+      <div className="card" style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><div className="card-title">Aparência</div><ThemePicker /></div>
+      <div style={{ width: "100%", maxWidth: 520, marginTop: 14 }}><DemoDataPanel /></div>
     </div>
   );
 }

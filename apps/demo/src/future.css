@@ -432,3 +432,16 @@ select.input { border-radius: 16px; }
 /* menu de baixo travado: sem "puxar" a página no iPhone/Android (o menu não sobe junto) */
 html, body { overscroll-behavior: none; }
 .bottom-nav { transform: translateZ(0); -webkit-transform: translateZ(0); will-change: transform; }
+
+/* ---------- iPhone: barra de baixo sempre presa e sem zoom automático ---------- */
+.bottom-nav { transform: translate3d(0, calc(-1 * var(--vv-bottom, 0px)), 0); -webkit-transform: translate3d(0, calc(-1 * var(--vv-bottom, 0px)), 0); }
+@media (max-width: 1023px) {
+  /* iOS dá zoom sozinho em campos com letra menor que 16px */
+  input, select, textarea, .input, select.input, textarea.input { font-size: 16px !important; }
+}
+/* faixa atrás do relógio/bateria (app instalado no iPhone): o conteúdo não aparece por trás */
+.statusbar-shield { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); z-index: 45; pointer-events: none; background: var(--bg); }
+[data-theme="dark"] .statusbar-shield { background: #2A060B; }
+html.ent .statusbar-shield { background: #F8FAFC; }
+.kb-open .bottom-nav { display: none; }
+.theme-top { width: 100%; max-width: 520px; display: flex; justify-content: center; margin: 6px 0 10px; } .theme-top .chips { justify-content: center; }

@@ -34,3 +34,19 @@ setInterval(purgeOldVideos, 6 * 3_600_000);
 // vídeos que não subiram por falta de internet: tenta de novo
 setInterval(retryPendingUploads, 30_000);
 window.addEventListener("online", () => { retryPendingUploads(); });
+
+// iPhone: mantém a barra de baixo presa ao fundo da área visível (zoom, teclado, barra do Safari)
+(() => {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const root = document.documentElement;
+  const update = () => {
+    const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    root.style.setProperty("--vv-bottom", `${Math.round(offset)}px`);
+    root.classList.toggle("kb-open", offset > 120); // teclado aberto: esconde a barra
+  };
+  vv.addEventListener("resize", update);
+  vv.addEventListener("scroll", update);
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+})();

@@ -15,7 +15,7 @@ import { setOrderStatus } from "../data/orders";
 import { routeProgress, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Sheet, ConfirmModal, Badge, Progress, Ring, Chip, pct } from "../components/ui";
+import { Card, Sheet, ConfirmModal, Badge, Progress, Ring, Chip, pct, Stepper } from "../components/ui";
 import { fmtDate } from "../components/business";
 
 const myRoute = () => DELIVERY_ROUTES.find((r) => r.driverId === ME.id)!;
@@ -322,7 +322,7 @@ function EpiSheet({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="grid g2" style={{ marginBottom: 0 }}>
-        <div className="field"><label>Quantidade</label><input id="epi-qty" className="input" type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} /></div>
+        <div className="field"><label>Quantidade</label><Stepper value={qty} min={1} max={20} onChange={setQty} label="Quantidade de EPI" /></div>
         <div className="field"><label>Motivo</label><input id="epi-reason" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Desgaste, perda…" /></div>
       </div>
       <button className="btn btn-gold btn-block" disabled={!type || !reason.trim()} onClick={() => {

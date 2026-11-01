@@ -280,3 +280,55 @@ select.input { border-radius: 16px; }
   20% { box-shadow: 0 0 0 4px rgba(255,180,0,.55), 0 0 40px rgba(255,150,30,.45); }
   100% { box-shadow: var(--shadow); }
 }
+
+/* lista de produtos no pedido: quantidade no próprio item */
+.product-row {
+  position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px;
+  background: var(--pill-bg); cursor: pointer; transition: transform .12s ease, box-shadow .15s ease, background .15s;
+}
+.product-row::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.3px; pointer-events: none;
+  background: linear-gradient(135deg, var(--edge-soft-a), var(--edge-soft-b));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.product-row .grow { min-width: 0; }
+.product-row .title { font-weight: 600; }
+.product-row .sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.product-row:active { transform: scale(.99); }
+.product-row.in-cart { background: var(--tint-active); box-shadow: var(--glow-red); }
+.product-row.in-cart::before { background: linear-gradient(135deg, var(--edge-a), var(--edge-b)); padding: 1.8px; }
+.product-row.over::before { background: linear-gradient(135deg, var(--danger), var(--gold)); }
+.stepper { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.stepper .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
+.stepper b { min-width: 28px; text-align: center; font-size: 18px; }
+.product-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---------- seletor de quantidade padrão ---------- */
+.stepper { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; flex-shrink: 0; position: relative;
+  background: var(--pill-bg); }
+.stepper::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.3px; pointer-events: none;
+  background: linear-gradient(135deg, var(--edge-soft-a), var(--edge-soft-b));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.stepper.active::before { background: linear-gradient(135deg, var(--edge-a), var(--edge-b)); padding: 1.8px; }
+.step-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+  transition: transform .1s ease, filter .15s; color: var(--text); }
+.stepper.sm .step-btn { width: 30px; height: 30px; }
+.step-btn:active:not(:disabled) { transform: scale(.88); }
+.step-btn:disabled { opacity: .35; cursor: not-allowed; }
+.step-btn.minus { background: var(--surface); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 6px rgba(120,30,20,.12); }
+[data-theme="dark"] .step-btn.minus { background: rgba(255,255,255,.08); box-shadow: inset 0 1px 0 rgba(255,220,160,.15); }
+.step-btn.plus { color: #fff; background: linear-gradient(180deg, #F0333C, #C20F19);
+  box-shadow: 0 3px 0 #8F0A12, 0 6px 14px rgba(212,18,30,.3), inset 0 1px 0 rgba(255,255,255,.35); }
+.stepper.active .step-btn.plus { background: linear-gradient(180deg, #FFD15A, #F5A800); color: #4A2400; box-shadow: 0 3px 0 #B97A00, 0 6px 14px rgba(245,168,0,.35), inset 0 1px 0 rgba(255,255,255,.6); }
+.stepper.active .step-btn.minus { color: var(--brand); }
+.step-val { min-width: 30px; text-align: center; font-size: 18px; animation: pop .28s cubic-bezier(.2,1.6,.4,1); }
+.stepper.sm .step-val { min-width: 24px; font-size: 15px; }
+.stepper.active .step-val { color: var(--brand); }
+[data-theme="dark"] .stepper.active .step-val { color: var(--gold); }
+@keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.qty-badge { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 800;
+  font-family: var(--font-mono); color: #fff; background: linear-gradient(135deg, #E8232D, #FF8A3D); box-shadow: 0 2px 8px rgba(212,18,30,.35);
+  animation: pop .3s cubic-bezier(.2,1.6,.4,1); }
+.field .stepper { align-self: flex-start; }
+@media (prefers-reduced-motion: reduce) { .step-val, .qty-badge { animation: none; } }
+.step-btn.add-first { width: 40px; height: 40px; flex-shrink: 0; }

@@ -18,7 +18,7 @@ import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock"
 import { PhotoCapture } from "./photo";
 import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
 import { OrderOpen } from "./order-flow";
-import { Badge, Card, Curve, Sheet, brl, Chip, Progress } from "./ui";
+import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
 export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
@@ -441,19 +441,32 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
           <div className="search mb"><Search size={17} /><input className="input" placeholder="Buscar por nome, categoria ou código" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div className="chips mb"><Chip on={!cat} onClick={() => setCat(null)}>Todos</Chip>{cats.map((x) => <Chip key={x} on={cat === x} onClick={() => setCat(x)}>{x}</Chip>)}</div>
           <div className="list">
-            {filtered.map((p) => (
-              <div key={p.id} className="row">
-                <div className="grow">
-                  <div className="title">{p.commercialName}</div>
-                  <div className="sub">{p.code} · {p.packaging} · <span title={p.fiscalName}>fiscal: {p.fiscalName}</span></div>
+            {filtered.map((p) => {
+              const qty = items.find((x) => x.productId === p.id)?.qty ?? 0;
+              const over = qty > 0 && !PARAMS.orders.allowOversell && qty > p.stock;
+              return (
+                <div key={p.id} className={`product-row ${qty ? "in-cart" : ""} ${over ? "over" : ""}`} onClick={() => { if (!qty) add(p.id); }}>
+                  <div className="grow">
+                    <div className="title flex" style={{ gap: 6 }}>{p.commercialName}{qty > 0 && <span key={qty} className="qty-badge">×{qty}</span>}</div>
+                    <div className="sub">{p.code} · {p.packaging} · <span title={p.fiscalName}>fiscal: {p.fiscalName}</span></div>
+                    <div className="flex wrap" style={{ gap: 8, marginTop: 4 }}>
+                      <span className="num semi small">{brl(p.priceCents)}</span>
+                      <span className={`xs ${p.stock === 0 ? "red semi" : p.stock < 10 ? "gold semi" : "muted"}`}>{p.stock === 0 ? "Sem estoque" : `Estoque ${p.stock}`}</span>
+                    </div>
+                    {qty > 0 && (
+                      <div className={`xs semi ${over ? "red" : "green"}`} style={{ marginTop: 4 }}>
+                        {qty} × {brl(p.priceCents)} = {brl(qty * p.priceCents)}{over ? ` · disponível ${p.stock}` : " · no pedido"}
+                      </div>
+                    )}
+                  </div>
+                  {qty === 0 ? (
+                    <button className="step-btn plus add-first" onClick={(e) => { e.stopPropagation(); add(p.id); }} aria-label="Adicionar"><Plus size={18} /></button>
+                  ) : (
+                    <Stepper value={qty} onChange={(v) => setQty(p.id, v)} label={`Quantidade de ${p.commercialName}`} />
+                  )}
                 </div>
-                <div className="end">
-                  <div className="num semi small">{brl(p.priceCents)}</div>
-                  <div className={`xs ${p.stock === 0 ? "red semi" : p.stock < 10 ? "gold semi" : "muted"}`}>{p.stock === 0 ? "Sem estoque" : `Estoque ${p.stock}`}</div>
-                </div>
-                <button className="icon-btn" onClick={() => add(p.id)} aria-label="Adicionar"><Plus size={17} /></button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         <div className="stack">
@@ -463,11 +476,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
               <div key={it.productId} style={{ padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                 <div className="flex between">
                   <span className="semi small">{it.productName}</span>
-                  <div className="flex" style={{ gap: 4 }}>
-                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setQty(it.productId, it.requestedQty - 1)}><Minus size={14} /></button>
-                    <b className="num" style={{ minWidth: 24, textAlign: "center" }}>{it.requestedQty}</b>
-                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setQty(it.productId, it.requestedQty + 1)}><Plus size={14} /></button>
-                  </div>
+                  <Stepper size="sm" value={it.requestedQty} onChange={(v) => setQty(it.productId, v)} label={`Quantidade de ${it.productName}`} />
                 </div>
                 {it.status !== "ok" && (
                   <div className="mt" style={{ padding: 10, borderRadius: 12, background: it.status === "out_of_stock" ? "var(--danger-soft)" : "var(--warning-soft)" }}>

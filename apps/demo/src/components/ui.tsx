@@ -1,6 +1,6 @@
 /** Design system Galato — componentes base. */
 import { useEffect, type ReactNode } from "react";
-import { X, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
+import { Plus, Minus, Trash2, X, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
 import { formatBRL, formatPct, type Tone } from "@galato/domain";
 import { setOnline, useStore } from "../data/store";
 
@@ -202,4 +202,27 @@ export function RankingList({ rows, format, onRow }: {
 
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return <div className="section-title"><span>{children}</span>{action}</div>;
+}
+
+/**
+ * Seletor de quantidade padrão do app: − valor +.
+ * Com valor > 0 fica colorido; o número "pula" a cada toque.
+ * Com `min` = 0, o − no 1 vira lixeira (remove).
+ */
+export function Stepper({ value, onChange, min = 0, max, size = "md", label = "quantidade" }: {
+  value: number; onChange: (v: number) => void; min?: number; max?: number; size?: "sm" | "md"; label?: string;
+}) {
+  const dec = () => onChange(Math.max(min, value - 1));
+  const inc = () => onChange(max === undefined ? value + 1 : Math.min(max, value + 1));
+  return (
+    <div className={`stepper ${size} ${value > 0 ? "active" : ""}`} onClick={(e) => e.stopPropagation()} role="group" aria-label={label}>
+      <button type="button" className="step-btn minus" aria-label="Diminuir" disabled={value <= min} onClick={dec}>
+        {value === 1 && min === 0 ? <Trash2 size={size === "sm" ? 13 : 15} /> : <Minus size={size === "sm" ? 14 : 16} />}
+      </button>
+      <b key={value} className="num step-val">{value}</b>
+      <button type="button" className="step-btn plus" aria-label="Adicionar" disabled={max !== undefined && value >= max} onClick={inc}>
+        <Plus size={size === "sm" ? 14 : 16} />
+      </button>
+    </div>
+  );
 }

@@ -356,7 +356,7 @@ function FinanceQueue() {
             <div key={o.id} className="row">
               <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · {o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
               <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
-                setOrderStatus(o, "credit_approved", FINANCE_USER.name, "Liberado pelo crédito");
+                setOrderStatus(o, "credit_approved", FINANCE_USER.name, "Pedido liberado pelo crédito");
                 notify({ kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
               }, `${o.number} liberado pelo crédito · segue para faturamento`)}>Liberar</button>
             </div>
@@ -448,10 +448,7 @@ export function BillingApp() {
 
 function BillingBoard() {
   const cols: { id: string; title: string; statuses: string[]; next?: [string, string] }[] = [
-    { id: "released", title: "Liberados pelo crédito", statuses: ["credit_approved", "scheduled_for_billing"], next: ["sent_to_billing", "Enviar ao faturamento"] },
-    { id: "todo", title: "A faturar", statuses: ["sent_to_billing"], next: ["billing_in_progress", "Iniciar"] },
-    { id: "doing", title: "Em faturamento", statuses: ["billing_in_progress"], next: ["invoiced", "Faturar"] },
-    { id: "error", title: "Erros", statuses: ["billing_error"], next: ["sent_to_billing", "Reprocessar"] },
+    { id: "todo", title: "Liberados pelo crédito · a faturar", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"], next: ["invoiced", "Faturar"] },
     { id: "done", title: "Faturados", statuses: ["invoiced"] },
   ];
   const orders = ORDERS.filter((o) => o.kind === "ORDER");
@@ -459,7 +456,7 @@ function BillingBoard() {
     <>
       <Greeting icon={<FileCheck2 size={22} />} title={`Olá, ${BILLING_USER.name.split(" ")[0]}!`} sub="Pedidos liberados pelo crédito → notas → logística" />
       <div className="grid g2 gd-4">
-        {cols.slice(0, 4).map((c) => <Kpi key={c.id} onClick={() => scrollToId(`col-${c.id}`)} label={c.title} tone={c.id === "error" ? "red" : "gold"} value={orders.filter((o) => c.statuses.includes(o.status)).length} />)}
+        {cols.map((c) => <Kpi key={c.id} onClick={() => scrollToId(`col-${c.id}`)} label={c.id === "todo" ? "A faturar" : c.title} tone="gold" value={orders.filter((o) => c.statuses.includes(o.status)).length} />)}
       </div>
       <div className="grid gd" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         {cols.map((col) => {
@@ -553,9 +550,9 @@ function InvoicedAwaitingRoute() {
               const r = DELIVERY_ROUTES.find((x) => x.id === rid)!;
               const vol = o.items.reduce((a, it) => a + it.qty, 0);
               r.deliveries.push({ id: `dl-${o.id}`, seq: r.deliveries.length + 1, customerId: o.customerId, invoiceNumber: o.invoiceNumber ?? (o.fiscalDoc === "sem_nf" ? `${o.number} (sem NF)` : "NF —"), orderNumber: o.number, volumes: vol, status: r.startedAt ? "in_transit" : "scheduled", orderId: o.id });
-              setOrderStatus(o, r.startedAt ? "in_transit" : "in_delivery_route", TRANSPORT_COORD.name, `Incluído na rota ${r.name}`);
+              setOrderStatus(o, r.startedAt ? "in_transit" : "in_delivery_route", TRANSPORT_COORD.name, `Em rota de entrega · ${r.name} · placa ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—"}`);
               notify({ kind: "logistica", title: "Nova entrega na sua rota", text: `${c.tradeName} · ${o.invoiceNumber} · ${vol} volumes.`, to: [`driver:${r.driverId}`] });
-              notify({ kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name}.`, to: [`seller:${o.sellerId}`] });
+              notify({ kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name} · placa ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—"}.`, to: [`seller:${o.sellerId}`] });
             }, `${o.invoiceNumber} incluída na rota · motorista avisado`)}>Incluir</button>
           </div>
         );

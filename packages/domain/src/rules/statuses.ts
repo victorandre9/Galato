@@ -8,34 +8,36 @@ export interface StatusDef { label: string; tone: Tone; terminal?: boolean }
 export const DOCUMENT_TYPES = { SIMPLE_QUOTE: "Orçamento simples", QUOTE: "Orçamento", ORDER: "Pedido" } as const;
 
 export const QUOTE_STATUS = {
-  draft: { label: "Rascunho", tone: "neutral" },
-  ready: { label: "Pronto para envio", tone: "info" },
-  sent: { label: "Enviado", tone: "info" },
-  awaiting_customer: { label: "Aguardando cliente", tone: "warning" },
-  negotiation: { label: "Negociação", tone: "warning" },
-  approved: { label: "Aprovado", tone: "success" },
-  rejected: { label: "Recusado", tone: "danger", terminal: true },
-  expired: { label: "Expirado", tone: "neutral", terminal: true },
+  // simplificado: todo orçamento em aberto aparece só como "Orçamento"
+  draft: { label: "Orçamento", tone: "info" },
+  ready: { label: "Orçamento", tone: "info" },
+  sent: { label: "Orçamento", tone: "info" },
+  awaiting_customer: { label: "Orçamento", tone: "info" },
+  negotiation: { label: "Orçamento", tone: "info" },
+  approved: { label: "Orçamento", tone: "info" },
+  rejected: { label: "Cancelado", tone: "neutral", terminal: true },
+  expired: { label: "Cancelado", tone: "neutral", terminal: true },
   cancelled: { label: "Cancelado", tone: "neutral", terminal: true },
   converted: { label: "Convertido em pedido", tone: "brand", terminal: true },
 } satisfies Record<string, StatusDef>;
 
 export const ORDER_STATUS = {
   draft: { label: "Rascunho", tone: "neutral" },
-  awaiting_credit_review: { label: "Aguardando análise financeira", tone: "warning" },
-  in_approval: { label: "Em aprovação", tone: "warning" },
-  credit_approved: { label: "Aprovado pelo crédito", tone: "success" },
-  scheduled_for_billing: { label: "Programado p/ faturamento", tone: "info" },
-  sent_to_billing: { label: "Enviado ao faturamento", tone: "info" },
-  billing_in_progress: { label: "Em faturamento", tone: "info" },
-  invoiced: { label: "Faturado", tone: "success" },
+  // simplificado para quem usa: Orçamento → Pedido enviado ao crédito → Pedido liberado pelo crédito → Nota fiscal faturada → Em rota de entrega → Entregue
+  awaiting_credit_review: { label: "Pedido enviado ao crédito", tone: "warning" },
+  in_approval: { label: "Pedido enviado ao crédito", tone: "warning" },
+  credit_approved: { label: "Pedido liberado pelo crédito", tone: "success" },
+  scheduled_for_billing: { label: "Pedido liberado pelo crédito", tone: "success" },
+  sent_to_billing: { label: "Pedido liberado pelo crédito", tone: "success" },
+  billing_in_progress: { label: "Pedido liberado pelo crédito", tone: "success" },
+  invoiced: { label: "Nota fiscal faturada", tone: "success" },
   in_delivery_route: { label: "Em rota de entrega", tone: "brand" },
-  in_transit: { label: "Em trânsito", tone: "brand" },
+  in_transit: { label: "Em rota de entrega", tone: "brand" },
   delivered: { label: "Entregue", tone: "success" },
-  completed: { label: "Concluído", tone: "success", terminal: true },
-  blocked: { label: "Bloqueado", tone: "danger" },
+  completed: { label: "Entregue", tone: "success", terminal: true },
+  blocked: { label: "Bloqueado pelo crédito", tone: "danger" },
   cancelled: { label: "Cancelado", tone: "neutral", terminal: true },
-  billing_error: { label: "Erro de faturamento", tone: "danger" },
+  billing_error: { label: "Pedido liberado pelo crédito", tone: "success" },
 } satisfies Record<string, StatusDef>;
 export type OrderStatus = keyof typeof ORDER_STATUS;
 

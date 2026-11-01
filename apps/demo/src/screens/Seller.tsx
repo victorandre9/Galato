@@ -195,15 +195,16 @@ function SellerOrders() {
   const all = (kind === "ORDER" ? ordersOf(ME.id) : quotesOf(ME.id)).sort(sortNewest);
   const groups: { id: string; label: string; statuses: string[] }[] = kind === "ORDER" ? [
     { id: "all", label: "Todos", statuses: [] },
-    { id: "credit", label: "Aguardando crédito", statuses: AWAITING_CREDIT },
-    { id: "billing", label: "Em faturamento", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
+    { id: "credit", label: "Enviados ao crédito", statuses: AWAITING_CREDIT },
+    { id: "billing", label: "Liberados", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
     { id: "invoiced", label: "Faturados", statuses: ["invoiced"] },
     { id: "route", label: "Em rota", statuses: IN_ROUTE },
     { id: "done", label: "Entregues", statuses: ["delivered", "completed"] },
   ] : [
     { id: "all", label: "Todos", statuses: [] },
-    { id: "open", label: "Em aberto", statuses: OPEN_QUOTE },
-    { id: "closed", label: "Encerrados", statuses: ["rejected", "expired", "cancelled", "converted"] },
+    { id: "open", label: "Orçamentos", statuses: OPEN_QUOTE },
+    { id: "converted", label: "Viraram pedido", statuses: ["converted"] },
+    { id: "closed", label: "Cancelados", statuses: ["rejected", "expired", "cancelled"] },
   ];
   const g = filter === "today" ? { id: "today", label: "Tirados hoje", statuses: [] as string[] } : (groups.find((x) => x.id === filter) ?? groups[0]!);
   const list = filter === "today" ? all.filter((o) => o.createdAt.startsWith(TODAY) && !["draft", "cancelled"].includes(o.status))
@@ -219,7 +220,7 @@ function SellerOrders() {
       {kind === "ORDER" && (
         <div className="grid g2">
           <Kpi icon={<ShoppingCart size={17} />} label="Tirados hoje" onClick={() => setFilter("today")} value={today.length} foot={brl(today.reduce((a, o) => a + o.totalCents, 0))} />
-          <Kpi icon={<Hourglass size={17} />} tone="gold" label="Aguardando crédito" value={countByStatus(all, AWAITING_CREDIT)} foot="ver pedidos" onClick={() => setFilter("credit")} />
+          <Kpi icon={<Hourglass size={17} />} tone="gold" label="Enviados ao crédito" value={countByStatus(all, AWAITING_CREDIT)} foot="ver pedidos" onClick={() => setFilter("credit")} />
         </div>
       )}
       <div className="chips mb">

@@ -194,11 +194,10 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
       <div className="grid gd gd-3">
         <Card title="Pipeline de pedidos" icon={<ClipboardList size={17} />}>
           {[
-            ["Aguardando crédito", countByStatus(orders, AWAITING_CREDIT), "warning"],
-            ["Em faturamento", countByStatus(orders, IN_BILLING), "info"],
+            ["Enviados ao crédito", countByStatus(orders, AWAITING_CREDIT), "warning"],
+            ["Liberados pelo crédito", countByStatus(orders, [...IN_BILLING, "billing_error"]), "info"],
             ["Faturados", countByStatus(orders, ["invoiced"]), "success"],
-            ["Em rota / trânsito", countByStatus(orders, IN_ROUTE), "brand"],
-            ["Erro de faturamento", countByStatus(orders, ["billing_error"]), "danger"],
+            ["Em rota de entrega", countByStatus(orders, IN_ROUTE), "brand"],
           ].map(([l, n, t]) => (
             <div key={l as string} className="row click" onClick={() => setPipe(l as string)}><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
           ))}
@@ -799,8 +798,8 @@ function ChecklistsCard() {
 }
 
 const PIPE: Record<string, string[]> = {
-  "Aguardando crédito": AWAITING_CREDIT, "Em faturamento": IN_BILLING, "Faturados": ["invoiced"],
-  "Em rota / trânsito": IN_ROUTE, "Erro de faturamento": ["billing_error"],
+  "Enviados ao crédito": AWAITING_CREDIT, "Liberados pelo crédito": [...IN_BILLING, "billing_error"], "Faturados": ["invoiced"],
+  "Em rota de entrega": IN_ROUTE,
 };
 function PipelineSheet({ title, scope, onClose }: { title: string; scope: string[]; onClose: () => void }) {
   useStore();

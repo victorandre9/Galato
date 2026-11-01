@@ -60,7 +60,7 @@ function DriverHome() {
       route.deliveries.forEach((d) => {
         if (d.status === "scheduled") d.status = "in_transit";
         const o = d.orderId ? ORDERS.find((x) => x.id === d.orderId) : undefined;
-        if (o) setOrderStatus(o, "in_transit", ME.name, `Saiu para entrega · ${route.name}`);
+        if (o) setOrderStatus(o, "in_transit", ME.name, `Saiu para entrega · ${route.name} · placa ${vehicle.plate}`);
       });
       const bySeller = new Map<string, number>();
       route.deliveries.forEach((d) => { const sid = customerById.get(d.customerId)?.sellerId; if (sid) bySeller.set(sid, (bySeller.get(sid) ?? 0) + 1); });
@@ -122,7 +122,7 @@ function DriverHome() {
 
       {confirmStart && (
         <ConfirmModal title="Iniciar o dia?" confirmLabel="Iniciar" onClose={() => setConfirmStart(false)} onConfirm={startDay}
-          text={<>Será registrado: horário, motorista <b>{ME.name}</b>, veículo <b>{vehicle.plate}</b> e rota <b>{route.name}</b>. As entregas passam para “Em trânsito” e vendedores, gestão comercial e logística são informados.</>} />
+          text={<>Será registrado: horário, motorista <b>{ME.name}</b>, veículo <b>{vehicle.plate}</b> e rota <b>{route.name}</b>. As entregas passam para “Em rota de entrega” e vendedores, gestão comercial e logística são informados.</>} />
       )}
       {confirmFinish && (
         <ConfirmModal title="Finalizar o dia?" confirmLabel="Finalizar" danger disabled={!resolved} onClose={() => setConfirmFinish(false)}

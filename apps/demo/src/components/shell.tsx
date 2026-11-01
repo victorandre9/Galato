@@ -1,6 +1,7 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
-import { useState, type ReactNode } from "react";
-import { Bell, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { registerTabs, armBack } from "./back";
+import { Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
 import { setState, setTheme, useStore, toast } from "../data/store";
 import { TODAY } from "../data/mock";
 import { dayLabel } from "../data/selectors";
@@ -30,6 +31,22 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
 }) {
   const s = useStore();
   const [notifOpen, setNotifOpen] = useState(false);
+  // histórico de abas: o "voltar" (botão da tela ou do aparelho) retorna para a anterior
+  const hist = useRef<string[]>([]);
+  const [, bump] = useState(0);
+  const onTabRef = useRef(onTab); onTabRef.current = onTab;
+  const lastTab = useRef(tab);
+  const goingBack = useRef(false);
+  // toda troca de aba (menu, atalhos, cards) entra no histórico
+  useEffect(() => {
+    if (tab === lastTab.current) return;
+    if (goingBack.current) goingBack.current = false;
+    else { hist.current.push(lastTab.current); if (hist.current.length > 30) hist.current.shift(); armBack(); }
+    lastTab.current = tab; bump((n) => n + 1);
+  }, [tab]);
+  const go = (t: string) => onTab(t);
+  const goBack = () => { const prev = hist.current.pop(); if (prev !== undefined) { goingBack.current = true; onTabRef.current(prev); window.scrollTo({ top: 0 }); } };
+  useEffect(() => { registerTabs({ has: () => hist.current.length > 0, back: goBack }); return () => registerTabs(null); }, []);
   const mine = s.role ? notificationsFor(s.role) : [];
   const me = s.role ? viewerId(s.role) : "";
   const unread = mine.filter((n) => !n.readBy.includes(me)).length;
@@ -43,7 +60,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
             <div><b>Galato</b><span>Plataforma integrada</span></div>
           </div>
           {tabs.filter((t) => t.id !== "more").map((t) => (
-            <button key={t.id} className={`side-item ${tab === t.id ? "active" : ""}`} onClick={() => onTab(t.id)}>
+            <button key={t.id} className={`side-item ${tab === t.id ? "active" : ""}`} onClick={() => go(t.id)}>
               {t.icon} {t.label}
               {!!t.count && <span className="count badge tone-danger">{t.count}</span>}
             </button>
@@ -62,6 +79,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
         </aside>
         <main className="main">
           <header className="app-header">
+            {hist.current.length > 0 && <button className="icon-btn back-btn" onClick={goBack} aria-label="Voltar" title="Voltar"><ChevronLeft size={21} /></button>}
             <button className="icon-btn menu-btn" onClick={() => setState({ role: null })} aria-label="Trocar perfil"><Menu size={20} /></button>
             <img className="logo" src="./galato-logo.png" alt="Galato" />
             <div className="only-desktop flex">
@@ -84,7 +102,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
       </div>
       <nav className="bottom-nav">
         {tabs.slice(0, 5).map((t) => (
-          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { onTab(t.id); window.scrollTo({ top: 0 }); }}>
+          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); window.scrollTo({ top: 0 }); }}>
             {t.icon}<span>{t.label}</span>
           </button>
         ))}

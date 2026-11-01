@@ -1,11 +1,22 @@
 /** Regras de pedido usadas pelas telas da demo. */
-import { TODAY, SELLERS, ORDERS, customerById, sellerById, nowStamp, type Order } from "./mock";
+import { TODAY, SELLERS, ORDERS, customerById, sellerById, nowStamp, plateFor, type Order } from "./mock";
 import { statusLabel } from "./selectors";
 
 /** Registra um evento na linha do tempo do pedido (com hora real). */
 export function logOrder(o: Order, by: string, text: string) {
   (o.log ??= []).push({ at: nowStamp(), by, text });
 }
+/** Placa do veículo que levou o pedido (rota de hoje; nos fictícios, um veículo da frota). */
+export const orderPlate = (o: { id: string }) => plateFor(o.id);
+
+/** Status como o vendedor/gestão leem: com número da nota e placa do veículo. */
+export function orderStatusText(o: { id: string; status: string; invoiceNumber?: string | null; fiscalDoc?: string; kind?: string }): string {
+  if (o.kind === "QUOTE" || o.kind === "SIMPLE_QUOTE") return o.status === "converted" ? "Convertido em pedido" : ["rejected", "expired", "cancelled"].includes(o.status) ? "Cancelado" : "Orçamento";
+  if (o.status === "invoiced") return o.fiscalDoc === "sem_nf" || !o.invoiceNumber ? "Faturado sem nota fiscal" : `Nota fiscal faturada · ${o.invoiceNumber}`;
+  if (o.status === "in_delivery_route" || o.status === "in_transit") return `Em rota de entrega · placa ${orderPlate(o)}`;
+  return statusLabel(o.status);
+}
+
 /** Muda o status e registra quem e quando. */
 export function setOrderStatus(o: Order, status: string, by: string, text?: string) {
   o.status = status;

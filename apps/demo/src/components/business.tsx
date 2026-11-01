@@ -16,7 +16,7 @@ import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS, FREEZER_OCCURRENCES, type FreezerOccurrence } from "../data/mock";
 import { PhotoCapture } from "./photo";
-import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
+import { newestFirst, applySalesDelta, logOrder, orderStatusText } from "../data/orders";
 import { OrderOpen } from "./order-flow";
 import { FirstVisitSheet, FreezerManager } from "./freezers";
 import { FreezerOccurrenceSheet, OccurrenceDetail, OccurrenceRow } from "./freezer-occurrences";
@@ -247,7 +247,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             {history.some((o) => o.kind === "QUOTE") && (
               <>
                 <div className="xs muted semi mt mb">Orçamentos</div>
-                {history.filter((o) => o.kind === "QUOTE").slice(0, 4).map((o) => <OrderRow key={o.id} o={o} />)}
+                {history.filter((o) => o.kind === "QUOTE").slice(0, 4).map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpenOrder(o)} />)}
               </>
             )}
             {(requests.length > 0 || checkinsOfCustomer.length > 0) && <div className="divider" />}
@@ -389,11 +389,11 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
 }
 
 // ------------------------------------------------------------------ pedido / orçamento
-export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Customer; kind: "ORDER" | "QUOTE" | "SIMPLE_QUOTE"; onClose: () => void; onDone?: () => void; editing?: Order }) {
+export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: { c: Customer; kind: "ORDER" | "QUOTE" | "SIMPLE_QUOTE"; onClose: () => void; onDone?: () => void; editing?: Order; fromQuote?: Order }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
-  const [items, setItems] = useState<{ productId: string; qty: number }[]>(() => editing ? editing.items.map((it) => ({ productId: it.productId, qty: it.qty })) : []);
-  const [term, setTerm] = useState<number | null>(editing ? editing.paymentTermDays : null);
+  const [items, setItems] = useState<{ productId: string; qty: number }[]>(() => (editing ?? fromQuote) ? (editing ?? fromQuote)!.items.map((it) => ({ productId: it.productId, qty: it.qty })) : []);
+  const [term, setTerm] = useState<number | null>(editing ? editing.paymentTermDays : fromQuote ? fromQuote.paymentTermDays : null);
   const [fiscal, setFiscal] = useState<"com_nf" | "sem_nf" | null>(editing?.fiscalDoc ?? null);
   const fin = financial(c);
   const cats = [...new Set(PRODUCTS.map((p) => p.category))];
@@ -409,7 +409,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
   const notice = orderSubmissionNotice(fin.creditStatus);
   const setQty = (id: string, qty: number) => setItems((xs) => (qty <= 0 ? xs.filter((x) => x.productId !== id) : xs.map((x) => (x.productId === id ? { ...x, qty } : x))));
   const add = (id: string) => setItems((xs) => (xs.some((x) => x.productId === id) ? xs.map((x) => (x.productId === id ? { ...x, qty: x.qty + 1 } : x)) : [...xs, { productId: id, qty: 1 }]));
-  const title = editing ? `Editar ${editing.number}` : kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
+  const title = editing ? `Editar ${editing.number}` : fromQuote ? `Transformar ${fromQuote.number} em pedido` : kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
 
   function save(status: string, message: string) {
     if (editing) {
@@ -426,7 +426,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
           c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
           notify({
             kind: "financeiro", priority: "high", title: "Pedido alterado pelo vendedor",
-            text: `${editing.number} · ${c.tradeName} · ${brl(oldTotal)} → ${brl(total)} · prazo ${termLabel(granted)} · volta para análise de crédito.`,
+            text: `${editing.number} · ${c.tradeName} · ${brl(oldTotal)} → ${brl(total)} · prazo ${termLabel(granted)} · volta para o financeiro.`,
             to: ["finance", ...MANAGERS_KEYS],
           });
         }
@@ -442,15 +442,20 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
         ...(kind === "ORDER" && fiscal ? { fiscalDoc: fiscal } : {}),
       };
-      o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : status === "blocked" ? "Pedido emitido · bloqueado por crédito" : "Pedido emitido · enviado para análise de crédito" }];
+      o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : `${fromQuote ? `Orçamento ${fromQuote.number} transformado em pedido · ` : "Pedido emitido · "}${status === "blocked" ? "bloqueado pelo crédito" : "enviado ao crédito"}` }];
+      if (kind === "QUOTE" || kind === "SIMPLE_QUOTE") o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: "Orçamento criado" }];
       ORDERS.unshift(o);
+      if (fromQuote && kind === "ORDER" && status !== "draft") {
+        fromQuote.status = "converted";
+        logOrder(fromQuote, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Transformado no pedido ${o.number}`);
+      }
       if (kind === "ORDER" && status !== "draft") {
         const s = SELLERS.find((x) => x.id === c.sellerId);
         if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; s.ordersToday += 1; }
         c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
         notify({
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
-          title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido para análise de crédito",
+          title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido enviado ao crédito",
           text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
           to: ["finance", ...MANAGERS_KEYS],
         });
@@ -545,7 +550,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
           {kind === "ORDER" ? (
             <>
               <button className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal}
-                onClick={() => save(fin.creditStatus === "blocked" ? "blocked" : "awaiting_credit_review", fin.creditStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : "Pedido enviado para análise de crédito")}>
+                onClick={() => save(fin.creditStatus === "blocked" ? "blocked" : "awaiting_credit_review", fin.creditStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : "Pedido enviado ao crédito")}>
                 {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
               </button>
               {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
@@ -578,7 +583,7 @@ export function OrderRow({ o, onClick }: { o: Order; onClick?: () => void }) {
       </div>
       <div className="flex between wrap" style={{ gap: 6, marginTop: 5 }}>
         <span className="xs muted">{fmtDateTime(o.createdAt)} · {o.items.length} {o.items.length === 1 ? "item" : "itens"} · {termLabel(o.paymentTermDays)}{o.invoiceNumber ? ` · ${o.invoiceNumber}` : ""}</span>
-        <Badge tone={st[o.status]?.tone}>{st[o.status]?.label ?? o.status}</Badge>
+        <Badge tone={st[o.status]?.tone}>{orderStatusText(o)}</Badge>
       </div>
     </div>
   );

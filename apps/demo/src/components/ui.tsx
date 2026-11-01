@@ -1,7 +1,8 @@
 /** Design system Galato — componentes base. */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { registerLayer } from "./back";
 import { createPortal } from "react-dom";
-import { Plus, Minus, Trash2, X, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
+import { Plus, Minus, Trash2, X, ChevronLeft, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
 import { formatBRL, formatPct, type Tone } from "@galato/domain";
 import { setOnline, useStore } from "../data/store";
 
@@ -103,7 +104,14 @@ export function Chip({ on, children, onClick }: { on?: boolean; children: ReactN
 }
 
 let openSheets = 0;
+/** Fecha pela tecla/gesto "voltar" do aparelho. */
+function useBackClose(onClose: () => void) {
+  const ref = useRef(onClose); ref.current = onClose;
+  useEffect(() => registerLayer(() => ref.current()), []);
+}
+
 export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; icon?: ReactNode }) {
+  useBackClose(onClose);
   useEffect(() => {
     // só a folha de cima fecha com Esc; trava a rolagem enquanto houver alguma aberta
     const depth = ++openSheets;
@@ -118,6 +126,7 @@ export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNo
       <div className={`sheet ${wide ? "wide" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="grab" />
         <div className="sheet-head">
+          <button className="icon-btn sheet-back" onClick={onClose} aria-label="Voltar" title="Voltar"><ChevronLeft size={20} /></button>
           {icon && <span className="red flex">{icon}</span>}
           <h2>{title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fechar"><X size={18} /></button>
@@ -133,6 +142,7 @@ export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, da
   title: string; text: ReactNode; confirmLabel: string; onConfirm: () => void; onClose: () => void;
   danger?: boolean; children?: ReactNode; disabled?: boolean;
 }) {
+  useBackClose(onClose);
   return createPortal(
     <div className="overlay center" onClick={onClose}>
       <div className="sheet modal" onClick={(e) => e.stopPropagation()} style={{ paddingTop: 20 }}>

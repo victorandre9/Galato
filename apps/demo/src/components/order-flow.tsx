@@ -1,6 +1,6 @@
 /** Abre um pedido: detalhe com linha do tempo e, para o vendedor, editar/cancelar. */
 import { useState } from "react";
-import { Pencil, XCircle, Lock } from "lucide-react";
+import { Pencil, XCircle, Lock, ArrowRightCircle } from "lucide-react";
 import { customerById, ORDERS, type Order } from "../data/mock";
 import { liveToHist } from "../data/history";
 import { isOrderEditable, cancelOrder } from "../data/orders";
@@ -12,12 +12,24 @@ import { OrderDetail } from "../screens/Reports";
 export function OrderOpen({ order, canEdit, onClose }: { order: Order; canEdit: boolean; onClose: () => void }) {
   useStore();
   const [editing, setEditing] = useState(false);
+  const [converting, setConverting] = useState(false);
   const o = ORDERS.find((x) => x.id === order.id) ?? order;
+  if (converting)
+    return <OrderBuilder c={customerById.get(o.customerId)!} kind="ORDER" fromQuote={o} onClose={() => setConverting(false)} onDone={onClose} />;
   if (editing)
     return <OrderBuilder c={customerById.get(o.customerId)!} kind="ORDER" editing={o} onClose={() => setEditing(false)} onDone={() => setEditing(false)} />;
   return (
     <OrderDetail o={liveToHist(o)} onClose={onClose}
-      actions={canEdit ? <OrderActions o={o} onEdit={() => setEditing(true)} onDone={onClose} /> : undefined} />
+      actions={canEdit ? (o.kind === "ORDER" ? <OrderActions o={o} onEdit={() => setEditing(true)} onDone={onClose} /> : <QuoteActions o={o} onConvert={() => setConverting(true)} />) : undefined} />
+  );
+}
+
+const OPEN_QUOTE_STATUSES = ["draft", "ready", "sent", "awaiting_customer", "negotiation", "approved"];
+function QuoteActions({ o, onConvert }: { o: Order; onConvert: () => void }) {
+  if (o.status === "converted") return <div className="small t2 mt" style={{ padding: 10, borderRadius: 12, background: "var(--neutral-soft)" }}>Este orçamento já virou pedido (veja a linha do tempo).</div>;
+  if (!OPEN_QUOTE_STATUSES.includes(o.status)) return null;
+  return (
+    <button className="btn btn-primary btn-block mt" onClick={onConvert}><ArrowRightCircle size={16} /> Transformar em pedido</button>
   );
 }
 

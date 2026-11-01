@@ -547,18 +547,26 @@ export interface Checkin {
 }
 export const CHECKINS: Checkin[] = [];
 
+/** Placa do veículo que levou o pedido: da rota de hoje, ou (fictícios) um veículo fixo da frota. */
+export function plateFor(orderId: string): string {
+  for (const r of DELIVERY_ROUTES)
+    if (r.deliveries.some((d) => d.orderId === orderId)) return VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—";
+  let h = 0; for (const ch of orderId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return VEHICLES[h % VEHICLES.length]!.plate;
+}
+
 // ---------------------------------------------------------------- linha do tempo dos pedidos fictícios
 (() => {
   const flow: [string, number, string][] = [
-    ["credit_approved", 95, "Liberado pelo crédito"],
-    ["scheduled_for_billing", 130, "Programado para faturamento"],
-    ["sent_to_billing", 150, "Enviado ao faturamento"],
-    ["billing_in_progress", 190, "Em faturamento"],
+    ["credit_approved", 95, "Pedido liberado pelo crédito"],
+    ["scheduled_for_billing", 130, ""],
+    ["sent_to_billing", 150, ""],
+    ["billing_in_progress", 190, ""],
     ["invoiced", 240, "Faturado"],
-    ["in_delivery_route", 900, "Incluído na rota de entrega"],
+    ["in_delivery_route", 900, "Em rota de entrega"],
     ["in_transit", 1240, "Saiu para entrega"],
     ["delivered", 1500, "Entregue"],
-    ["completed", 1520, "Concluído"],
+    ["completed", 1520, ""],
   ];
   const pos = (st: string) => flow.findIndex((f) => f[0] === st);
   for (const o of ORDERS) {
@@ -566,17 +574,20 @@ export const CHECKINS: Checkin[] = [];
     const seller = sellerById.get(o.sellerId)?.name ?? "Vendedor";
     const t0 = new Date(o.createdAt).getTime();
     const at = (min: number) => new Date(t0 + min * 60_000).toISOString();
-    o.log = [{ at: o.createdAt, by: seller, text: "Pedido emitido · enviado para análise de crédito" }];
+    o.log = [{ at: o.createdAt, by: seller, text: "Pedido emitido · enviado ao crédito" }];
     if (o.status === "blocked") { o.log.push({ at: at(40), by: FINANCE_USER.name, text: "Bloqueado pelo crédito" }); continue; }
-    if (o.status === "in_approval") { o.log.push({ at: at(35), by: FINANCE_USER.name, text: "Em aprovação" }); continue; }
+    if (o.status === "in_approval") continue;
     if (o.status === "cancelled") { o.log.push({ at: at(60), by: seller, text: "Cancelado" }); continue; }
     const target = o.status === "billing_error" ? pos("billing_in_progress") : pos(o.status);
     for (let i = 0; i <= target; i++) {
       const [, min, text] = flow[i]!;
       if (t0 + min * 60_000 > NOW.getTime()) break;
-      o.log.push({ at: at(min), by: i === 0 ? FINANCE_USER.name : i <= 4 ? BILLING_USER.name : i <= 5 ? TRANSPORT_COORD.name : "Motorista", text });
+      if (!text) continue;
+      const shown = flow[i]![0] === "invoiced" ? (o.invoiceNumber ? `Nota fiscal faturada · ${o.invoiceNumber}` : "Faturado sem nota fiscal")
+        : flow[i]![0] === "in_delivery_route" ? `Em rota de entrega · placa ${plateFor(o.id)}` : text;
+      o.log.push({ at: at(min), by: i === 0 ? FINANCE_USER.name : i <= 4 ? BILLING_USER.name : i <= 5 ? TRANSPORT_COORD.name : "Motorista", text: shown });
     }
-    if (o.status === "billing_error") o.log.push({ at: at(200), by: BILLING_USER.name, text: `Erro de faturamento · ${o.billingError}` });
+    if (o.status === "billing_error") o.log.push({ at: at(200), by: BILLING_USER.name, text: `Pendência no faturamento · ${o.billingError}` });
   }
 })();
 

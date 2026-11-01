@@ -1,4 +1,5 @@
 /** Relatórios da gestão — dashboard do mês, por vendedor. */
+import { orderStatusText } from "../data/orders";
 import { useMemo, useState } from "react";
 import { BarChart3, Users, MapPin, Target, PieChart } from "lucide-react";
 import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainment, daysBetween, inactivityBucket, bucketLabel, ORDER_STATUS, type IsoDate } from "@galato/domain";
@@ -429,7 +430,7 @@ export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder;
           <dt>Emitido em</dt><dd>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</dd>
           <dt>Nota fiscal</dt><dd>{o.fiscalDoc === "sem_nf" ? "Sem nota fiscal (escolha do vendedor)" : o.invoiceNumber ?? (o.fiscalDoc === "com_nf" ? "Com nota · a emitir no faturamento" : "Sem NF")}</dd>
           <dt>Condição</dt><dd>{termLabel(o.paymentTermDays)}</dd>
-          <dt>Status</dt><dd>{statusLabel(o.status)}</dd>
+          <dt>Status</dt><dd>{orderStatusText(o)}</dd>
           <dt>Cliente sem compra há</dt><dd>{days === null ? "—" : `${days} dia(s)`} · curva {c.abcd}</dd>
         </dl>
         {onCustomer && <button className="btn btn-soft btn-sm btn-block mt" onClick={() => onCustomer(c.id)}><History size={14} /> Ver histórico de compras do cliente</button>}
@@ -599,14 +600,14 @@ function OrderBalloon({ o, onClick, hideCustomer }: { o: HistOrder; onClick: () 
 const STEPS: { label: string; statuses: string[] }[] = [
   { label: "Pedido", statuses: ["draft"] },
   { label: "Crédito", statuses: ["awaiting_credit_review", "in_approval", "blocked"] },
-  { label: "Faturamento", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
+  { label: "Liberado", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"] },
   { label: "Faturado", statuses: ["invoiced"] },
   { label: "Em rota", statuses: ["in_delivery_route", "in_transit"] },
   { label: "Entregue", statuses: ["delivered", "completed"] },
 ];
 function OrderSteps({ status }: { status: string }) {
   const idx = Math.max(0, STEPS.findIndex((s) => s.statuses.includes(status)));
-  const problem = status === "blocked" || status === "billing_error";
+  const problem = status === "blocked";
   return (
     <div className="steps mt">
       {STEPS.map((s, i) => (

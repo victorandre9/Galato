@@ -1,5 +1,6 @@
 /** Design system Galato — componentes base. */
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Minus, Trash2, X, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
 import { formatBRL, formatPct, type Tone } from "@galato/domain";
 import { setOnline, useStore } from "../data/store";
@@ -111,7 +112,8 @@ export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNo
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", h); if (--openSheets === 0) document.body.style.overflow = ""; };
   }, [onClose]);
-  return (
+  // sempre sobre a tela inteira (mesmo quando aberta de dentro de outra janela)
+  return createPortal(
     <div className="overlay" onClick={onClose}>
       <div className={`sheet ${wide ? "wide" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="grab" />
@@ -122,7 +124,8 @@ export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNo
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -130,7 +133,7 @@ export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, da
   title: string; text: ReactNode; confirmLabel: string; onConfirm: () => void; onClose: () => void;
   danger?: boolean; children?: ReactNode; disabled?: boolean;
 }) {
-  return (
+  return createPortal(
     <div className="overlay center" onClick={onClose}>
       <div className="sheet modal" onClick={(e) => e.stopPropagation()} style={{ paddingTop: 20 }}>
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>{title}</h2>
@@ -141,7 +144,8 @@ export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, da
           <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} disabled={disabled} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

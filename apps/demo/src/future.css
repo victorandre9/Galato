@@ -359,3 +359,25 @@ select.input { border-radius: 16px; }
 .fmt-tag { display: inline-flex; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; margin-right: 4px; }
 .fmt-tag.horizontal { background: var(--info-soft); color: var(--info); }
 .fmt-tag.vertical { background: var(--gold-soft); color: var(--warning); }
+.patrimony-lock { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: var(--neutral-soft); color: var(--text-2); }
+.patrimony-lock b { font-size: 22px; color: var(--text); letter-spacing: .06em; }
+.patrimony-lock .xs { margin-left: auto; color: var(--muted); }
+
+/* ---------- celulares estreitos: nada estoura a largura da tela ---------- */
+.kpi .kpi-head span:last-child { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+.kpi .kpi-value { overflow-wrap: anywhere; }
+.card-title > span { min-width: 0; overflow-wrap: anywhere; }
+.sheet-head h2 { min-width: 0; overflow-wrap: anywhere; }
+.greeting > div { min-width: 0; }
+.greeting h1, .greeting p { overflow-wrap: anywhere; }
+@media (max-width: 440px) {
+  .grid.g3:has(> .kpi), .grid.g3:has(> .card.kpi) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi .kpi-head { letter-spacing: .04em; font-size: 10px; }
+}
+@media (max-width: 360px) {
+  .main { padding-left: 12px; padding-right: 12px; }
+  .kpi .kpi-value { font-size: 19px; }
+  .greeting .date-pill { display: none; }
+}
+@media (max-width: 360px) { .app-header { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; } }
+.card-title { flex-wrap: wrap; row-gap: 6px; }

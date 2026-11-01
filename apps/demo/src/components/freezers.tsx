@@ -3,9 +3,9 @@
  * Cada freezer é um registro próprio (nunca só "quantidade").
  */
 import { useState } from "react";
-import { Snowflake, Plus, Pencil, Undo2, QrCode, MapPinned, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { Snowflake, Plus, Pencil, Undo2, QrCode, MapPinned, ClipboardCheck, AlertTriangle, Lock } from "lucide-react";
 import {
-  CUSTOMERS, PARAMS, FREEZER_CATALOG, freezerLabel, freezerValue, sellerById, nowStamp, type Asset, type Customer, type FreezerFormat,
+  CUSTOMERS, ASSETS, PARAMS, FREEZER_CATALOG, freezerLabel, freezerValue, sellerById, nowStamp, type Asset, type Customer, type FreezerFormat,
 } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit } from "../data/store";
@@ -29,7 +29,21 @@ const fromDraft = (d: Draft, customerId: string): Asset => ({
   voltage: d.voltage, liters: d.liters, valueCents: freezerValue(d.format), status: "installed", customerId,
 });
 const describe = (d: Draft) => `${d.brand} · ${d.format === "vertical" ? "Vertical" : "Horizontal"} · ${d.liters} L · ${d.voltage}`;
-const newDraft = (): Draft => ({ id: `a-new-${Date.now()}`, patrimony: "", brand: FREEZER_CATALOG.brands[0], format: "horizontal", liters: 411, voltage: "220V", model: "", isNew: true });
+/**
+ * Próximo número de patrimônio livre (gerado pelo sistema, bloqueado para edição).
+ * Considera freezers em todos os clientes, estoque, já retirados (não reaproveita) e
+ * os que estão sendo incluídos agora neste formulário.
+ */
+export function nextPatrimony(pending: string[] = []): string {
+  const used = [
+    ...CUSTOMERS.flatMap((c) => c.assets.map((a) => a.patrimony)),
+    ...CUSTOMERS.flatMap((c) => (c.assetLog ?? []).map((m) => m.patrimony)),
+    ...ASSETS.map((a) => a.patrimony),
+    ...pending,
+  ].map((p) => Number(p) || 0);
+  return String(Math.max(0, ...used) + 1).padStart(6, "0");
+}
+const newDraft = (pending: string[]): Draft => ({ id: `a-new-${Date.now()}`, patrimony: nextPatrimony(pending), brand: FREEZER_CATALOG.brands[0], format: "horizontal", liters: 411, voltage: "220V", model: "", isNew: true });
 
 /** Onde está instalado um patrimônio (para não cadastrar o mesmo freezer em dois clientes). */
 function ownerOf(patrimony: string, exceptCustomer: string) {
@@ -72,16 +86,18 @@ function FreezerList({ c, drafts, setDrafts, removed, setRemoved }: {
           <button className="linkbtn" style={{ marginLeft: 8 }} onClick={() => { setDrafts([...drafts, ...removed.filter((r) => !r.draft.isNew).map((r) => r.draft)]); setRemoved([]); }}>desfazer</button>
         </div>
       )}
-      <button className="btn btn-ghost btn-block" onClick={() => setEditing(newDraft())}>
+      <button className="btn btn-ghost btn-block" onClick={() => setEditing(newDraft(drafts.map((d) => d.patrimony)))}>
         <Plus size={16} /> Incluir freezer
       </button>
 
       {editing && (
         <Sheet title={editing.isNew && !drafts.some((d) => d.id === editing.id) ? "Incluir freezer" : `Editar patrimônio ${editing.patrimony}`} onClose={() => setEditing(null)} icon={<Snowflake size={18} />}>
-          <div className="field"><label>Número do patrimônio (plaqueta)</label>
-            <input id="freezer-patrimony" className="input" inputMode="numeric" maxLength={6} placeholder="Ex.: 000123" value={editing.patrimony}
-              onChange={(e) => setEditing({ ...editing, patrimony: e.target.value.replace(/\D/g, "").slice(0, 6) })} />
-            <span className="xs muted">6 dígitos, como na plaqueta / QR Code do freezer.</span>
+          <div className="field"><label>Número do patrimônio</label>
+            <div className="patrimony-lock" id="freezer-patrimony">
+              <Lock size={16} /><b className="num">{editing.patrimony}</b>
+              <span className="xs">{editing.isNew ? "gerado pelo sistema" : "bloqueado"}</span>
+            </div>
+            <span className="xs muted">{editing.isNew ? "Número entregue automaticamente: identifique o freezer com ele (plaqueta/QR Code)." : "O número do patrimônio não pode ser alterado."}</span>
           </div>
           <div className="field"><label>Marca</label>
             <div className="chips">{FREEZER_CATALOG.brands.map((b) => <Chip key={b} on={editing.brand === b} onClick={() => setEditing({ ...editing, brand: b })}>{b}</Chip>)}</div>

@@ -58,7 +58,7 @@ function FreezerList({ c, drafts, setDrafts, removed, setRemoved }: {
             <span className="freezer-ic"><QrCode size={22} /></span>
             <div className="grow">
               <div className="title">Patrimônio {d.patrimony} {d.isNew && <Badge tone="success">novo</Badge>}</div>
-              <div className="sub">{describe(d)} · {brl(freezerValue(d.format))}</div>
+              <div className="sub"><span className={`fmt-tag ${d.format}`}>{d.format === "vertical" ? "Vertical" : "Horizontal"}</span> {d.brand} · {d.liters} L · {d.voltage}{d.model ? ` · ${d.model}` : ""}</div>
             </div>
             <button className="icon-btn" aria-label="Editar freezer" onClick={() => setEditing({ ...d })}><Pencil size={15} /></button>
             <button className="icon-btn" aria-label="Retirar freezer" onClick={() => { setRemoving(d); setReason(RETURN_REASONS[0]!); }}><Undo2 size={15} /></button>
@@ -88,7 +88,7 @@ function FreezerList({ c, drafts, setDrafts, removed, setRemoved }: {
           </div>
           <div className="field"><label>Formato</label>
             <div className="chips">{FREEZER_CATALOG.formats.map((f) => (
-              <Chip key={f.id} on={editing.format === f.id} onClick={() => setEditing({ ...editing, format: f.id, liters: f.liters.includes(editing.liters as never) ? editing.liters : f.liters[f.id === "horizontal" ? 3 : 1]! })}>{f.label}</Chip>
+              <Chip key={f.id} on={editing.format === f.id} onClick={() => setEditing({ ...editing, format: f.id, liters: (f.liters as readonly number[]).includes(editing.liters) ? editing.liters : 411 })}>{f.label}</Chip>
             ))}</div>
           </div>
           <div className="field"><label>Litragem</label>
@@ -111,7 +111,7 @@ function FreezerList({ c, drafts, setDrafts, removed, setRemoved }: {
             <div className="chips">{FREEZER_CATALOG.voltages.map((v) => <Chip key={v} on={editing.voltage === v} onClick={() => setEditing({ ...editing, voltage: v })}>{v}</Chip>)}</div>
           </div>
           <div className="field"><label>Modelo (opcional)</label>
-            <input id="freezer-model" className="input" placeholder="Ex.: GHB-410" value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value.slice(0, 20) })} />
+            <input id="freezer-model" className="input" placeholder="Ex.: modelo da etiqueta" value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value.slice(0, 20) })} />
           </div>
           {conflict && <div className="small red semi mb"><AlertTriangle size={14} /> Este patrimônio consta no cliente {conflict.tradeName}. Confira a plaqueta.</div>}
           {dup && <div className="small red semi mb">Este patrimônio já está na lista.</div>}

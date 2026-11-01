@@ -354,7 +354,7 @@ function FinanceQueue() {
         <Card id="aguardando-credito" title="Pedidos aguardando crédito">
           {blocked.slice(0, 8).map((o) => (
             <div key={o.id} className="row">
-              <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
+              <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · {o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
               <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
                 setOrderStatus(o, "credit_approved", FINANCE_USER.name, "Liberado pelo crédito");
                 notify({ kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
@@ -470,14 +470,14 @@ function BillingBoard() {
                 <div key={o.id} className="row" style={{ alignItems: "flex-start" }}>
                   <div className="grow">
                     <div className="title small">{o.number} · <CustomerName id={o.customerId} /></div>
-                    <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}</div>
+                    <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}</div>
                     {o.billingError && <div className="xs red semi" style={{ whiteSpace: "normal" }}>{o.billingError}</div>}
                     {o.invoiceNumber && col.id === "done" && <div className="xs green semi">{o.invoiceNumber} · disponível para logística</div>}
                   </div>
                   {col.next && <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
-                    setOrderStatus(o, col.next![0], BILLING_USER.name);
+                    setOrderStatus(o, col.next![0], BILLING_USER.name, col.next![0] === "invoiced" && o.fiscalDoc === "sem_nf" ? "Faturado sem nota fiscal" : undefined);
                     if (o.status === "invoiced") notify({ kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
-                    if (o.status === "invoiced") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
+                    if (o.status === "invoiced" && o.fiscalDoc !== "sem_nf") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
                     if (o.status !== "billing_error") o.billingError = undefined;
                   }, `${o.number}: ${ORDER_STATUS[col.next![0] as keyof typeof ORDER_STATUS].label}`)}>{col.next[1]}</button>}
                 </div>
@@ -543,7 +543,7 @@ function InvoicedAwaitingRoute() {
         return (
           <div key={o.id} className="row" style={{ flexWrap: "wrap" }}>
             <div className="grow" style={{ minWidth: 160 }}>
-              <div className="title small">{o.invoiceNumber} · {c.tradeName}</div>
+              <div className="title small">{o.invoiceNumber ?? `${o.number} · sem NF`} · {c.tradeName}</div>
               <div className="sub">{o.number} · {c.city} · {sellerById.get(o.sellerId)?.name.split(" ")[0]}</div>
             </div>
             <select id={`route-${o.id}`} className="input" style={{ width: "auto", padding: "7px 10px", fontSize: 12.5 }} value={rid} onChange={(e) => setRoute({ ...route, [o.id]: e.target.value })}>
@@ -552,7 +552,7 @@ function InvoicedAwaitingRoute() {
             <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
               const r = DELIVERY_ROUTES.find((x) => x.id === rid)!;
               const vol = o.items.reduce((a, it) => a + it.qty, 0);
-              r.deliveries.push({ id: `dl-${o.id}`, seq: r.deliveries.length + 1, customerId: o.customerId, invoiceNumber: o.invoiceNumber ?? "NF —", orderNumber: o.number, volumes: vol, status: r.startedAt ? "in_transit" : "scheduled", orderId: o.id });
+              r.deliveries.push({ id: `dl-${o.id}`, seq: r.deliveries.length + 1, customerId: o.customerId, invoiceNumber: o.invoiceNumber ?? (o.fiscalDoc === "sem_nf" ? `${o.number} (sem NF)` : "NF —"), orderNumber: o.number, volumes: vol, status: r.startedAt ? "in_transit" : "scheduled", orderId: o.id });
               setOrderStatus(o, r.startedAt ? "in_transit" : "in_delivery_route", TRANSPORT_COORD.name, `Incluído na rota ${r.name}`);
               notify({ kind: "logistica", title: "Nova entrega na sua rota", text: `${c.tradeName} · ${o.invoiceNumber} · ${vol} volumes.`, to: [`driver:${r.driverId}`] });
               notify({ kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name}.`, to: [`seller:${o.sellerId}`] });

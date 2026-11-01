@@ -427,7 +427,7 @@ export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder;
           <dt>Código / CNPJ</dt><dd>{c.code} · {c.document}</dd>
           <dt>Vendedor</dt><dd>{sellerById.get(o.sellerId)?.name}</dd>
           <dt>Emitido em</dt><dd>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</dd>
-          <dt>Nota fiscal</dt><dd>{o.invoiceNumber ?? "Sem NF"}</dd>
+          <dt>Nota fiscal</dt><dd>{o.fiscalDoc === "sem_nf" ? "Sem nota fiscal (escolha do vendedor)" : o.invoiceNumber ?? (o.fiscalDoc === "com_nf" ? "Com nota · a emitir no faturamento" : "Sem NF")}</dd>
           <dt>Condição</dt><dd>{termLabel(o.paymentTermDays)}</dd>
           <dt>Status</dt><dd>{statusLabel(o.status)}</dd>
           <dt>Cliente sem compra há</dt><dd>{days === null ? "—" : `${days} dia(s)`} · curva {c.abcd}</dd>

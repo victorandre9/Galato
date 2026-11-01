@@ -127,14 +127,15 @@ export const PRODUCTS: Product[] = productSeeds.map(([category, commercialName, 
 
 // ---------------------------------------------------------------- ativos
 /**
- * Catálogo de freezers (configurável). Litragens conferidas no mercado para Gelopar:
- * horizontal 219, 306, 395, 411, 500, 532 L; vertical ~410 L. Valor por formato = parâmetro a validar.
+ * Catálogo de freezers (configurável) — padrão informado pela Galato:
+ * marcas Gelopar, Metalfrio, Fricon; litragens 210, 311, 411, 511 L; horizontal ou vertical.
+ * Valor por formato = parâmetro a validar.
  */
 export const FREEZER_CATALOG = {
-  brands: ["Gelopar"],
+  brands: ["Gelopar", "Metalfrio", "Fricon"],
   formats: [
-    { id: "horizontal", label: "Horizontal", liters: [219, 306, 395, 411, 500, 532], valueCents: 380_000 },
-    { id: "vertical", label: "Vertical", liters: [228, 410], valueCents: 450_000 },
+    { id: "horizontal", label: "Horizontal", liters: [210, 311, 411, 511], valueCents: 380_000 },
+    { id: "vertical", label: "Vertical", liters: [210, 311, 411, 511], valueCents: 450_000 },
   ],
   voltages: ["110/127V", "220V"],
 } as const;
@@ -143,9 +144,9 @@ export const freezerLabel = (format: string, liters: number) => `Freezer ${forma
 export const freezerValue = (format: string) => FREEZER_CATALOG.formats.find((f) => f.id === format)?.valueCents ?? 380_000;
 
 export const ASSET_TYPES = [
-  { type: freezerLabel("horizontal", 411), format: "horizontal", brand: "Gelopar", model: "GHB-410", voltage: "220V", liters: 411, valueCents: 380_000 },
-  { type: freezerLabel("vertical", 410), format: "vertical", brand: "Gelopar", model: "Vertical 410", voltage: "110/127V", liters: 410, valueCents: 450_000 },
-  { type: freezerLabel("horizontal", 532), format: "horizontal", brand: "Gelopar", model: "GHBS-530", voltage: "220V", liters: 532, valueCents: 380_000 },
+  { type: freezerLabel("horizontal", 411), format: "horizontal", brand: "Gelopar", model: "", voltage: "220V", liters: 411, valueCents: 380_000 },
+  { type: freezerLabel("vertical", 311), format: "vertical", brand: "Metalfrio", model: "", voltage: "110/127V", liters: 311, valueCents: 450_000 },
+  { type: freezerLabel("horizontal", 511), format: "horizontal", brand: "Fricon", model: "", voltage: "220V", liters: 511, valueCents: 380_000 },
 ] as const;
 export interface Asset {
   id: string; patrimony: string; type: string; model: string; voltage: string; liters: number;
@@ -282,6 +283,8 @@ export interface Order {
   status: string; createdAt: string; totalCents: number; paymentTermDays: number; recommendedTermDays: number;
   expectedDelivery: IsoDate | null; items: OrderItem[]; invoiceNumber?: string; billingError?: string;
   editedAt?: string; editCount?: number;
+  /** escolhido pelo vendedor no fim do pedido */
+  fiscalDoc?: "com_nf" | "sem_nf";
   /** linha do tempo com horário de cada etapa */
   log?: { at: string; by: string; text: string }[];
 }

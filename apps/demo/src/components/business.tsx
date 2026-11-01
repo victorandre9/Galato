@@ -269,7 +269,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             {c.assets.map((a) => (
               <div key={a.id} className="row">
                 <QrCode size={26} className="muted" />
-                <div className="grow"><div className="title small">Patrimônio {a.patrimony}</div><div className="sub">{a.brand ?? "Gelopar"} · {a.type.replace("Freezer ", "")} · {a.voltage}</div></div>
+                <div className="grow"><div className="title small">Patrimônio {a.patrimony}</div><div className="sub"><span className={`fmt-tag ${a.format ?? (/vertical/i.test(a.type) ? "vertical" : "horizontal")}`}>{(a.format ?? (/vertical/i.test(a.type) ? "vertical" : "horizontal")) === "vertical" ? "Vertical" : "Horizontal"}</span> {a.brand ?? "Gelopar"} · {a.liters} L · {a.voltage}{a.model ? ` · ${a.model}` : ""}</div></div>
                 <div className="end num small">{brl(a.valueCents)}</div>
               </div>
             ))}
@@ -373,6 +373,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
   const [cat, setCat] = useState<string | null>(null);
   const [items, setItems] = useState<{ productId: string; qty: number }[]>(() => editing ? editing.items.map((it) => ({ productId: it.productId, qty: it.qty })) : []);
   const [term, setTerm] = useState<number | null>(editing ? editing.paymentTermDays : null);
+  const [fiscal, setFiscal] = useState<"com_nf" | "sem_nf" | null>(editing?.fiscalDoc ?? null);
   const fin = financial(c);
   const cats = [...new Set(PRODUCTS.map((p) => p.category))];
   const filtered = PRODUCTS.filter((p) => (!cat || p.category === cat) && (`${p.commercialName} ${p.code} ${p.category} ${p.fiscalName}`.toLowerCase().includes(q.toLowerCase())));
@@ -396,6 +397,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
         const oldTotal = editing.totalCents;
         editing.items = items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents }));
         editing.totalCents = total; editing.paymentTermDays = granted; editing.recommendedTermDays = recommended;
+        if (fiscal) editing.fiscalDoc = fiscal;
         editing.status = status; editing.editedAt = nowStamp(); editing.editCount = (editing.editCount ?? 0) + 1;
         logOrder(editing, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Alterado pelo vendedor · ${brl(oldTotal)} → ${brl(total)} · volta para análise`);
         applySalesDelta(editing, before);
@@ -417,6 +419,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
         customerId: c.id, sellerId: c.sellerId, status, createdAt: nowStamp(), totalCents: total,
         paymentTermDays: granted, recommendedTermDays: recommended, expectedDelivery: null,
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
+        ...(kind === "ORDER" && fiscal ? { fiscalDoc: fiscal } : {}),
       };
       o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : status === "blocked" ? "Pedido emitido · bloqueado por crédito" : "Pedido emitido · enviado para análise de crédito" }];
       ORDERS.unshift(o);
@@ -427,7 +430,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
         notify({
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
           title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido para análise de crédito",
-          text: `${o.number} · ${c.tradeName} · ${brl(total)} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
+          text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
           to: ["finance", ...MANAGERS_KEYS],
         });
       }
@@ -510,11 +513,19 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing }: { c: Custome
               )}
             </Card>
           )}
+          {kind === "ORDER" && (
+            <Card title="Nota fiscal" sub="escolha antes de emitir" className={fiscal ? "" : "needs-answer"}>
+              <div className="grid g2" style={{ marginBottom: 0 }}>
+                <button className={`route-pick ${fiscal === "com_nf" ? "on" : ""}`} onClick={() => setFiscal("com_nf")}><b>Com nota</b><span className="xs">NF emitida no faturamento</span></button>
+                <button className={`route-pick ${fiscal === "sem_nf" ? "on" : ""}`} onClick={() => setFiscal("sem_nf")}><b>Sem nota</b><span className="xs">pedido sem NF</span></button>
+              </div>
+            </Card>
+          )}
           {kind === "ORDER" ? (
             <>
-              <button className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue}
+              <button className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal}
                 onClick={() => save(fin.creditStatus === "blocked" ? "blocked" : "awaiting_credit_review", fin.creditStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : "Pedido enviado para análise de crédito")}>
-                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
+                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
               </button>
               {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
             </>
@@ -538,7 +549,7 @@ export function OrderRow({ o, onClick }: { o: Order; onClick?: () => void }) {
   return (
     <div className={`order-row ${onClick ? "click" : ""}`} onClick={onClick}>
       <div className="flex between" style={{ gap: 8 }}>
-        <span className="semi">{o.number}{o.editCount ? <span className="xs muted"> · alterado</span> : null}</span>
+        <span className="semi flex" style={{ gap: 6 }}>{o.number}{o.fiscalDoc && <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span>}{o.editCount ? <span className="xs muted">alterado</span> : null}</span>
         <b className="num">{brl(o.totalCents)}</b>
       </div>
       <div className="flex" style={{ gap: 6, marginTop: 3 }}>

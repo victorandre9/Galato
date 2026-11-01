@@ -20,6 +20,9 @@ import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
 import { OrderOpen } from "./order-flow";
 import { FirstVisitSheet, FreezerManager } from "./freezers";
 import { FreezerOccurrenceSheet, OccurrenceDetail, OccurrenceRow } from "./freezer-occurrences";
+import { CheckoutSheet, CheckinVideo } from "./checkout";
+import { Video } from "lucide-react";
+import type { Checkin } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
 
@@ -106,7 +109,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const openCheckin = CHECKINS.find((k) => k.customerId === c.id && k.date === TODAY && !k.outAt);
   const doneToday = CHECKINS.filter((k) => k.customerId === c.id && k.date === TODAY && k.outAt);
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers" | "occurrence">(null);
+  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers" | "occurrence" | "checkout">(null);
+  const [playVideo, setPlayVideo] = useState<Checkin | null>(null);
   const doCheckin = () => commit(() => {
     CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
     const s = SELLERS.find((x) => x.id === c.sellerId);
@@ -171,6 +175,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (mode === "firstvisit") return <FirstVisitSheet c={c} onClose={() => setMode(null)} onDone={() => { setMode(null); doCheckin(); }} />;
   if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;
   if (mode === "occurrence") return <FreezerOccurrenceSheet c={c} onClose={() => setMode(null)} />;
+  if (mode === "checkout" && openCheckin) return <CheckoutSheet c={c} checkin={openCheckin} onClose={() => setMode(null)} />;
+  if (playVideo) return <CheckinVideo checkin={playVideo} title={`Vídeo do freezer · ${c.tradeName}`} onClose={() => setPlayVideo(null)} />;
   if (openOcc) return <OccurrenceDetail occ={openOcc} viewer={viewerSellerId ? "seller" : "manager"} onClose={() => setOpenOcc(null)} />;
 
   return (
@@ -207,10 +213,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
                 <LogIn size={17} /> Check-in
               </button>
             ) : (
-              <button className="btn btn-ghost" onClick={() => {
-                const min = Math.max(1, Math.round((Date.now() - new Date(openCheckin.inAt).getTime()) / 60000));
-                commit(() => { openCheckin.outAt = nowStamp(); }, `Checkout registrado · visita de ${min} min (desde ${hhmm(openCheckin.inAt)})`);
-              }}>
+              <button className="btn btn-ghost" onClick={() => setMode("checkout")}>
                 <LogOutIc size={17} /> Checkout <span className="xs muted">(desde {hhmm(openCheckin.inAt)})</span>
               </button>
             )}
@@ -259,6 +262,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
               <div key={k.id} className="row">
                 <LogIn size={16} className="muted" />
                 <div className="grow"><div className="title small">Visita · {sellerById.get(k.sellerId)?.name}</div><div className="sub">check-in {fmtDateTime(k.inAt)}{k.outAt ? ` · checkout ${fmtTime(k.outAt)}` : " · em andamento"}</div></div>
+                {k.video && <button className="btn btn-soft btn-sm" onClick={() => setPlayVideo(k)}><Video size={14} /> Vídeo</button>}
               </div>
             ))}
           </Card>

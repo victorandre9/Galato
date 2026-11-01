@@ -13,6 +13,7 @@ import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
 import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
+import { CheckinVideo } from "../components/checkout";
 import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
 import { PROOFS, type Order } from "../data/mock";
@@ -753,6 +754,7 @@ function CheckinsCard({ scope }: { scope: string[] }) {
   useStore();
   const list = CHECKINS.filter((k) => k.date === TODAY && scope.includes(k.sellerId));
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const [play, setPlay] = useState<(typeof CHECKINS)[number] | null>(null);
   return (
     <Card id="visitas-checkins" title={`Check-ins registrados agora (${list.length})`} className="mt" sub="visitas feitas no app durante o teste">
       {list.map((k) => (
@@ -760,8 +762,10 @@ function CheckinsCard({ scope }: { scope: string[] }) {
           <div className="grow"><div className="title small">{customerById.get(k.customerId)?.tradeName}</div><div className="sub">{sellerById.get(k.sellerId)?.name}</div></div>
           <span className="small">{hhmm(k.inAt)} → {k.outAt ? hhmm(k.outAt) : "em andamento"}</span>
           {k.outAt ? <Badge tone="success">{Math.max(1, Math.round((new Date(k.outAt).getTime() - new Date(k.inAt).getTime()) / 60000))} min</Badge> : <Badge tone="info">Em visita</Badge>}
+          {k.video ? <button className="btn btn-soft btn-sm" onClick={() => setPlay(k)}>▶ Vídeo</button> : k.outAt && customerById.get(k.customerId)?.assets.length ? <Badge tone="danger">sem vídeo</Badge> : null}
         </div>
       ))}
+      {play && <CheckinVideo checkin={play} title={`Vídeo do freezer · ${customerById.get(play.customerId)?.tradeName}`} onClose={() => setPlay(null)} />}
       {!list.length && <div className="small muted">Nenhum check-in feito no app ainda hoje.</div>}
     </Card>
   );

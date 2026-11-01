@@ -18,6 +18,7 @@ import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock"
 import { PhotoCapture } from "./photo";
 import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
 import { OrderOpen } from "./order-flow";
+import { FirstVisitSheet, FreezerManager } from "./freezers";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
@@ -103,7 +104,13 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const openCheckin = CHECKINS.find((k) => k.customerId === c.id && k.date === TODAY && !k.outAt);
   const doneToday = CHECKINS.filter((k) => k.customerId === c.id && k.date === TODAY && k.outAt);
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward">(null);
+  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers">(null);
+  const doCheckin = () => commit(() => {
+    CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
+    const s = SELLERS.find((x) => x.id === c.sellerId);
+    // a visita conta no check-in; repetir no mesmo cliente no mesmo dia não conta de novo
+    if (s && !doneToday.length) s.visitsDoneToday += 1;
+  }, doneToday.length ? "Novo check-in registrado (visita já contabilizada hoje)" : "Check-in registrado · visita contabilizada");
   const fin = financial(c);
   const r = customerRow(c);
   const history = ORDERS.filter((o) => o.customerId === c.id).sort(newestFirst<Order>((x) => x.createdAt));
@@ -157,6 +164,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (mode === "order" || mode === "quote")
     return <OrderBuilder c={c} kind={mode === "order" ? "ORDER" : "QUOTE"} onClose={() => setMode(null)} onDone={onClose} />;
   if (mode === "proof") return <PaymentProofSheet c={c} onClose={() => setMode(null)} />;
+  if (mode === "firstvisit") return <FirstVisitSheet c={c} onClose={() => setMode(null)} onDone={() => { setMode(null); doCheckin(); }} />;
+  if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;
 
   return (
     <Sheet title={c.tradeName} onClose={onClose} wide>
@@ -188,12 +197,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
 
           <div className="grid g2" style={{ marginBottom: 0 }}>
             {!openCheckin ? (
-              <button className="btn btn-primary" onClick={() => commit(() => {
-                CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
-                const s = SELLERS.find((x) => x.id === c.sellerId);
-                // a visita conta no check-in; repetir no mesmo cliente no mesmo dia não conta de novo
-                if (s && !doneToday.length) s.visitsDoneToday += 1;
-              }, doneToday.length ? "Novo check-in registrado (visita já contabilizada hoje)" : "Check-in registrado · visita contabilizada")}>
+              <button className="btn btn-primary" onClick={() => (c.onboardedAt ? doCheckin() : setMode("firstvisit"))}>
                 <LogIn size={17} /> Check-in
               </button>
             ) : (
@@ -261,14 +265,16 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             {!c.receivables.some((x) => x.openCents > 0) && <div className="small green semi">Nenhum boleto em aberto.</div>}
           </Card>
 
-          <Card title={`Freezers (${c.assets.length})`} icon={<Snowflake size={17} />}>
+          <Card title={`Freezers (${c.assets.length})`} icon={<Snowflake size={17} />} link="Gerenciar" onLink={() => setMode("freezers")}>
             {c.assets.map((a) => (
               <div key={a.id} className="row">
                 <QrCode size={26} className="muted" />
-                <div className="grow"><div className="title small">Patrimônio {a.patrimony}</div><div className="sub">{a.type} · {a.voltage}</div></div>
+                <div className="grow"><div className="title small">Patrimônio {a.patrimony}</div><div className="sub">{a.brand ?? "Gelopar"} · {a.type.replace("Freezer ", "")} · {a.voltage}</div></div>
                 <div className="end num small">{brl(a.valueCents)}</div>
               </div>
             ))}
+            {!c.onboardedAt && <div className="xs gold semi mt">Freezers ainda não conferidos: a conferência é pedida no 1º check-in.</div>}
+            <button className="btn btn-ghost btn-sm btn-block mt" onClick={() => setMode("freezers")}><Snowflake size={14} /> Incluir, editar ou retirar freezer</button>
             {!c.assets.length && <div className="small muted">Nenhum freezer Galato neste cliente.</div>}
             {c.assets.length > 0 && r.days !== null && r.days >= PARAMS.inactivity.idleAssetThresholdDays && (
               <div className="mt"><Badge tone="danger">Ativo sem giro · {r.days} dias sem compra</Badge></div>

@@ -146,7 +146,9 @@ export function logisticsOverview() {
 
 // ---------------------------------------------------------------- ativos
 export function assetsOverview(sellerIds?: string[]) {
-  const installed = ASSETS.filter((a) => a.status === "installed" && a.customerId);
+  // fonte da verdade: freezers cadastrados em cada cliente (inclusões/retiradas do app entram aqui)
+  const installed = CUSTOMERS.flatMap((c) => c.assets);
+  const returned = CUSTOMERS.reduce((n, c) => n + (c.assetLog ?? []).filter((m) => m.action === "retirado").length, 0);
   const byCustomer = CUSTOMERS.filter((c) => c.assets.length && (!sellerIds || sellerIds.includes(c.sellerId)));
   const idle = byCustomer
     .map(customerRow)
@@ -160,7 +162,7 @@ export function assetsOverview(sellerIds?: string[]) {
   return {
     onStreet: installed.length,
     valueOnStreet: installed.reduce((a, x) => a + x.valueCents, 0),
-    inStock: ASSETS.filter((a) => a.status === "stock").length,
+    inStock: ASSETS.filter((a) => a.status === "stock").length + returned,
     maintenance: ASSETS.filter((a) => a.status === "maintenance").length,
     idle, idleValue: idle.reduce((a, x) => a + x.value, 0), idleCount: idle.reduce((a, x) => a + x.c.assets.length, 0),
     bySeller,

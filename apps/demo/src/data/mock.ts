@@ -126,13 +126,30 @@ export const PRODUCTS: Product[] = productSeeds.map(([category, commercialName, 
 }));
 
 // ---------------------------------------------------------------- ativos
+/**
+ * Catálogo de freezers (configurável). Litragens conferidas no mercado para Gelopar:
+ * horizontal 219, 306, 395, 411, 500, 532 L; vertical ~410 L. Valor por formato = parâmetro a validar.
+ */
+export const FREEZER_CATALOG = {
+  brands: ["Gelopar"],
+  formats: [
+    { id: "horizontal", label: "Horizontal", liters: [219, 306, 395, 411, 500, 532], valueCents: 380_000 },
+    { id: "vertical", label: "Vertical", liters: [228, 410], valueCents: 450_000 },
+  ],
+  voltages: ["110/127V", "220V"],
+} as const;
+export type FreezerFormat = "horizontal" | "vertical";
+export const freezerLabel = (format: string, liters: number) => `Freezer ${format === "vertical" ? "vertical" : "horizontal"} ${liters} L`;
+export const freezerValue = (format: string) => FREEZER_CATALOG.formats.find((f) => f.id === format)?.valueCents ?? 380_000;
+
 export const ASSET_TYPES = [
-  { type: "Freezer horizontal 2 tampas 419 L", model: "FH-419", voltage: "220V", liters: 419, valueCents: 380_000 },
-  { type: "Freezer vertical expositor 300 L", model: "FV-300", voltage: "127V", liters: 300, valueCents: 450_000 },
-  { type: "Freezer ilha expositor 520 L", model: "FI-520", voltage: "220V", liters: 520, valueCents: 620_000 },
+  { type: freezerLabel("horizontal", 411), format: "horizontal", brand: "Gelopar", model: "GHB-410", voltage: "220V", liters: 411, valueCents: 380_000 },
+  { type: freezerLabel("vertical", 410), format: "vertical", brand: "Gelopar", model: "Vertical 410", voltage: "110/127V", liters: 410, valueCents: 450_000 },
+  { type: freezerLabel("horizontal", 532), format: "horizontal", brand: "Gelopar", model: "GHBS-530", voltage: "220V", liters: 532, valueCents: 380_000 },
 ] as const;
 export interface Asset {
   id: string; patrimony: string; type: string; model: string; voltage: string; liters: number;
+  brand?: string; format?: FreezerFormat;
   valueCents: number; status: "installed" | "stock" | "maintenance"; customerId: string | null;
 }
 
@@ -145,6 +162,9 @@ export interface Customer {
   monthlyHistoryCents: number[]; avgMonthlyCents: number; abcd: AbcdClass;
   lastPurchaseDate: IsoDate | null; lastPurchaseCents: number; assets: Asset[];
   receivables: Receivable[]; manualCreditBlock: boolean; notes: string;
+  /** cadastro da 1ª visita (rota + freezers conferidos) */
+  onboardedAt?: string; onboardedBy?: string;
+  assetLog?: { at: string; by: string; action: "incluido" | "editado" | "retirado" | "confirmado"; patrimony: string; detail: string }[];
 }
 
 const prefixes = ["Mercearia", "Padaria", "Lanchonete", "Bar", "Supermercado", "Mercadinho", "Sorveteria", "Restaurante", "Empório", "Conveniência", "Açaiteria", "Distribuidora"];
@@ -199,7 +219,7 @@ for (const s of SELLERS) {
         const t = pick(ASSET_TYPES);
         const a: Asset = {
           id: `a${++assetSeq}`, patrimony: String(assetSeq).padStart(6, "0"), type: t.type, model: t.model,
-          voltage: t.voltage, liters: t.liters, valueCents: t.valueCents, status: "installed", customerId: id,
+          brand: t.brand, format: t.format, voltage: t.voltage, liters: t.liters, valueCents: t.valueCents, status: "installed", customerId: id,
         };
         ASSETS.push(a);
         return a;
@@ -248,7 +268,7 @@ export { monthsBackOf };
 // estoque de freezers ainda não instalados
 for (let i = 0; i < 14; i++) {
   const t = pick(ASSET_TYPES);
-  ASSETS.push({ id: `a${++assetSeq}`, patrimony: String(assetSeq).padStart(6, "0"), type: t.type, model: t.model, voltage: t.voltage, liters: t.liters, valueCents: t.valueCents, status: i < 3 ? "maintenance" : "stock", customerId: null });
+  ASSETS.push({ id: `a${++assetSeq}`, patrimony: String(assetSeq).padStart(6, "0"), type: t.type, model: t.model, brand: t.brand, format: t.format, voltage: t.voltage, liters: t.liters, valueCents: t.valueCents, status: i < 3 ? "maintenance" : "stock", customerId: null });
 }
 
 export const customerById = new Map(CUSTOMERS.map((c) => [c.id, c]));

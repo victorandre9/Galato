@@ -428,3 +428,7 @@ select.input { border-radius: 16px; }
 .split-2 { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin-top: 14px; }
 .split-2 > .card { min-width: 0; }
 @media (max-width: 900px) { .split-2 { grid-template-columns: 1fr; } .split-2 .hide-mobile { display: none; } }
+
+/* menu de baixo travado: sem "puxar" a página no iPhone/Android (o menu não sobe junto) */
+html, body { overscroll-behavior: none; }
+.bottom-nav { transform: translateZ(0); -webkit-transform: translateZ(0); will-change: transform; }

@@ -20,6 +20,8 @@ import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle,
 import { DeliveryListSheet } from "./Manager";
 import { fmtDate, fmtDateTime, CustomerName } from "../components/business";
 import { OrderOpen } from "../components/order-flow";
+import { ProofView } from "../components/details";
+import { CustomerHistory } from "./Reports";
 
 // =================================================================== TRANSPORTES
 export function TransportApp() {
@@ -130,30 +132,32 @@ function RoutesTable({ onOpen }: { onOpen: (r: DeliveryRoute) => void }) {
 
 export function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => void }) {
   const [zoom, setZoom] = useState<string | null>(null);
+  const [cust, setCust] = useState<string | null>(null);
   const p = routeProgress(r);
+  const toTable = () => scrollToId(`route-table-${r.id}`);
   const driver = DRIVERS.find((d) => d.id === r.driverId)!;
   const vehicle = VEHICLES.find((v) => v.id === r.vehicleId)!;
   return (
     <Sheet title={`${r.code} · ${r.name}`} onClose={onClose} wide icon={<Route size={18} />}>
       <div className="grid g2 gd-4">
-        <Kpi label="Motorista" value={<span style={{ fontSize: 15 }}>{driver.name}</span>} />
-        <Kpi label="Veículo" value={<span style={{ fontSize: 15 }}>{vehicle.plate}</span>} foot={vehicle.model} />
-        <Kpi label="Entregues" tone="success" value={`${p.delivered}/${p.total}`} foot={pct(p.pct)} />
-        <Kpi label="Início" tone="gold" value={<span style={{ fontSize: 15 }}>{r.startedAt ? new Date(r.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone }) : "não iniciou"}</span>} />
+        <Kpi label="Motorista" onClick={toTable} value={<span style={{ fontSize: 15 }}>{driver.name}</span>} foot={driver.phone} />
+        <Kpi label="Veículo" onClick={() => scrollToId(`route-check-${r.id}`)} value={<span style={{ fontSize: 15 }}>{vehicle.plate}</span>} foot={vehicle.model} />
+        <Kpi label="Entregues" tone="success" onClick={toTable} value={`${p.delivered}/${p.total}`} foot={pct(p.pct)} />
+        <Kpi label="Início" tone="gold" onClick={toTable} value={<span style={{ fontSize: 15 }}>{r.startedAt ? new Date(r.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone }) : "não iniciou"}</span>} />
       </div>
-      <ChecklistSummary r={r} />
-      <Card>
+      <div id={`route-check-${r.id}`}><ChecklistSummary r={r} /></div>
+      <Card id={`route-table-${r.id}`} sub="toque na entrega para ver o cliente">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Cliente</th><th>Nota</th><th className="r">Vol.</th><th>Status</th><th>Detalhe</th></tr></thead>
             <tbody>
               {r.deliveries.map((d) => (
-                <tr key={d.id}>
+                <tr key={d.id} className="click" onClick={() => setCust(d.customerId)}>
                   <td>{d.seq}</td><td><CustomerName id={d.customerId} /></td><td>{d.invoiceNumber}</td><td className="r">{d.volumes}</td>
                   <td><Badge tone={DELIVERY_STATUS[d.status].tone}>{DELIVERY_STATUS[d.status].label}</Badge></td>
                   <td className="small">
                     {(() => { const pf = PROOFS.find((x) => x.deliveryId === d.id); return pf
-                      ? <a href={pf.dataUrl} target="_blank" rel="noreferrer" className="flex" onClick={(e) => { e.preventDefault(); setZoom(pf.dataUrl); }}><img className="proof-thumb" src={pf.dataUrl} alt="Comprovante" /> {pf.type}</a>
+                      ? <a href={pf.dataUrl} target="_blank" rel="noreferrer" className="flex" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setZoom(pf.dataUrl); }}><img className="proof-thumb" src={pf.dataUrl} alt="Comprovante" /> {pf.type}</a>
                       : d.nonDeliveryReason ?? (d.proofName ? `✓ ${d.proofName}` : ""); })()}
                   </td>
                 </tr>
@@ -163,6 +167,7 @@ export function RouteDetail({ r, onClose }: { r: DeliveryRoute; onClose: () => v
         </div>
       </Card>
       {zoom && <Sheet title="Comprovante de entrega" onClose={() => setZoom(null)}><div className="photo-preview"><img src={zoom} alt="Comprovante" /></div></Sheet>}
+      {cust && <CustomerHistory id={cust} onClose={() => setCust(null)} />}
     </Sheet>
   );
 }
@@ -267,7 +272,9 @@ function IssuesView() {
 }
 
 function FleetView() {
+  useStore();
   const log = logisticsOverview();
+  const [open, setOpen] = useState<DeliveryRoute | null>(null);
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Motoristas e veículos</h2>
@@ -277,7 +284,7 @@ function FleetView() {
             <thead><tr><th>Motorista</th><th>Veículo</th><th>Rota</th><th>Situação</th><th className="r">Entregas</th><th>NC abertas</th></tr></thead>
             <tbody>
               {log.routes.map(({ r, p, driver, vehicle }) => (
-                <tr key={r.id}>
+                <tr key={r.id} className="click" onClick={() => setOpen(r)}>
                   <td className="semi">{driver.name}</td><td>{vehicle.plate} · {vehicle.model}</td><td>{r.name}</td>
                   <td><Badge tone={r.startedAt ? "success" : "danger"}>{r.startedAt ? "Em operação" : "Não iniciou"}</Badge></td>
                   <td className="r">{p.delivered}/{p.total}</td>
@@ -288,6 +295,7 @@ function FleetView() {
           </table>
         </div>
       </Card>
+      {open && <RouteDetail r={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -413,19 +421,22 @@ function AnalyzeSheet({ p: view, onClose }: { p: PaymentRequest; onClose: () => 
 }
 
 function FinanceHistory() {
+  useStore();
+  const [open, setOpen] = useState<(typeof PAYMENT_REQUESTS)[number] | null>(null);
   const done = PAYMENT_REQUESTS.filter((p) => !["pending", "in_analysis"].includes(p.status));
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Histórico de solicitações</h2>
       <Card>
         {done.map((p) => (
-          <div key={p.id} className="row">
+          <div key={p.id} className="row click" onClick={() => setOpen(p)}>
             <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
             <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{p.number} · {sellerById.get(p.sellerId)?.name}</div></div>
             <Badge tone={PAYMENT_REQUEST_STATUS[p.status].tone}>{PAYMENT_REQUEST_STATUS[p.status].label}</Badge>
           </div>
         ))}
       </Card>
+      {open && <ProofView p={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -447,6 +458,8 @@ export function BillingApp() {
 }
 
 function BillingBoard() {
+  useStore();
+  const [openOrder, setOpenOrder] = useState<(typeof ORDERS)[number] | null>(null);
   const cols: { id: string; title: string; statuses: string[]; next?: [string, string] }[] = [
     { id: "todo", title: "Liberados pelo crédito · a faturar", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"], next: ["invoiced", "Faturar"] },
     { id: "done", title: "Faturados", statuses: ["invoiced"] },
@@ -465,7 +478,7 @@ function BillingBoard() {
             <Card key={col.id} id={`col-${col.id}`} title={`${col.title} (${list.length})`}>
               {list.slice(0, 10).map((o) => (
                 <div key={o.id} className="row" style={{ alignItems: "flex-start" }}>
-                  <div className="grow">
+                  <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}>
                     <div className="title small">{o.number} · <CustomerName id={o.customerId} /></div>
                     <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}</div>
                     {o.billingError && <div className="xs red semi" style={{ whiteSpace: "normal" }}>{o.billingError}</div>}
@@ -484,6 +497,7 @@ function BillingBoard() {
           );
         })}
       </div>
+      {openOrder && <OrderOpen order={openOrder} canEdit={false} onClose={() => setOpenOrder(null)} />}
     </>
   );
 }

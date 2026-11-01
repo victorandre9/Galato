@@ -3,7 +3,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
 import { setState, setTheme, useStore, toast } from "../data/store";
-import { TODAY } from "../data/mock";
+import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest } from "../data/mock";
+import { daysBetween } from "@galato/domain";
+import { CustomerSheet } from "./business";
+import { OrderOpen } from "./order-flow";
+import { ProofView, InfoSheet } from "./details";
+import { ClientList } from "../screens/Reports";
 import { dayLabel } from "../data/selectors";
 import { notificationsFor, viewerId } from "../data/notify";
 import { persistChanges, resetDemo } from "../data/sync";
@@ -154,8 +159,34 @@ export function ProfilePanel({ name, role, extra }: { name: string; role: string
   );
 }
 
+type NotifTarget = { kind: "order"; o: Order } | { kind: "proof"; p: PaymentRequest } | { kind: "customer"; c: Customer } | { kind: "clients"; title: string; list: Customer[] } | { kind: "text"; title: string; text: string };
+
+/** Descobre para onde a notificação leva (pedido, comprovante, cliente ou lista de clientes). */
+function targetOf(n: { title: string; text: string; to: string[] }): NotifTarget {
+  const t = `${n.title} ${n.text}`;
+  const num = t.match(/\b(PV|ORC)-\d+/)?.[0];
+  const o = num ? ORDERS.find((x) => x.number === num) : undefined;
+  if (o) return { kind: "order", o };
+  const sq = t.match(/\bSQ-\d+/)?.[0];
+  const p = sq ? PAYMENT_REQUESTS.find((x) => x.number === sq) : undefined;
+  if (p) return { kind: "proof", p };
+  if (/sem compra|sem comprar/i.test(t)) {
+    const sid = n.to.find((x) => x.startsWith("seller:"))?.slice(7);
+    const route = TODAY_ROUTE?.code;
+    const days = Number(t.match(/(\d+)\s*dias/)?.[1] ?? PARAMS.inactivity.idleAssetThresholdDays);
+    const list = CUSTOMERS.filter((c) => (!sid || c.sellerId === sid) && (!/rota/i.test(t) || !route || c.routeCode === route)
+      && (!c.lastPurchaseDate || daysBetween(c.lastPurchaseDate, TODAY) > days));
+    return { kind: "clients", title: n.title, list };
+  }
+  const c = [...CUSTOMERS].sort((a, b) => b.tradeName.length - a.tradeName.length).find((x) => t.includes(x.tradeName));
+  if (c) return { kind: "customer", c };
+  return { kind: "text", title: n.title, text: n.text };
+}
+
 function NotificationCenter({ onClose }: { onClose: () => void }) {
   const s = useStore();
+  const [target, setTarget] = useState<NotifTarget | null>(null);
+  const [cust, setCust] = useState<Customer | null>(null);
   const list = s.role ? notificationsFor(s.role) : [];
   const me = s.role ? viewerId(s.role) : "";
   const close = () => {
@@ -169,7 +200,7 @@ function NotificationCenter({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title={`Notificações (${list.filter((n) => !n.readBy.includes(me)).length} novas)`} onClose={close} icon={<Bell size={18} />}>
       {list.map((n) => (
-        <div key={n.id} className="row" style={{ alignItems: "flex-start", opacity: n.readBy.includes(me) ? 0.6 : 1 }}>
+        <div key={n.id} className="row click" onClick={() => { if (!n.readBy.includes(me)) { n.readBy.push(me); persistChanges(); } setTarget(targetOf(n)); }} style={{ alignItems: "flex-start", opacity: n.readBy.includes(me) ? 0.6 : 1 }}>
           <span className="dotc" style={{ width: 9, height: 9, borderRadius: 9, marginTop: 6, flexShrink: 0, background: n.readBy.includes(me) ? "transparent" : n.priority === "high" ? "var(--danger)" : "var(--gold)" }} />
           <div className="grow">
             <div className="flex between"><span className="semi">{n.title}</span><span className="xs muted">{new Date(n.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>
@@ -179,6 +210,16 @@ function NotificationCenter({ onClose }: { onClose: () => void }) {
         </div>
       ))}
       {!list.length && <Empty icon={<BellOff />} text="Nenhuma notificação." />}
+      {target?.kind === "order" && <OrderOpen order={target.o} canEdit={s.role === "seller"} onClose={() => setTarget(null)} />}
+      {target?.kind === "proof" && <ProofView p={target.p} onClose={() => setTarget(null)} />}
+      {target?.kind === "customer" && <CustomerSheet c={target.c} viewerSellerId={s.role === "seller" ? target.c.sellerId : undefined} onClose={() => setTarget(null)} />}
+      {target?.kind === "text" && <InfoSheet title={target.title} rows={[["Mensagem", target.text]]} onClose={() => setTarget(null)} />}
+      {target?.kind === "clients" && (
+        <Sheet title={`${target.title} (${target.list.length})`} onClose={() => setTarget(null)} wide>
+          <ClientList items={target.list.map((c) => ({ c, days: c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null }))} onOpen={(id) => setCust(customerById.get(id) ?? null)} />
+        </Sheet>
+      )}
+      {cust && <CustomerSheet c={cust} viewerSellerId={s.role === "seller" ? cust.sellerId : undefined} onClose={() => setCust(null)} />}
     </Sheet>
   );
 }

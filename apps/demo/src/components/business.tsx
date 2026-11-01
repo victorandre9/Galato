@@ -21,8 +21,9 @@ import { OrderOpen } from "./order-flow";
 import { FirstVisitSheet, FreezerManager } from "./freezers";
 import { FreezerOccurrenceSheet, OccurrenceDetail, OccurrenceRow } from "./freezer-occurrences";
 import { CheckoutSheet, CheckinVideo } from "./checkout";
+import { ProofView, BoletoView, AssetView } from "./details";
 import { Video } from "lucide-react";
-import type { Checkin } from "../data/mock";
+import type { Checkin, PaymentRequest, Receivable, Asset } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
 
@@ -123,6 +124,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const requests = PAYMENT_REQUESTS.filter((p) => p.customerId === c.id);
   const checkinsOfCustomer = CHECKINS.filter((k) => k.customerId === c.id);
   const [openOrder, setOpenOrder] = useState<Order | null>(null);
+  const [detail, setDetail] = useState<{ kind: "proof"; p: PaymentRequest } | { kind: "boleto"; x: Receivable } | { kind: "asset"; a: Asset } | null>(null);
   const [openOcc, setOpenOcc] = useState<FreezerOccurrence | null>(null);
   const custOccs = FREEZER_OCCURRENCES.filter((o) => o.customerId === c.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
@@ -168,7 +170,10 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
     );
   }
 
-  if (openOrder) return <OrderOpen order={openOrder} canEdit={!!viewerSellerId && viewerSellerId === openOrder.sellerId} onClose={() => setOpenOrder(null)} />;
+  if (detail?.kind === "proof") return <ProofView p={detail.p} onClose={() => setDetail(null)} />;
+  if (detail?.kind === "boleto") return <BoletoView c={c} x={detail.x} onClose={() => setDetail(null)} />;
+  if (detail?.kind === "asset") return <AssetView c={c} a={detail.a} onClose={() => setDetail(null)} />;
+ if (openOrder) return <OrderOpen order={openOrder} canEdit={!!viewerSellerId && viewerSellerId === openOrder.sellerId} onClose={() => setOpenOrder(null)} />;
   if (mode === "order" || mode === "quote")
     return <OrderBuilder c={c} kind={mode === "order" ? "ORDER" : "QUOTE"} onClose={() => setMode(null)} onDone={onClose} />;
   if (mode === "proof") return <PaymentProofSheet c={c} onClose={() => setMode(null)} />;
@@ -252,7 +257,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             )}
             {(requests.length > 0 || checkinsOfCustomer.length > 0) && <div className="divider" />}
             {requests.map((p) => (
-              <div key={p.id} className="row">
+              <div key={p.id} className="row click" onClick={() => setDetail({ kind: "proof", p })}>
                 <Receipt size={16} className="muted" />
                 <div className="grow"><div className="title small">Comprovante {p.method} · {p.number}</div><div className="sub">{fmtDateTime(p.createdAt)}</div></div>
                 <Badge tone={PAYMENT_REQUEST_STATUS[p.status].tone}>{PAYMENT_REQUEST_STATUS[p.status].label}</Badge>
@@ -278,7 +283,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             </dl>
             <div className="divider" />
             {c.receivables.filter((x) => x.openCents > 0).map((x) => (
-              <div key={x.id} className="row">
+              <div key={x.id} className="row click" onClick={() => setDetail({ kind: "boleto", x })}>
                 <div className="grow"><div className="title small">{x.doc}</div><div className="sub">vence {fmtDate(x.dueDate)}</div></div>
                 <div className="end"><div className="num semi">{brl(x.openCents)}</div>{x.dueDate < TODAY ? <Badge tone="danger">Vencido</Badge> : <Badge tone="info">A vencer</Badge>}</div>
               </div>
@@ -288,7 +293,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
 
           <Card title={`Freezers (${c.assets.length})`} icon={<Snowflake size={17} />} link="Gerenciar" onLink={() => setMode("freezers")}>
             {c.assets.map((a) => (
-              <div key={a.id} className="row">
+              <div key={a.id} className="row click" onClick={() => setDetail({ kind: "asset", a })}>
                 <QrCode size={26} className="muted" />
                 <div className="grow"><div className="title small">Patrimônio {a.patrimony}</div><div className="sub"><span className={`fmt-tag ${a.format ?? (/vertical/i.test(a.type) ? "vertical" : "horizontal")}`}>{(a.format ?? (/vertical/i.test(a.type) ? "vertical" : "horizontal")) === "vertical" ? "Vertical" : "Horizontal"}</span> {a.brand ?? "Gelopar"} · {a.liters} L · {a.voltage}{a.model ? ` · ${a.model}` : ""}</div></div>
                 <div className="end num small">{brl(a.valueCents)}</div>

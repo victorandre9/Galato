@@ -17,6 +17,7 @@ import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
 import { Card, Sheet, ConfirmModal, Badge, Progress, Ring, Chip, pct, Stepper } from "../components/ui";
 import { fmtDate } from "../components/business";
+import { InfoSheet } from "../components/details";
 
 const myRoute = () => DELIVERY_ROUTES.find((r) => r.driverId === ME.id)!;
 
@@ -342,12 +343,15 @@ function EpiSheet({ onClose }: { onClose: () => void }) {
 }
 
 function DriverHistory() {
+  useStore();
+  const [info, setInfo] = useState<{ title: string; rows: [string, React.ReactNode][] } | null>(null);
   return (
     <>
+      {info && <InfoSheet title={info.title} rows={info.rows} onClose={() => setInfo(null)} />}
       <h2 style={{ margin: "6px 0 12px" }}>Histórico operacional</h2>
       <Card title="Dias anteriores">
         {DRIVER_HISTORY.map((h) => (
-          <div key={h.date} className="row">
+          <div key={h.date} className="row click" onClick={() => setInfo({ title: `${dayLabel(h.date)} · ${h.route}`, rows: [["Rota", h.route], ["Checklist", h.checklist], ["Entregues", h.delivered], ["Não entregues", h.notDelivered], ["Ocorrências", h.incidents]] })}>
             <div className="grow"><div className="title">{dayLabel(h.date)} · {h.route}</div><div className="sub">Checklist {h.checklist} · {h.incidents} ocorrência(s)</div></div>
             <div className="end"><div className="semi green">{h.delivered} entregues</div>{h.notDelivered > 0 && <div className="xs red">{h.notDelivered} não entregue</div>}</div>
           </div>
@@ -355,13 +359,13 @@ function DriverHistory() {
       </Card>
       <Card title="Ocorrências e não conformidades" className="mt">
         {[...INCIDENTS.filter((i) => i.driverId === ME.id), ...NONCONFORMITIES.filter((n) => n.driverId === ME.id)].map((x) => (
-          <div key={x.id} className="row"><div className="grow"><div className="title small">{"type" in x ? x.type : `NC · ${x.item}`}</div><div className="sub">{x.description}</div></div><Badge tone="warning">{x.status === "open" ? "Aberta" : "Em tratamento"}</Badge></div>
+          <div key={x.id} className="row click" onClick={() => setInfo({ title: "type" in x ? x.type : `NC · ${x.item}`, rows: [["Descrição", x.description], ["Situação", x.status === "open" ? "Aberta" : "Em tratamento"]] })}><div className="grow"><div className="title small">{"type" in x ? x.type : `NC · ${x.item}`}</div><div className="sub">{x.description}</div></div><Badge tone="warning">{x.status === "open" ? "Aberta" : "Em tratamento"}</Badge></div>
         ))}
         {![...INCIDENTS, ...NONCONFORMITIES].some((x) => x.driverId === ME.id) && <div className="small muted">Nenhum registro.</div>}
       </Card>
       <Card title="Solicitações de EPI" className="mt">
         {EPI_REQUESTS.filter((e) => e.driverId === ME.id).map((e) => (
-          <div key={e.id} className="row"><span className="grow small semi">{e.type} · {e.qty} un.</span><Badge tone={EPI_STATUS[e.status as keyof typeof EPI_STATUS].tone}>{EPI_STATUS[e.status as keyof typeof EPI_STATUS].label}</Badge></div>
+          <div key={e.id} className="row click" onClick={() => setInfo({ title: `EPI · ${e.type}`, rows: [["Quantidade", `${e.qty} un.`], ["Motivo", e.reason], ["Pedido em", fmtDate(e.createdAt.slice(0, 10))], ["Situação", EPI_STATUS[e.status as keyof typeof EPI_STATUS].label]] })}><span className="grow small semi">{e.type} · {e.qty} un.</span><Badge tone={EPI_STATUS[e.status as keyof typeof EPI_STATUS].tone}>{EPI_STATUS[e.status as keyof typeof EPI_STATUS].label}</Badge></div>
         ))}
       </Card>
     </>

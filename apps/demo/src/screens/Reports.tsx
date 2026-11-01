@@ -227,6 +227,8 @@ export function ReportsView({ scope }: { scope: string[] }) {
   const [sortBy, setSortBy] = useState<"pct" | "value">("pct");
   const [period, setPeriod] = useState<"month" | "day">("month");
   const [open, setOpen] = useState<string | null>(null);
+  const [curveOpen, setCurveOpen] = useState<string | null>(null);
+  const [curveCust, setCurveCust] = useState<string | null>(null);
   const [rank, setRank] = useState(false);
   const g = teamGoal(scope);
   const daily = useMemo(() => teamDaily(scope), [scope.join(",")]);
@@ -316,7 +318,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
         </Card>
         <Card title="Carteira por curva ABCD" icon={<PieChart size={17} />} sub="média mensal de compra">
           {curve.map((c) => (
-            <div key={c.c} className="row">
+            <div key={c.c} className="row click" onClick={() => setCurveOpen(c.c)}>
               <Curve c={c.c} />
               <div className="grow">
                 <div className="flex between small"><span>{c.n} clientes</span><b className="num">{brl0(c.value)}</b></div>
@@ -331,6 +333,12 @@ export function ReportsView({ scope }: { scope: string[] }) {
       <p className="xs muted mt">Pedidos no período: {orders.length} registrados no sistema de demonstração. Dados fictícios.</p>
       {open && <SellerPanel id={open} onClose={() => setOpen(null)} />}
       {rank && <RankingSheet scope={scope} onClose={() => setRank(false)} />}
+      {curveOpen && (
+        <Sheet title={`Clientes curva ${curveOpen}`} onClose={() => setCurveOpen(null)} wide icon={<PieChart size={18} />}>
+          <ClientList items={CUSTOMERS.filter((x) => scope.includes(x.sellerId) && x.abcd === curveOpen).map((c) => ({ c, days: c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null }))} onOpen={setCurveCust} />
+        </Sheet>
+      )}
+      {curveCust && <CustomerHistory id={curveCust} onClose={() => setCurveCust(null)} />}
     </>
   );
 }
@@ -354,23 +362,23 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
   return (
     <Sheet title={`${s.name} · vendeu ${pct(g.monthAttainmentPct)} da meta`} onClose={onClose} wide icon={<Users size={18} />}>
       <div className="grid g2 gd-4">
-        <Kpi label="Meta do mês" value={brl0(g.monthlyGoalCents)} foot={s.region} />
-        <Kpi label="Vendido no mês" tone="gold" value={brl0(g.achievedMonthCents)}>
+        <Kpi label="Meta do mês" value={brl0(g.monthlyGoalCents)} foot={`${s.region} · ver 12 meses`} onClick={() => scrollToId(`sp-year-${id}`)} />
+        <Kpi label="Vendido no mês" tone="gold" value={brl0(g.achievedMonthCents)} onClick={() => scrollToId(`sp-orders-${id}`)}>
           <div className="progress-row"><Progress value={g.monthAttainmentPct} /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
         </Kpi>
-        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)}
+        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} onClick={() => scrollToId(`sp-daily-${id}`)}
           foot={g.remainingBusinessDays > 0
             ? `${brl0(g.requiredPerRemainingDayCents)}/dia × ${g.remainingBusinessDays} dia${g.remainingBusinessDays === 1 ? "" : "s"} út${g.remainingBusinessDays === 1 ? "il" : "eis"} = ${brl0(g.requiredPerRemainingDayCents * g.remainingBusinessDays)}`
             : "sem dias úteis restantes no mês"} />
         <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido · toque p/ ver clientes`} onClick={() => setBuyersOpen(true)} />
       </div>
-      <Card title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} /></Card>
-      <Card title="Vendas x meta · últimos 12 meses" className="mt" sub="evolução e sazonalidade">
+      <Card id={`sp-daily-${id}`} title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} /></Card>
+      <Card id={`sp-year-${id}`} title="Vendas x meta · últimos 12 meses" className="mt" sub="evolução e sazonalidade">
         <YearChart data={sellerYear(id)} />
         <YearSummary data={sellerYear(id)} />
       </Card>
 
-      <Card title={`Pedidos do mês (${orders.length})`} icon={<FileText size={17} />} className="mt" sub={`total ${brl0(ordersTotal)} · toque para ver os itens`}>
+      <Card id={`sp-orders-${id}`} title={`Pedidos do mês (${orders.length})`} icon={<FileText size={17} />} className="mt" sub={`total ${brl0(ordersTotal)} · toque para ver os itens`}>
         <div className="only-mobile order-cards">
           {orders.map((o) => <OrderBalloon key={o.id} o={o} onClick={() => setOrder(o)} />)}
         </div>

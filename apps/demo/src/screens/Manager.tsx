@@ -4,15 +4,16 @@ import {
   LayoutDashboard, TrendingUp, MapPin, UserX, Truck, Wallet, Snowflake, Briefcase, MoreHorizontal, Crown, Target,
   BarChart3, AlertTriangle, Trophy, Receipt, ClipboardList, Clock, ArrowRightLeft, CalendarRange, Check, X as XIcon,
 } from "lucide-react";
-import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/domain";
+import { bucketLabel, PAYMENT_REQUEST_STATUS, daysBetween, type AbcdClass } from "@galato/domain";
 import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
 import { notify } from "../data/notify";
-import { ReportsView, RankingSheet, SellerPanel } from "./Reports";
+import { ReportsView, RankingSheet, SellerPanel, ClientList } from "./Reports";
 import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occurrences";
 import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
 import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
+import { ProofView } from "../components/details";
 import { CheckinVideo } from "../components/checkout";
 import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
@@ -100,6 +101,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
   const [drill, setDrill] = useState<null | "visits" | "deliveries">(null);
   const [rankOpen, setRankOpen] = useState(false);
   const [routeOpen, setRouteOpen] = useState<DeliveryRoute | null>(null);
+  const [proofOpen, setProofOpen] = useState<PaymentRequest | null>(null);
   const [pipe, setPipe] = useState<string | null>(null);
   const [sellerOpen, setSellerOpen] = useState<string | null>(null);
   const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
@@ -181,7 +183,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
           </div>
           <div className="list">
             {fq.queue.slice(0, 3).map((p) => (
-              <div key={p.id} className="row">
+              <div key={p.id} className="row click" onClick={(e) => { e.stopPropagation(); setProofOpen(p); }}>
                 <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
                 <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{sellerById.get(p.sellerId)?.name}</div></div>
                 <Badge tone={p.sla.level === "breached" ? "danger" : p.sla.level === "warning" ? "warning" : "neutral"}>{Math.floor(p.sla.elapsedHours)}h</Badge>
@@ -224,6 +226,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
       </div>
 
       {routeOpen && <RouteDetail r={routeOpen} onClose={() => setRouteOpen(null)} />}
+      {proofOpen && <ProofView p={proofOpen} onClose={() => setProofOpen(null)} />}
       {pipe && <PipelineSheet title={pipe} scope={scope} onClose={() => setPipe(null)} />}
       {rankOpen && <RankingSheet scope={scope} initial={rankMode} onClose={() => setRankOpen(false)} />}
       {sellerOpen && <SellerPanel id={sellerOpen} onClose={() => setSellerOpen(null)} />}
@@ -303,13 +306,15 @@ function SalesView({ scope }: { scope: string[] }) {
 
 function VisitsTable({ scope }: { scope: string[] }) {
   const rows = visitsRanking().filter((r) => scope.includes(r.id));
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <div className="table-wrap">
+      {open && <SellerPanel id={open} onClose={() => setOpen(null)} />}
       <table className="t">
         <thead><tr><th>#</th><th>Vendedor</th><th className="r">Planejadas</th><th className="r">Realizadas</th><th>%</th><th className="r">Pendentes</th></tr></thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} className="click" onClick={() => setOpen(r.id)}>
               <td><span className={`pos p${r.position}`}>{r.position}º</span></td>
               <td className="semi">{r.name}</td><td className="r">{r.target}</td><td className="r">{r.achieved}</td>
               <td style={{ minWidth: 140 }}><div className="progress-row"><Progress value={r.attainmentPct ?? 0} color="green" /><b className="xs num">{pct(r.attainmentPct ?? 0)}</b></div></td>
@@ -485,6 +490,7 @@ function FinanceView() {
 }
 
 function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) => void }) {
+  const [bySeller, setBySeller] = useState<string | null>(null);
   const a = assetsOverview(scope);
   return (
     <>
@@ -498,7 +504,7 @@ function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) 
       <div className="grid gd gd-12">
         <Card id="ativos-vendedor" title="Por vendedor">
           {a.bySeller.filter((x) => scope.includes(x.seller.id)).map((x) => (
-            <div key={x.seller.id} className="row"><span className="grow semi">{x.seller.name}</span><span className="muted small">{x.count} un.</span><span className="num semi">{brl0(x.value)}</span></div>
+            <div key={x.seller.id} className="row click" onClick={() => setBySeller(x.seller.id)}><span className="grow semi">{x.seller.name}</span><span className="muted small">{x.count} un.</span><span className="num semi">{brl0(x.value)}</span></div>
           ))}
         </Card>
         <Card id="ativos-sem-giro" title="Ativos sem giro" icon={<AlertTriangle size={17} />}>
@@ -518,6 +524,12 @@ function AssetsView({ scope, onOpen }: { scope: string[]; onOpen: (c: Customer) 
           </div>
         </Card>
       </div>
+      {bySeller && (
+        <Sheet title={`Freezers · ${sellerById.get(bySeller)?.name}`} onClose={() => setBySeller(null)} wide icon={<Snowflake size={18} />}>
+          <ClientList items={CUSTOMERS.filter((c) => c.sellerId === bySeller && c.assets.length > 0).map((c) => ({ c, days: c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null }))}
+            onOpen={(id) => { setBySeller(null); onOpen(customerById.get(id)!); }} />
+        </Sheet>
+      )}
     </>
   );
 }
@@ -727,28 +739,6 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
   );
 }
 
-function ProofView({ p, onClose }: { p: PaymentRequest; onClose: () => void }) {
-  const c = customerById.get(p.customerId)!;
-  const st = PAYMENT_REQUEST_STATUS[p.status];
-  return (
-    <Sheet title={`Comprovante ${p.number}`} onClose={onClose} icon={<Receipt size={18} />}>
-      <Card>
-        <dl className="kv">
-          <dt>Cliente</dt><dd>{c.code} · {c.tradeName}</dd><dt>Vendedor</dt><dd>{sellerById.get(p.sellerId)?.name}</dd>
-          <dt>Método</dt><dd>{p.method}</dd><dt>Débito</dt><dd>{p.receivableDoc}</dd><dt>Valor</dt><dd className="num">{brl(p.amountCents)}</dd>
-          <dt>Enviado</dt><dd>{new Date(p.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</dd>
-          <dt>Situação</dt><dd><Badge tone={st.tone}>{st.label}</Badge></dd>
-        </dl>
-      </Card>
-      <div className="mt">
-        {p.attachmentDataUrl ? <div className="photo-preview"><img src={p.attachmentDataUrl} alt="Comprovante" /></div>
-          : <div className="upload done" style={{ padding: 24 }}>📎 {p.attachmentName}</div>}
-      </div>
-      <p className="xs muted mt">A gestão acompanha; a resposta é do financeiro.</p>
-    </Sheet>
-  );
-}
-
 function CheckinsCard({ scope }: { scope: string[] }) {
   useStore();
   const list = CHECKINS.filter((k) => k.date === TODAY && scope.includes(k.sellerId));
@@ -772,6 +762,7 @@ function CheckinsCard({ scope }: { scope: string[] }) {
 
 function ChecklistsCard() {
   useStore();
+  const [open, setOpen] = useState<DeliveryRoute | null>(null);
   const ncs = NONCONFORMITIES.filter((n) => n.status !== "resolved");
   return (
     <Card title="Checklists dos veículos e não conformidades" icon={<ClipboardList size={17} />} className="mt">
@@ -783,7 +774,7 @@ function ChecklistsCard() {
               const v = VEHICLES.find((x) => x.id === (r.checklistVehicleId ?? r.vehicleId))!;
               const mine = ncs.filter((n) => n.vehicleId === v.id);
               return (
-                <tr key={r.id}>
+                <tr key={r.id} className="click" onClick={() => setOpen(r)}>
                   <td className="semi">{r.name}</td><td>{DRIVERS.find((d) => d.id === r.driverId)?.name}</td><td>{v.plate}</td>
                   <td>{r.checklistDone ? <Badge tone="success">Feito {r.checklistAt ? new Date(r.checklistAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : ""}</Badge> : r.startedAt ? <Badge tone="neutral">Antes do app</Badge> : <Badge tone="danger">Pendente</Badge>}</td>
                   <td style={{ whiteSpace: "normal" }}>{mine.length ? mine.map((n) => <Badge key={n.id} tone={n.severity === "critical" ? "danger" : "warning"}>{n.item}</Badge>) : <span className="muted small">—</span>}</td>
@@ -793,6 +784,7 @@ function ChecklistsCard() {
           </tbody>
         </table>
       </div>
+      {open && <RouteDetail r={open} onClose={() => setOpen(null)} />}
     </Card>
   );
 }

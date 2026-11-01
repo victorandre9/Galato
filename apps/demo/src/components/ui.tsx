@@ -104,6 +104,24 @@ export function Chip({ on, children, onClick }: { on?: boolean; children: ReactN
 }
 
 let openSheets = 0;
+/** Trava a página de trás (inclusive no iPhone, que ignora overflow:hidden) e devolve a posição ao fechar. */
+let locks = 0, savedY = 0;
+function lockScroll() {
+  if (locks++ > 0) return;
+  savedY = window.scrollY;
+  const b = document.body.style;
+  b.position = "fixed"; b.top = `-${savedY}px`; b.left = "0"; b.right = "0"; b.width = "100%"; b.overflow = "hidden";
+  document.documentElement.classList.add("scroll-locked");
+}
+function unlockScroll() {
+  if (--locks > 0) return;
+  locks = 0;
+  const b = document.body.style;
+  b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = ""; b.overflow = "";
+  document.documentElement.classList.remove("scroll-locked");
+  window.scrollTo(0, savedY);
+}
+function useScrollLock() { useEffect(() => { lockScroll(); return unlockScroll; }, []); }
 /** Fecha pela tecla/gesto "voltar" do aparelho. */
 function useBackClose(onClose: () => void) {
   const ref = useRef(onClose); ref.current = onClose;
@@ -112,13 +130,13 @@ function useBackClose(onClose: () => void) {
 
 export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; icon?: ReactNode }) {
   useBackClose(onClose);
+  useScrollLock();
   useEffect(() => {
     // só a folha de cima fecha com Esc; trava a rolagem enquanto houver alguma aberta
     const depth = ++openSheets;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape" && depth === openSheets) onClose(); };
     window.addEventListener("keydown", h);
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", h); if (--openSheets === 0) document.body.style.overflow = ""; };
+    return () => { window.removeEventListener("keydown", h); --openSheets; };
   }, [onClose]);
   // sempre sobre a tela inteira (mesmo quando aberta de dentro de outra janela)
   return createPortal(
@@ -143,6 +161,7 @@ export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, da
   danger?: boolean; children?: ReactNode; disabled?: boolean;
 }) {
   useBackClose(onClose);
+  useScrollLock();
   return createPortal(
     <div className="overlay center" onClick={onClose}>
       <div className="sheet modal" onClick={(e) => e.stopPropagation()} style={{ paddingTop: 20 }}>

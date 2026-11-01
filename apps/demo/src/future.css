@@ -445,3 +445,7 @@ html, body { overscroll-behavior: none; }
 html.ent .statusbar-shield { background: #F8FAFC; }
 .kb-open .bottom-nav { display: none; }
 .theme-top { width: 100%; max-width: 520px; display: flex; justify-content: center; margin: 6px 0 10px; } .theme-top .chips { justify-content: center; }
+/* janelas: só a janela rola, o fundo fica parado */
+.overlay { overscroll-behavior: contain; touch-action: none; }
+.sheet { overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.sheet .table-wrap, .sheet .chips { touch-action: pan-x pan-y; }

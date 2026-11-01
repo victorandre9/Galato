@@ -456,3 +456,13 @@ html.ent .toasts { top: calc(12px + env(safe-area-inset-top)); }
 html.ent .sheet { max-height: calc(100vh - env(safe-area-inset-top) - 24px); max-height: calc(100dvh - env(safe-area-inset-top) - 24px); }
 @media (max-width: 520px) { html.ent .ent-top { padding-top: calc(12px + env(safe-area-inset-top)); } }
 html.ent .ent-hero p.lead { text-align: left; margin-left: 0; }
+
+/* ---------------------------------------------------------------- topo da entrada igual aos outros modelos */
+.ent-head { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(16px + env(safe-area-inset-top)) 16px 4px; position: relative; }
+.ent-head .ent-tools { align-self: flex-end; margin: 0; }
+.ent-head .logo-big { width: 150px; filter: none; }
+html.ent .ent-head .ent-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; color: var(--text); margin: 4px 0 0; text-align: center; }
+.ent-head .ent-demo { margin: 0; }
+html.ent .ent-hero h1 { font-size: 22px; }
+@media (min-width: 768px) { html.ent .ent-hero h1 { font-size: 28px; } }
+html.ent .app-header .logo { height: 46px; }

@@ -101,16 +101,15 @@ function LoginEnterprise() {
   const enter = (role: Role) => { setState({ role }); window.scrollTo({ top: 0 }); };
   return (
     <div className="login ent-login">
-      <header className="ent-top">
-        <img className="ent-logo" src="./galato-logo.png" alt="Galato Sorvetes" />
-        <div className="ent-brand"><b>Galato Gestão</b><span>Plataforma integrada de operações</span></div>
-        <span className="ent-demo"><FlaskConical size={15} /> Ambiente de demonstração</span>
+      <div className="ent-head">
         <div className="ent-tools">
           <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={17} /></button>
           <button className="icon-btn" onClick={() => toggleDark(s.theme)} aria-label="Modo escuro" title="Modo escuro"><Moon size={17} /></button>
         </div>
-      </header>
-      <div className="ent-ribbon" aria-hidden="true" />
+        <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
+        <h1 className="ent-title">Plataforma Galato</h1>
+        <span className="ent-demo"><FlaskConical size={15} /> Ambiente de demonstração</span>
+      </div>
       <main className="ent-body">
         <div className="ent-hero">
           <h1>Acesse seu ambiente de trabalho</h1>

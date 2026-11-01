@@ -1,7 +1,7 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
-import { Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
+import { Palette, Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
 import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, type Theme } from "../data/store";
 import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest } from "../data/mock";
 import { daysBetween } from "@galato/domain";
@@ -252,6 +252,24 @@ export function ThemePicker() {
         <button key={t} role="radio" aria-checked={s.theme === t} className={`chip ${s.theme === t ? "on" : ""}`} onClick={() => setTheme(t)}>
           {t === "dark" ? <Moon size={13} /> : <Sun size={13} />} {THEME_LABEL[t]}
         </button>
+      ))}
+    </div>
+  );
+}
+
+/** Três botões pequenos de aparência para o topo: Empresarial · Clássico · Escuro. */
+export function ThemeSwitch() {
+  const s = useStore();
+  const opts: { t: Theme; icon: ReactNode; label: string }[] = [
+    { t: "light", icon: <Sun size={16} />, label: "Empresarial (claro)" },
+    { t: "classic", icon: <Palette size={16} />, label: "Clássico (claro anterior)" },
+    { t: "dark", icon: <Moon size={16} />, label: "Escuro" },
+  ];
+  return (
+    <div className="theme-switch" role="radiogroup" aria-label="Aparência">
+      {opts.map((o) => (
+        <button key={o.t} role="radio" aria-checked={s.theme === o.t} aria-label={o.label} title={o.label}
+          className={s.theme === o.t ? "on" : ""} onClick={() => setTheme(o.t)}>{o.icon}</button>
       ))}
     </div>
   );

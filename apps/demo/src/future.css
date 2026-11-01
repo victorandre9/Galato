@@ -449,3 +449,12 @@ html.ent .statusbar-shield { background: #F8FAFC; }
 .overlay { overscroll-behavior: contain; touch-action: none; }
 .sheet { overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .sheet .table-wrap, .sheet .chips { touch-action: pan-x pan-y; }
+/* aparência: três botões pequenos no topo */
+.theme-switch { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.theme-switch button { width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s; }
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button.on { background: var(--brand-soft); color: var(--brand); }
+[data-theme="dark"] .theme-switch { background: rgba(60, 8, 14, .7); border-color: var(--border); }
+[data-theme="dark"] .theme-switch button.on { background: rgba(255,194,51,.18); color: var(--gold); }
+html.ent .theme-switch { border-radius: 10px; box-shadow: var(--shadow-xs); }
+html.ent .theme-switch button { border-radius: 7px; }

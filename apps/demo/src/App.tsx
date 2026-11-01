@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Moon, Sun, Maximize, ChevronRight, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
-import { DemoDataPanel, toggleFullscreen, ThemePicker } from "./components/shell";
-import { setState, toggleDark, useStore } from "./data/store";
+import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Maximize, ChevronRight, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
+import { DemoDataPanel, toggleFullscreen, ThemeSwitch } from "./components/shell";
+import { setState, useStore } from "./data/store";
 import type { Role } from "./data/mock";
 import { TODAY } from "./data/mock";
 import { dayLabel } from "./data/selectors";
@@ -58,9 +58,8 @@ function Login() {
     <div className="login">
       <div style={{ alignSelf: "flex-end", display: "flex", gap: 8 }}>
         <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
-        <button className="icon-btn" onClick={() => toggleDark(s.theme)} aria-label="Tema">{s.theme !== "dark" ? <Moon size={18} /> : <Sun size={18} />}</button>
+        <ThemeSwitch />
       </div>
-      <div className="theme-top"><ThemePicker /></div>
       <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
       <h1>Plataforma Galato</h1>
       <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)} · Escolha um perfil.</p>
@@ -77,8 +76,7 @@ function Login() {
           </div>
         </div>
       ))}
-      <div className="card" style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><div className="card-title">Aparência</div><ThemePicker /></div>
-      <div style={{ width: "100%", maxWidth: 520, marginTop: 14 }}><DemoDataPanel /></div>
+      <div style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><DemoDataPanel /></div>
     </div>
   );
 }
@@ -104,7 +102,7 @@ function LoginEnterprise() {
       <div className="ent-head">
         <div className="ent-tools">
           <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={17} /></button>
-          <button className="icon-btn" onClick={() => toggleDark(s.theme)} aria-label="Modo escuro" title="Modo escuro"><Moon size={17} /></button>
+          <ThemeSwitch />
         </div>
         <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
         <h1 className="ent-title">Plataforma Galato</h1>
@@ -143,7 +141,6 @@ function LoginEnterprise() {
           ))}
         </div>
         <div className="ent-foot">
-          <div className="card"><div className="card-title">Aparência</div><ThemePicker /></div>
           <DemoDataPanel />
         </div>
       </main>

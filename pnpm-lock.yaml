@@ -24,6 +24,9 @@ importers:
       '@galato/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@neondatabase/serverless':
+        specifier: 1.2.0
+        version: 1.2.0
       lucide-react:
         specifier: 1.66.0
         version: 1.66.0(@types/react@19.3.0)(react@19.1.10)

@@ -71,24 +71,33 @@ export async function compressVideo(file: File, onProgress?: (p: number) => void
     const chunks: Blob[] = [];
     rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     const done = new Promise<void>((res) => { rec.onstop = () => res(); });
+    const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
     video.currentTime = 0;
-    await new Promise((r) => setTimeout(r, 50));
+    await wait(50);
     rec.start(250);
-    await video.play();
+    // play pode não responder em alguns aparelhos: segue mesmo assim após 3 s
+    await Promise.race([video.play().catch(() => {}), wait(3000)]);
     await new Promise<void>((res) => {
-      const draw = () => {
+      let finished = false, lastT = -1, stalledSince = Date.now();
+      const end = () => { if (!finished) { finished = true; clearInterval(timer); res(); } };
+      // relógio próprio (não depende da tela estar visível como requestAnimationFrame)
+      const timer = setInterval(() => {
         ctx.drawImage(video, 0, 0, w, h);
-        onProgress?.(Math.min(1, video.currentTime / duration));
-        if (video.ended || video.currentTime >= duration) { res(); return; }
-        requestAnimationFrame(draw);
-      };
-      video.onended = () => res();
-      draw();
+        const t = video.currentTime;
+        onProgress?.(Math.min(1, t / duration));
+        if (video.ended || t >= duration - 0.05) return end();
+        if (t !== lastT) { lastT = t; stalledSince = Date.now(); }
+        else if (Date.now() - stalledSince > 4000) { if (video.paused) video.play().catch(() => {}); if (Date.now() - stalledSince > 8000) end(); }
+      }, Math.round(1000 / VIDEO_LIMITS.fps));
+      video.onended = end;
     });
     video.pause();
+    try { rec.requestData(); } catch { /* ok */ }
     rec.stop();
-    await done;
+    // se o gravador não avisar que parou, usa o que já gravou
+    await Promise.race([done, wait(4000)]);
+    if (!chunks.length) throw new Error("Não foi possível reduzir este vídeo. Tente gravar de novo.");
     stream.getTracks().forEach((t) => t.stop());
     const blob = new Blob(chunks, { type: mime.split(";")[0] });
     onProgress?.(1);

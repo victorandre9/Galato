@@ -417,3 +417,14 @@ select.input { border-radius: 16px; }
 /* voltar */
 .sheet-head .sheet-back { flex: none; margin-left: -4px; }
 .app-header .back-btn { flex: none; }
+
+/* balão dos gráficos: nasce acima do gráfico, longe do dedo */
+.chart-tip { top: auto !important; bottom: calc(100% + 10px); }
+/* ordenar / filtrar listas */
+.sort-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.sort-bar > .xs { min-width: 46px; }
+.sort-bar .chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.input-sm { padding: 6px 10px; font-size: 13px; height: auto; width: auto; max-width: 100%; border-radius: 999px; }
+.split-2 { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; margin-top: 14px; }
+.split-2 > .card { min-width: 0; }
+@media (max-width: 900px) { .split-2 { grid-template-columns: 1fr; } .split-2 .hide-mobile { display: none; } }

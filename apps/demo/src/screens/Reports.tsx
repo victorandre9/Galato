@@ -347,6 +347,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
   const [bucket, setBucket] = useState<number | null>(null);
   const [order, setOrder] = useState<HistOrder | null>(null);
   const [cust, setCust] = useState<string | null>(null);
+  const [buyersOpen, setBuyersOpen] = useState(false);
   const buckets = PARAMS.inactivity.dashboardBuckets;
   const shown = noPurchase.filter((x) => bucket === null || inactivityBucket(x.days, buckets) === bucket);
   const ordersTotal = orders.reduce((a, o) => a + o.totalCents, 0);
@@ -357,8 +358,11 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
         <Kpi label="Vendido no mês" tone="gold" value={brl0(g.achievedMonthCents)}>
           <div className="progress-row"><Progress value={g.monthAttainmentPct} /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
         </Kpi>
-        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)} foot={`${brl0(g.requiredPerRemainingDayCents)} por dia útil · ${g.remainingBusinessDays} restante(s)`} />
-        <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido`} />
+        <Kpi label="Falta" tone="info" value={brl0(g.missingMonthCents)}
+          foot={g.remainingBusinessDays > 0
+            ? `${brl0(g.requiredPerRemainingDayCents)}/dia × ${g.remainingBusinessDays} dia${g.remainingBusinessDays === 1 ? "" : "s"} út${g.remainingBusinessDays === 1 ? "il" : "eis"} = ${brl0(g.requiredPerRemainingDayCents * g.remainingBusinessDays)}`
+            : "sem dias úteis restantes no mês"} />
+        <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido · toque p/ ver clientes`} onClick={() => setBuyersOpen(true)} />
       </div>
       <Card title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} /></Card>
       <Card title="Vendas x meta · últimos 12 meses" className="mt" sub="evolução e sazonalidade">
@@ -393,26 +397,94 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
           <Chip on={bucket === null} onClick={() => setBucket(null)}>Todos</Chip>
           {buckets.map((b) => <Chip key={b} on={bucket === b} onClick={() => setBucket(b)}>{bucketLabel(b, buckets)} ({noPurchase.filter((x) => inactivityBucket(x.days, buckets) === b).length})</Chip>)}
         </div>
-        <div className="table-wrap" style={{ maxHeight: 420, overflowY: "auto" }}>
-          <table className="t">
-            <thead><tr><th>Cliente</th><th>Curva</th><th>Rota</th><th>Última compra</th><th className="r">Dias sem compra</th><th className="r">Média mensal</th><th className="r">Freezers</th><th>Contato</th></tr></thead>
-            <tbody>
-              {shown.map(({ c, days }) => (
-                <tr key={c.id} className="click" onClick={() => setCust(c.id)}>
-                  <td><div className="semi">{c.tradeName}</div><div className="xs muted">{c.code} · {c.district}</div></td>
-                  <td><Curve c={c.abcd} /></td><td>{PARAMS.commercialRoutes.find((r) => r.code === c.routeCode)?.name}</td>
-                  <td>{fmtDate(c.lastPurchaseDate)}</td>
-                  <td className={`r bold num ${days === null || days >= 28 ? "red" : days >= 14 ? "gold" : ""}`}>{days ?? "nunca"}</td>
-                  <td className="r num">{brl0(c.avgMonthlyCents)}</td><td className="r">{c.assets.length}</td><td className="small">{c.whatsapp}</td>
-                </tr>
-              ))}
-              {!shown.length && <tr><td colSpan={8} className="muted">Nenhum cliente neste filtro.</td></tr>}
-            </tbody>
-          </table>
-        </div>
+        <ClientList items={shown} onOpen={setCust} />
       </Card>
       {order && <OrderDetail o={order} onClose={() => setOrder(null)} onCustomer={(cid) => { setOrder(null); setCust(cid); }} />}
+      {buyersOpen && <BuyersSheet sellerId={id} onClose={() => setBuyersOpen(false)} onOpen={setCust} />}
       {cust && <CustomerHistory id={cust} onClose={() => setCust(null)} />}
+    </Sheet>
+  );
+}
+
+// ---------------------------------------------------------------- lista de clientes com ordenação e filtros
+type ClientItem = { c: (typeof CUSTOMERS)[number]; days: number | null };
+const SORTS: { id: string; label: string; cmp: (a: ClientItem, b: ClientItem) => number }[] = [
+  { id: "days", label: "Dias sem compra", cmp: (a, b) => (b.days ?? 9999) - (a.days ?? 9999) },
+  { id: "curve", label: "Curva A→D", cmp: (a, b) => a.c.abcd.localeCompare(b.c.abcd) || (b.days ?? 9999) - (a.days ?? 9999) },
+  { id: "route", label: "Rota", cmp: (a, b) => a.c.routeCode.localeCompare(b.c.routeCode, "pt-BR", { numeric: true }) || a.c.tradeName.localeCompare(b.c.tradeName, "pt-BR") },
+  { id: "name", label: "Nome A→Z", cmp: (a, b) => a.c.tradeName.localeCompare(b.c.tradeName, "pt-BR") },
+  { id: "avg", label: "Maior média", cmp: (a, b) => b.c.avgMonthlyCents - a.c.avgMonthlyCents },
+];
+const routeName = (code: string) => PARAMS.commercialRoutes.find((r) => r.code === code)?.name ?? code;
+
+export function ClientList({ items, onOpen, showDays = true }: { items: ClientItem[]; onOpen: (id: string) => void; showDays?: boolean }) {
+  const [sort, setSort] = useState(showDays ? "days" : "name");
+  const [curve, setCurve] = useState<string | null>(null);
+  const [route, setRoute] = useState<string>("");
+  const routes = [...new Set(items.map((x) => x.c.routeCode))].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  const sorts = SORTS.filter((x) => showDays || x.id !== "days");
+  const cmp = (sorts.find((x) => x.id === sort) ?? sorts[0]!).cmp;
+  const list = items.filter((x) => (!curve || x.c.abcd === curve) && (!route || x.c.routeCode === route)).sort(cmp);
+  return (
+    <>
+      <div className="sort-bar">
+        <span className="xs muted semi">Ordenar</span>
+        <div className="chips">{sorts.map((x) => <Chip key={x.id} on={sort === x.id} onClick={() => setSort(x.id)}>{x.label}</Chip>)}</div>
+      </div>
+      <div className="sort-bar">
+        <span className="xs muted semi">Filtrar</span>
+        <div className="chips">
+          {["A", "B", "C", "D"].map((k) => <Chip key={k} on={curve === k} onClick={() => setCurve(curve === k ? null : k)}>Curva {k} ({items.filter((x) => x.c.abcd === k).length})</Chip>)}
+          <select className="input input-sm" value={route} onChange={(e) => setRoute(e.target.value)} aria-label="Rota">
+            <option value="">Todas as rotas</option>
+            {routes.map((r) => <option key={r} value={r}>{routeName(r)} ({items.filter((x) => x.c.routeCode === r).length})</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="xs muted mb">{list.length} cliente(s)</div>
+      <div className="table-wrap" style={{ maxHeight: 420, overflowY: "auto" }}>
+        <table className="t">
+          <thead><tr><th>Cliente</th><th>Curva</th><th>Rota</th><th>Última compra</th>{showDays && <th className="r">Dias sem compra</th>}<th className="r">Média mensal</th><th className="r">Freezers</th><th>Contato</th></tr></thead>
+          <tbody>
+            {list.map(({ c, days }) => (
+              <tr key={c.id} className="click" onClick={() => onOpen(c.id)}>
+                <td><div className="semi">{c.tradeName}</div><div className="xs muted">{c.code} · {c.district}</div></td>
+                <td><Curve c={c.abcd} /></td><td>{routeName(c.routeCode)}</td>
+                <td>{fmtDate(c.lastPurchaseDate)}</td>
+                {showDays && <td className={`r bold num ${days === null || days >= 28 ? "red" : days >= 14 ? "gold" : ""}`}>{days ?? "nunca"}</td>}
+                <td className="r num">{brl0(c.avgMonthlyCents)}</td><td className="r">{c.assets.length}</td><td className="small">{c.whatsapp}</td>
+              </tr>
+            ))}
+            {!list.length && <tr><td colSpan={8} className="muted">Nenhum cliente neste filtro.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/** Carteira do vendedor no mês: com compra de um lado, sem compra do outro. */
+function BuyersSheet({ sellerId, onClose, onOpen }: { sellerId: string; onClose: () => void; onOpen: (id: string) => void }) {
+  const without = new Set(customersWithoutPurchaseThisMonth(sellerId).map((c) => c.id));
+  const mine = CUSTOMERS.filter((c) => c.sellerId === sellerId);
+  const toItem = (c: (typeof CUSTOMERS)[number]): ClientItem => ({ c, days: c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null });
+  const withBuy = mine.filter((c) => !without.has(c.id)).map(toItem);
+  const noBuy = mine.filter((c) => without.has(c.id)).map(toItem);
+  const [side, setSide] = useState<"with" | "without">("with");
+  return (
+    <Sheet title={`Clientes no mês · ${sellerById.get(sellerId)?.name}`} onClose={onClose} wide icon={<Users size={18} />}>
+      <div className="grid g2">
+        <Kpi label="Com compra no mês" tone="success" value={withBuy.length} foot={`${pct(mine.length ? (withBuy.length / mine.length) * 100 : 0)} da carteira`} onClick={() => setSide("with")} />
+        <Kpi label="Sem compra no mês" tone="red" value={noBuy.length} foot="toque para ver" onClick={() => setSide("without")} />
+      </div>
+      <div className="split-2">
+        <Card title={`Com compra (${withBuy.length})`} className={side === "with" ? "" : "hide-mobile"}>
+          <ClientList items={withBuy} onOpen={onOpen} showDays={false} />
+        </Card>
+        <Card title={`Sem compra (${noBuy.length})`} className={side === "without" ? "" : "hide-mobile"}>
+          <ClientList items={noBuy} onOpen={onOpen} />
+        </Card>
+      </div>
     </Sheet>
   );
 }

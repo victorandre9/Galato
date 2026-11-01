@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E8EDF3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="1000" fill="url(#g)"/>
+  <!-- faixas largas e suaves -->
+  <path d="M0 250 C 360 140, 720 360, 1080 250 S 1440 170, 1440 170 L1440 0 L0 0 Z" fill="#FFFFFF" fill-opacity=".55"/>
+  <path d="M0 640 C 300 520, 620 760, 960 640 S 1300 520, 1440 580 L1440 1000 L0 1000 Z" fill="#DCE3EB" fill-opacity=".55"/>
+  <path d="M0 780 C 380 680, 760 900, 1140 780 S 1440 700, 1440 700 L1440 1000 L0 1000 Z" fill="#CFD8E2" fill-opacity=".45"/>
+  <!-- linhas longas e finas -->
+  <path d="M-40 420 C 320 300, 700 540, 1060 420 S 1480 320, 1480 320" fill="none" stroke="#D5DDE6" stroke-width="2"/>
+  <path d="M-40 470 C 340 360, 720 590, 1080 470 S 1480 380, 1480 380" fill="none" stroke="#E1E7EE" stroke-width="1.5"/>
+  <path d="M-40 120 C 400 40, 800 220, 1180 110 S 1480 60, 1480 60" fill="none" stroke="#E3E9EF" stroke-width="1.5"/>
+</svg>

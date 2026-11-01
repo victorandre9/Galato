@@ -466,3 +466,4 @@ html.ent .ent-head .ent-title { font-size: 24px; font-weight: 800; letter-spacin
 html.ent .ent-hero h1 { font-size: 22px; }
 @media (min-width: 768px) { html.ent .ent-hero h1 { font-size: 28px; } }
 html.ent .app-header .logo { height: 46px; }
+html.ent .ent-head p.lead { color: var(--text-2); text-align: center; max-width: 520px; margin: 2px 0 6px; font-size: 14px; }

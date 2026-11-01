@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Moon, Sun, Maximize, ChevronRight, FlaskConical, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
+import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Moon, Sun, Maximize, ChevronRight, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
 import { DemoDataPanel, toggleFullscreen, ThemePicker } from "./components/shell";
 import { setState, toggleDark, useStore } from "./data/store";
 import type { Role } from "./data/mock";
@@ -63,7 +63,7 @@ function Login() {
       <div className="theme-top"><ThemePicker /></div>
       <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
       <h1>Plataforma Galato</h1>
-      <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)}. Escolha um perfil.</p>
+      <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)} · Escolha um perfil.</p>
       {GROUPS.map((g) => (
         <div key={g.title} style={{ width: "100%", display: "contents" }}>
           <div className="role-group">{g.title}</div>
@@ -108,14 +108,9 @@ function LoginEnterprise() {
         </div>
         <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
         <h1 className="ent-title">Plataforma Galato</h1>
-        <span className="ent-demo"><FlaskConical size={15} /> Ambiente de demonstração</span>
+        <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)} · Escolha um perfil.</p>
       </div>
       <main className="ent-body">
-        <div className="ent-hero">
-          <h1>Acesse seu ambiente de trabalho</h1>
-          <p className="lead">Selecione seu perfil para acessar as ferramentas e os indicadores da sua operação.</p>
-          <p className="ent-note">Dados fictícios de demonstração · {dayLabel(TODAY)}</p>
-        </div>
         {GROUPS.filter((g) => g.title === "Comercial").map((g) => (
           <section key={g.title} className="ent-group" aria-label={g.title}>
             <h2 className="ent-group-title">{ENT_GROUP_ICON[g.title]} {g.title}</h2>

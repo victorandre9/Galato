@@ -575,3 +575,23 @@ export const CHECKINS: Checkin[] = [];
     if (o.status === "billing_error") o.log.push({ at: at(200), by: BILLING_USER.name, text: `Erro de faturamento · ${o.billingError}` });
   }
 })();
+
+// ---------------------------------------------------------------- ocorrências de freezer
+export type FreezerOccType = "perda" | "defeito" | "outros_produtos";
+export type FreezerOccStatus =
+  | "aguardando_gestor" | "bonificacao_aprovada" | "bonificacao_recusada"
+  | "tecnico_solicitado" | "visita_agendada" | "concluida"
+  | "tratada";
+export interface FreezerOccurrence {
+  id: string; number: string; type: FreezerOccType; status: FreezerOccStatus;
+  customerId: string; sellerId: string; patrimony: string; createdAt: string;
+  /** perda de produtos */
+  lossReason?: string; lostItems?: { productId: string; qty: number; unitPriceCents: number }[];
+  /** defeito */
+  nearWall?: boolean; directOutlet?: boolean; customerFault?: boolean; faultJustification?: string; defect?: string;
+  technicianDate?: string;
+  /** outros produtos / observações */
+  description?: string; photo?: string;
+  log: { at: string; by: string; text: string }[];
+}
+export const FREEZER_OCCURRENCES: FreezerOccurrence[] = [];

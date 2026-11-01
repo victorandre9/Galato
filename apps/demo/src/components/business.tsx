@@ -14,11 +14,13 @@ import {
 import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
-import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS } from "../data/mock";
+import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS, FREEZER_OCCURRENCES, type FreezerOccurrence } from "../data/mock";
 import { PhotoCapture } from "./photo";
 import { newestFirst, applySalesDelta, logOrder } from "../data/orders";
 import { OrderOpen } from "./order-flow";
 import { FirstVisitSheet, FreezerManager } from "./freezers";
+import { FreezerOccurrenceSheet, OccurrenceDetail, OccurrenceRow } from "./freezer-occurrences";
+import { AlertOctagon } from "lucide-react";
 import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
@@ -104,7 +106,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const openCheckin = CHECKINS.find((k) => k.customerId === c.id && k.date === TODAY && !k.outAt);
   const doneToday = CHECKINS.filter((k) => k.customerId === c.id && k.date === TODAY && k.outAt);
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers">(null);
+  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers" | "occurrence">(null);
   const doCheckin = () => commit(() => {
     CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
     const s = SELLERS.find((x) => x.id === c.sellerId);
@@ -117,6 +119,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const requests = PAYMENT_REQUESTS.filter((p) => p.customerId === c.id);
   const checkinsOfCustomer = CHECKINS.filter((k) => k.customerId === c.id);
   const [openOrder, setOpenOrder] = useState<Order | null>(null);
+  const [openOcc, setOpenOcc] = useState<FreezerOccurrence | null>(null);
+  const custOccs = FREEZER_OCCURRENCES.filter((o) => o.customerId === c.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   if (!own) {
     const v = limitedCustomerView({ ...c, responsibleSellerId: c.sellerId, responsibleSellerName: sellerById.get(c.sellerId)!.name });
@@ -166,6 +170,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (mode === "proof") return <PaymentProofSheet c={c} onClose={() => setMode(null)} />;
   if (mode === "firstvisit") return <FirstVisitSheet c={c} onClose={() => setMode(null)} onDone={() => { setMode(null); doCheckin(); }} />;
   if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;
+  if (mode === "occurrence") return <FreezerOccurrenceSheet c={c} onClose={() => setMode(null)} />;
+  if (openOcc) return <OccurrenceDetail occ={openOcc} viewer={viewerSellerId ? "seller" : "manager"} onClose={() => setOpenOcc(null)} />;
 
   return (
     <Sheet title={c.tradeName} onClose={onClose} wide>
@@ -212,6 +218,17 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             <button className="btn btn-ghost" onClick={() => setMode("quote")}><FileText size={17} /> Orçamento</button>
             <button className="btn btn-ghost" onClick={() => setMode("proof")}><Upload size={17} /> Enviar comprovante</button>
           </div>
+          {openCheckin && (
+            <button className="btn btn-danger btn-block occ-cta" onClick={() => setMode("occurrence")}>
+              <AlertOctagon size={18} /> Ocorrência de freezer
+              <span className="xs" style={{ opacity: .85, fontWeight: 500 }}>perda · defeito · outros produtos</span>
+            </button>
+          )}
+          {custOccs.length > 0 && (
+            <Card title={`Ocorrências de freezer (${custOccs.length})`} icon={<AlertOctagon size={17} />} sub="toque para acompanhar">
+              <div className="list">{custOccs.map((o) => <OccurrenceRow key={o.id} o={o} onClick={() => setOpenOcc(o)} />)}</div>
+            </Card>
+          )}
 
           {(openCheckin || doneToday.length > 0) && (
             <div className="small" style={{ padding: 10, borderRadius: 12, background: openCheckin ? "var(--info-soft)" : "var(--success-soft)" }}>

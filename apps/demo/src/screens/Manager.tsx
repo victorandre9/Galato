@@ -8,6 +8,9 @@ import { bucketLabel, PAYMENT_REQUEST_STATUS, type AbcdClass } from "@galato/dom
 import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
 import { notify } from "../data/notify";
 import { ReportsView, RankingSheet, SellerPanel } from "./Reports";
+import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occurrences";
+import { FREEZER_OCCURRENCES } from "../data/mock";
+import { AlertOctagon } from "lucide-react";
 import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
 import { OrderRow } from "../components/business";
@@ -52,6 +55,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
+    { id: "fzocc", label: "Ocorrências freezer", icon: <AlertOctagon size={20} />, count: FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length },
     { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
   return (
@@ -64,6 +68,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "deliveries" && <DeliveriesView />}
       {tab === "finance" && <FinanceView />}
       {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
+      {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
       {tab === "more" && (
         <div className="stack">
@@ -102,6 +107,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
     ...log.alerts.slice(0, 3).map((a) => ({ ...a, tab: "deliveries" })),
     { tone: "warning", text: `${countByStatus(orders, ["blocked"])} pedidos bloqueados por crédito`, tab: "finance" },
     { tone: "warning", text: `${assets.idleCount} freezers sem giro (${brl0(assets.idleValue)})`, tab: "assets" },
+    ...(() => { const n = FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length; return n ? [{ tone: "danger" as const, text: `${n} ocorrência(s) de freezer aguardando a gestão`, tab: "fzocc" }] : []; })(),
   ];
 
   return (

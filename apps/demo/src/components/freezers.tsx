@@ -10,6 +10,7 @@ import {
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit } from "../data/store";
 import { Badge, Card, Chip, Sheet, brl } from "./ui";
+import { PatrimonyHistory } from "./freezer-occurrences";
 
 export type AssetMove = { at: string; by: string; action: "incluido" | "editado" | "retirado" | "confirmado"; patrimony: string; detail: string };
 
@@ -192,6 +193,7 @@ export function FreezerManager({ c, onClose }: { c: Customer; onClose: () => voi
         onClose();
       }}>Salvar alterações</button>
       <AssetHistory c={c} />
+      {c.assets.map((a) => <PatrimonyHistory key={a.id} patrimony={a.patrimony} />)}
     </Sheet>
   );
 }

@@ -1,0 +1,135 @@
+/* =========================================================================
+   GALATO · VIDRO (proposta) — sobre o tema Empresarial (html.ent)
+   Cápsulas de vidro fosco: borda grossa translucida, brilho em cima,
+   sombra suave embaixo. Vermelho Galato no lugar do azul da referência.
+   ========================================================================= */
+html.ent {
+  --glass-fill: linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.26) 100%);
+  --glass-rim: rgba(255,255,255,.85);
+  --glass-shadow:
+    inset 0 2px 1px rgba(255,255,255,.95),
+    inset 0 -4px 8px rgba(30, 41, 59, .07),
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 10px 22px rgba(30, 41, 59, .13),
+    0 2px 4px rgba(30, 41, 59, .07);
+  --glass-shadow-hover:
+    inset 0 2px 1px rgba(255,255,255,.95),
+    inset 0 -4px 8px rgba(30, 41, 59, .07),
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 14px 28px rgba(30, 41, 59, .16),
+    0 3px 6px rgba(30, 41, 59, .08);
+  --glass-red: linear-gradient(180deg, rgba(244, 104, 108, .92) 0%, rgba(217, 39, 46, .95) 55%, rgba(190, 28, 34, .97) 100%);
+  --glass-gold: linear-gradient(180deg, rgba(255, 214, 120, .95) 0%, rgba(245, 179, 35, .96) 100%);
+  --bg-grad: linear-gradient(180deg, #EDF0F4 0%, #DFE4EA 50%, #CDD4DD 100%);
+}
+
+/* superfícies de vidro reutilizadas */
+html.ent .card, html.ent .sheet .card, html.ent .ent-group, html.ent .action-tile, html.ent .order-row,
+html.ent .ent-role, html.ent .ent-tile, html.ent .bottom-nav, html.ent .theme-switch {
+  background: var(--glass-fill);
+  border: 1.5px solid var(--glass-rim) !important;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+}
+html.ent .card, html.ent .sheet .card, html.ent .ent-group { border-radius: 22px; }
+html.ent .ent-role, html.ent .ent-tile, html.ent .order-row, html.ent .action-tile { border-radius: 18px; }
+html.ent .card.click:hover, html.ent .ent-role:hover, html.ent .ent-tile:hover, html.ent .order-row.click:hover, html.ent .action-tile:hover {
+  box-shadow: var(--glass-shadow-hover); border-color: #fff !important; transform: translateY(-1px);
+}
+/* linhas dentro de card de vidro: vidro mais claro, sem sombra externa forte */
+html.ent .ent-group .ent-role, html.ent .ent-group .ent-tile {
+  background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.4));
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.95), inset 0 -3px 6px rgba(30,41,59,.05), 0 6px 14px rgba(30,41,59,.09);
+}
+
+/* ---------------------------------------------------------------- botões em cápsula */
+html.ent .btn { border-radius: 999px; padding: 12px 20px; font-weight: 600; }
+html.ent .btn-sm { border-radius: 999px; padding: 8px 14px; }
+html.ent .btn-lg { border-radius: 999px; padding: 16px 22px; }
+html.ent .btn-ghost {
+  background: var(--glass-fill); border: 1.5px solid var(--glass-rim); color: var(--text);
+  box-shadow: var(--glass-shadow); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+html.ent .btn-ghost:hover:not(:disabled) { background: var(--glass-fill); box-shadow: var(--glass-shadow-hover); }
+html.ent .btn-primary {
+  background: var(--glass-red); border: 1.5px solid rgba(255, 190, 192, .9); color: #fff; text-shadow: 0 1px 1px rgba(120, 10, 15, .25);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.55), inset 0 -4px 8px rgba(120, 10, 15, .18), 0 10px 22px rgba(217, 39, 46, .28), 0 2px 4px rgba(30,41,59,.08);
+}
+html.ent .btn-primary:hover:not(:disabled) { background: var(--glass-red); filter: brightness(1.04); }
+html.ent .btn-primary:active:not(:disabled) { box-shadow: inset 0 2px 6px rgba(120, 10, 15, .35), 0 4px 10px rgba(217,39,46,.2); }
+html.ent .btn-gold {
+  background: var(--glass-gold); border: 1.5px solid rgba(255, 236, 190, .95); color: #3B2600;
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.7), inset 0 -4px 8px rgba(140, 90, 0, .16), 0 10px 22px rgba(245, 179, 35, .3);
+}
+html.ent .btn-gold:hover:not(:disabled) { background: var(--glass-gold); filter: brightness(1.03); }
+html.ent .btn-soft {
+  background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(253, 225, 226, .55)); border: 1.5px solid #fff; color: var(--brand);
+  border-radius: 999px; box-shadow: inset 0 2px 1px #fff, 0 6px 14px rgba(217, 39, 46, .12);
+}
+html.ent .btn-danger {
+  background: var(--glass-red); border: 1.5px solid rgba(255, 190, 192, .9);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 10px 22px rgba(220, 38, 38, .28);
+}
+
+/* botões redondos (ícones) */
+html.ent .icon-btn {
+  width: 42px; height: 42px; border-radius: 50%; background: var(--glass-fill); border: 1.5px solid var(--glass-rim); color: var(--text-2);
+  box-shadow: var(--glass-shadow); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+html.ent .icon-btn:hover { background: var(--glass-fill); box-shadow: var(--glass-shadow-hover); color: var(--text); }
+html.ent .theme-switch { border-radius: 999px; padding: 4px; }
+html.ent .theme-switch button { border-radius: 50%; }
+html.ent .theme-switch button.on { background: var(--glass-red); color: #fff; box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 4px 10px rgba(217,39,46,.3); }
+
+/* chips em cápsula de vidro */
+html.ent .chip {
+  background: var(--glass-fill); border: 1.5px solid var(--glass-rim) !important; color: var(--text-2);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.9), 0 4px 10px rgba(30,41,59,.08); padding: 7px 14px;
+}
+html.ent .chip:not(.on):hover { background: var(--glass-fill); border-color: #fff !important; box-shadow: inset 0 2px 1px #fff, 0 6px 14px rgba(30,41,59,.12); }
+html.ent .chip.on {
+  background: var(--glass-red); border-color: rgba(255, 190, 192, .9) !important; color: #fff;
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 6px 14px rgba(217,39,46,.25);
+}
+
+/* ícones dos cards em pastilha de vidro */
+html.ent .kpi .kpi-ic, html.ent .action-tile .ic, html.ent .ent-ic, html.ent .greeting .avatar {
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(253, 228, 229, .7)); border: 1.5px solid #fff;
+  box-shadow: inset 0 2px 1px #fff, 0 4px 10px rgba(217, 39, 46, .14); border-radius: 50%;
+}
+html.ent .ent-tile.acc .ent-ic, html.ent .kpi .kpi-ic.gold, html.ent .action-tile.gold .ic {
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(254, 240, 205, .75)); box-shadow: inset 0 2px 1px #fff, 0 4px 10px rgba(245,179,35,.18);
+}
+html.ent .kpi .kpi-ic.success { background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(220, 252, 231, .75)); }
+html.ent .kpi .kpi-ic.info { background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(219, 234, 254, .75)); }
+
+/* campos */
+html.ent .input, html.ent .search .input, html.ent select.input, html.ent textarea.input {
+  border-radius: 999px; background: rgba(255,255,255,.7); border: 1.5px solid var(--glass-rim);
+  box-shadow: inset 0 2px 4px rgba(30,41,59,.08), 0 1px 0 #fff;
+}
+html.ent textarea.input { border-radius: 18px; }
+html.ent .input:focus, html.ent .search .input:focus { border-color: rgba(217,39,46,.55); box-shadow: inset 0 2px 4px rgba(30,41,59,.08), 0 0 0 3px var(--brand-ring); }
+
+/* seletor de quantidade: cápsula com + e − de vidro */
+html.ent .stepper { border-radius: 999px; background: var(--glass-fill); border: 1.5px solid var(--glass-rim); box-shadow: var(--glass-shadow); }
+html.ent .step-btn { border-radius: 50%; }
+html.ent .step-btn.plus, html.ent .stepper.active .step-btn.plus { background: var(--glass-red); box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 4px 10px rgba(217,39,46,.28); }
+html.ent .step-btn.minus { background: rgba(255,255,255,.75); box-shadow: inset 0 2px 1px #fff, 0 3px 8px rgba(30,41,59,.1); }
+
+/* barra de baixo de vidro, item ativo em cápsula vermelha */
+html.ent .bottom-nav { border-radius: 999px; padding: 6px; }
+html.ent .bn-item { border-radius: 999px; }
+html.ent .bn-item.active { background: var(--glass-red); color: #fff; box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 6px 14px rgba(217,39,46,.28); }
+
+/* menu lateral */
+html.ent .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.3)); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-right: 1.5px solid rgba(255,255,255,.8); }
+html.ent .side-item { border-radius: 999px; }
+html.ent .side-item.active { background: var(--glass-red); color: #fff; box-shadow: inset 0 2px 1px rgba(255,255,255,.5), 0 6px 14px rgba(217,39,46,.25); }
+html.ent .side-item.active svg { color: #fff; }
+html.ent .side-item.active .badge { background: #fff; color: var(--brand); }
+
+/* janelas */
+html.ent .sheet { background: linear-gradient(180deg, #EEF1F5 0%, #DDE3EA 100%); border: 1.5px solid rgba(255,255,255,.8); }
+html.ent .sheet-head { background: rgba(238, 241, 245, .85); }

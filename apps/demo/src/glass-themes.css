@@ -1,0 +1,167 @@
+/* =========================================================================
+   GALATO · FORMATO DE VIDRO NOS MODOS CLÁSSICO E ESCURO
+   Mesmo desenho aprovado no Empresarial (cápsulas, aro + anel interno colado,
+   degradê no fundo do botão, sombra suave, cards de vidro), com as CORES de
+   cada modo: Clássico = creme/vermelho/dourado · Escuro = vinho/dourado.
+   ========================================================================= */
+
+/* ---------------- cores: Clássico (claro anterior) ---------------- */
+html:not(.ent) {
+  --g-face: linear-gradient(180deg, #E8DFD7 0%, #EEE7E0 24%, #F4EFEA 50%, #F9F6F3 72%, #FFFFFF 92%, #F4EEE8 100%);
+  --g-ink: #2A2020;
+  --g-rim: #FFFFFF;
+  --g-ring: rgba(255, 255, 255, .95);
+  --g-edges: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 -3px 4px -1px rgba(255,255,255,.95), inset 0 2px 5px rgba(140, 90, 70, .12);
+  --g-drop: 0 14px 16px -9px rgba(120, 50, 30, .26), 0 5px 8px -4px rgba(120, 50, 30, .14);
+  --g-drop-lg: 0 20px 24px -14px rgba(120, 50, 30, .22), 0 8px 12px -7px rgba(120, 50, 30, .12);
+  --g-card-bg: linear-gradient(170deg, rgba(255,255,255,.80) 0%, rgba(255,251,247,.62) 55%, rgba(255,255,255,.78) 100%);
+  --g-card-rim: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.4), inset 0 0 16px rgba(255,255,255,.25);
+  --g-card-border: #FFFFFF;
+  --g-card-ring: rgba(255, 255, 255, .95);
+  /* botão principal: vidro vermelho Galato */
+  --g-acc-body: linear-gradient(180deg, #EE9A9D 0%, #C2161F 9%, #CC1F28 30%, #DC3B42 55%, #EA6A70 80%, #F49EA2 93%, #E07F84 100%);
+  --g-acc-ink: #FFFFFF;
+  --g-acc-ring: rgba(255, 225, 226, .75);
+  --g-acc-drop: 0 14px 16px -9px rgba(180, 20, 28, .38), 0 5px 8px -4px rgba(180, 20, 28, .2);
+  /* item ativo (menu, filtro marcado): vermelho, como no clássico */
+  --g-act-body: var(--g-acc-body);
+  --g-act-ink: #FFFFFF;
+  --g-act-drop: var(--g-acc-drop);
+  --g-gold-body: linear-gradient(180deg, #F3DB9C 0%, #E3A100 9%, #EDAE12 28%, #F6C445 52%, #FAD77A 76%, #FDE8B2 92%, #F3D592 100%);
+  --g-gold-ink: #4A2400;
+  --g-cart-bg: linear-gradient(180deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,.18) 60%, rgba(255,255,255,.45) 100%), #FBE1DE;
+  --g-nav-bg: linear-gradient(180deg, #ECE4DC 0%, #F3EEE9 45%, #FBF9F7 85%, #FFFFFF 100%);
+  --g-input-bg: linear-gradient(180deg, rgba(120, 70, 50, .06), rgba(255,255,255,.4) 60%), #FFFFFF;
+}
+
+/* ---------------- cores: Escuro (vinho e dourado) ---------------- */
+html[data-theme="dark"]:not(.ent) {
+  --g-face: linear-gradient(180deg, #3E0A11 0%, #4C0D16 24%, #5C121C 50%, #6E1A24 72%, #86262F 90%, #9A3139 95%, #6A1820 100%);
+  --g-ink: #FFF1E6;
+  --g-rim: rgba(255, 200, 110, .62);
+  --g-ring: rgba(255, 205, 120, .55);
+  --g-edges: inset 0 1.5px 0 rgba(255,220,160,.35), inset 0 -3px 4px -1px rgba(255,190,110,.35), inset 0 2px 6px rgba(0, 0, 0, .25);
+  --g-drop: 0 14px 18px -9px rgba(0, 0, 0, .55), 0 5px 8px -4px rgba(0, 0, 0, .3);
+  --g-drop-lg: 0 20px 26px -14px rgba(0, 0, 0, .55), 0 8px 12px -7px rgba(0, 0, 0, .3);
+  --g-card-bg: linear-gradient(170deg, rgba(120, 18, 30, .55) 0%, rgba(90, 12, 22, .5) 55%, rgba(130, 26, 36, .55) 100%);
+  --g-card-rim: inset 0 1.5px 0 rgba(255, 210, 150, .22), inset 0 0 0 1px rgba(255, 190, 80, .10), inset 0 0 18px rgba(255, 150, 80, .06);
+  --g-card-border: rgba(255, 196, 100, .45);
+  --g-card-ring: rgba(255, 205, 120, .30);
+  --g-acc-body: linear-gradient(180deg, #F08E92 0%, #B5121B 9%, #C21A23 30%, #D4323A 55%, #E25A60 80%, #EE8A8E 93%, #C9585D 100%);
+  --g-acc-ink: #FFFFFF;
+  --g-acc-ring: rgba(255, 214, 130, .75);
+  --g-acc-drop: 0 14px 18px -9px rgba(0, 0, 0, .6), 0 0 18px rgba(255, 90, 60, .22);
+  /* item ativo no escuro: dourado, como antes */
+  --g-act-body: linear-gradient(180deg, #F6E0A6 0%, #D99600 9%, #E6A611 28%, #F2BD3E 52%, #F8D274 76%, #FCE6AE 92%, #EFCB80 100%);
+  --g-act-ink: #4A2400;
+  --g-act-drop: 0 14px 18px -9px rgba(0, 0, 0, .55), 0 0 18px rgba(255, 180, 0, .22);
+  --g-gold-body: var(--g-act-body);
+  --g-gold-ink: #4A2400;
+  --g-cart-bg: linear-gradient(180deg, rgba(255, 210, 120, .22) 0%, rgba(255, 194, 51, .10) 60%, rgba(255, 210, 120, .18) 100%), rgba(90, 14, 22, .7);
+  --g-nav-bg: linear-gradient(180deg, #3A0910 0%, #4A0D15 45%, #5E141D 85%, #6E1A23 100%);
+  --g-input-bg: linear-gradient(180deg, rgba(0,0,0,.25), rgba(255,255,255,.03) 60%), #2A070D;
+}
+
+/* ---------------- tirar os aros de luz antigos das peças que ganham o novo formato ---------------- */
+html:not(.ent) :is(.btn-ghost, .icon-btn, .chip, .pill, .action-tile, .bn-item.active, .side-item.active, .btn-primary, .btn-gold, .card, .kpi, .order-row, .product-row)::after { content: none !important; }
+html:not(.ent) .main .card, html:not(.ent) .main .action-tile, html:not(.ent) .btn-lg { animation: none; }
+
+/* ---------------- anel interno colado e concêntrico ---------------- */
+html:not(.ent) :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile,
+  .btn-primary, .btn-ghost, .btn-gold, .btn-soft, .btn-danger, .icon-btn, .chip, .bn-item, .side-item, .step-btn, .theme-switch) { position: relative; isolation: isolate; }
+html:not(.ent) .theme-switch button { position: relative; isolation: isolate; }
+html:not(.ent) :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile, .bottom-nav,
+  .btn-primary, .btn-ghost, .btn-gold, .btn-soft, .btn-danger, .icon-btn, .chip, .bn-item.active, .side-item.active, .step-btn, .theme-switch, .theme-switch button.on)::before {
+  content: "" !important; display: block !important; position: absolute; z-index: -1; pointer-events: none;
+  inset: var(--gl-ring, 2px) !important; padding: 0 !important; mask: none !important; -webkit-mask: none !important; animation: none !important;
+  border-radius: calc(var(--gl-r, 999px) - var(--gl-ring, 2px)) !important;
+  border: 1px solid var(--g-ring) !important; background: none !important; box-shadow: none !important;
+}
+html:not(.ent) :is(.card, .sheet .card, .ent-group) { --gl-ring: 3px; --gl-r: 28px; }
+html:not(.ent) :is(.order-row, .action-tile, .ent-role, .ent-tile) { --gl-ring: 3px; --gl-r: 22px; }
+html:not(.ent) :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile)::before { border-color: var(--g-card-ring) !important; }
+html:not(.ent) :is(.btn, .chip, .icon-btn, .step-btn, .bn-item.active, .side-item.active, .theme-switch, .theme-switch button.on) { --gl-ring: 2px; }
+html:not(.ent) .btn-lg { --gl-ring: 2.5px; }
+html:not(.ent) .bottom-nav { --gl-ring: 2.5px; }
+html:not(.ent) :is(.icon-btn, .step-btn, .theme-switch button.on)::before { border-radius: 50% !important; }
+html:not(.ent) :is(.btn-primary, .btn-gold, .btn-danger, .chip.on, .bn-item.active, .side-item.active, .step-btn.plus, .theme-switch button.on)::before { border-color: var(--g-acc-ring) !important; }
+
+/* ---------------- cards de vidro ---------------- */
+html:not(.ent) :is(.card, .sheet .card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile) {
+  background: var(--g-card-bg);
+  border: 1.5px solid var(--g-card-border) !important;
+  box-shadow: var(--g-card-rim), var(--g-drop-lg);
+  backdrop-filter: blur(14px) saturate(1.15); -webkit-backdrop-filter: blur(14px) saturate(1.15);
+}
+html:not(.ent) :is(.card, .sheet .card, .ent-group) { border-radius: 28px; }
+html:not(.ent) :is(.order-row, .action-tile, .ent-role, .ent-tile) { border-radius: 22px; }
+html:not(.ent) :is(.card.click, .ent-role, .ent-tile, .order-row.click, .action-tile):hover { transform: translateY(-1px); box-shadow: var(--g-card-rim), 0 26px 28px -14px rgba(0,0,0,.22); }
+html:not(.ent) .hero-actions .action-tile { border-radius: 22px; }
+
+/* ---------------- botões neutros: degradê no fundo, aro inteiro ---------------- */
+html:not(.ent) :is(.btn-ghost, .btn-soft, .icon-btn, .chip:not(.on), .step-btn.minus, .theme-switch) {
+  background: var(--g-face) !important;
+  border: 1.5px solid var(--g-rim) !important;
+  box-shadow: var(--g-edges), var(--g-drop) !important;
+  color: var(--g-ink); text-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+html:not(.ent) :is(.btn-ghost, .btn-soft, .icon-btn, .chip:not(.on), .step-btn.minus) svg { color: var(--g-ink); filter: none; }
+html:not(.ent) :is(.btn-ghost, .btn-soft, .icon-btn, .chip:not(.on)):hover:not(:disabled) { filter: brightness(1.03); transform: none; }
+html:not(.ent) :is(.btn-ghost, .btn-soft, .icon-btn, .chip, .btn-primary, .btn-gold, .btn-danger):active:not(:disabled) { transform: translateY(1px); }
+html:not(.ent) .btn-soft { color: var(--brand); }
+html:not(.ent) .icon-btn { width: 44px; height: 44px; border-radius: 50%; }
+html:not(.ent) .chip { border-radius: 999px; padding: 8px 15px; }
+html:not(.ent) .theme-switch { border-radius: 999px; padding: 4px; }
+html:not(.ent) .theme-switch button { border-radius: 50%; color: var(--g-ink); }
+
+/* ---------------- botões de destaque ---------------- */
+html:not(.ent) :is(.btn-primary, .btn-danger, .step-btn.plus, .stepper.active .step-btn.plus) {
+  background: var(--g-acc-body) !important; border: 1.5px solid var(--g-acc-ring) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.45), inset 0 -2px 2px -1px rgba(255,255,255,.55), var(--g-acc-drop) !important;
+  color: var(--g-acc-ink); text-shadow: 0 1px 2px rgba(90, 0, 6, .35);
+}
+html:not(.ent) :is(.chip.on, .bn-item.active, .side-item.active, .theme-switch button.on) {
+  background: var(--g-act-body) !important; border: 1.5px solid var(--g-acc-ring) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.45), inset 0 -2px 2px -1px rgba(255,255,255,.55), var(--g-act-drop) !important;
+  color: var(--g-act-ink) !important; text-shadow: none;
+}
+html:not(.ent) .btn-gold {
+  background: var(--g-gold-body) !important; border: 1.5px solid rgba(255, 240, 200, .9) !important;
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,.6), inset 0 -2px 2px -1px rgba(255,255,255,.6), 0 14px 16px -9px rgba(150, 100, 0, .35), 0 5px 8px -4px rgba(150, 100, 0, .18) !important;
+  color: var(--g-gold-ink); text-shadow: none;
+}
+html:not(.ent) :is(.btn-primary, .btn-danger, .btn-gold):hover:not(:disabled) { filter: brightness(1.04); transform: none; }
+html:not(.ent) .btn { border-radius: 999px; }
+html:not(.ent) .btn-lg { padding: 16px 22px; }
+html:not(.ent) .btn-sm { border-radius: 999px; }
+html:not(.ent) .bn-item.active svg, html:not(.ent) .side-item.active svg { filter: none; }
+
+/* ---------------- navegação ---------------- */
+html:not(.ent) .bottom-nav {
+  border-radius: 999px; padding: 7px; background: var(--g-nav-bg) !important;
+  border: 1.5px solid var(--g-rim) !important; box-shadow: var(--g-edges), 0 18px 26px -10px rgba(0,0,0,.28) !important;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+html:not(.ent) .bn-item { border-radius: 999px; color: var(--g-ink); }
+html:not(.ent) .side-item { border-radius: 999px; }
+
+/* ---------------- ícones dos cards: pastilha redonda ---------------- */
+html:not(.ent) :is(.kpi .kpi-ic, .action-tile .ic, .ent-ic, .greeting .avatar) { border-radius: 50%; outline: none; }
+
+/* ---------------- campos, quantidade, produto escolhido ---------------- */
+html:not(.ent) :is(.input, .search .input, select.input) {
+  border-radius: 999px; border: 1.5px solid var(--g-rim); background: var(--g-input-bg);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.4);
+}
+html:not(.ent) textarea.input { border-radius: 20px; border: 1.5px solid var(--g-rim); background: var(--g-input-bg); }
+html:not(.ent) .stepper { border-radius: 999px; border: 1.5px solid var(--g-rim); background: var(--g-card-bg); box-shadow: inset 0 2px 4px rgba(0,0,0,.08); }
+html:not(.ent) .stepper::before { content: none !important; }
+html:not(.ent) .step-btn { border-radius: 50%; }
+html:not(.ent) :is(.product-row, .route-pick, .occ-type, .freezer-row) {
+  background: var(--g-card-bg); border: 1.5px solid var(--g-card-border); border-radius: 20px; box-shadow: var(--g-card-rim), var(--g-drop);
+}
+html:not(.ent) :is(.product-row, .route-pick, .occ-type, .freezer-row)::before { content: none !important; }
+html:not(.ent) :is(.product-row.in-cart, .route-pick.on, .occ-type.on) { background: var(--g-cart-bg); border-color: var(--g-card-border); box-shadow: var(--g-card-rim), var(--g-drop); }
+html:not(.ent) .chips { overflow: visible; padding: 2px 2px 12px; }
+html:not(.ent) .sheet::before { content: none !important; }

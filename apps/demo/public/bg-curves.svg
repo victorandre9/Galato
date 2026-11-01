@@ -6,12 +6,9 @@
     </linearGradient>
   </defs>
   <rect width="1440" height="1000" fill="url(#g)"/>
-  <!-- faixas largas e suaves -->
-  <path d="M0 250 C 360 140, 720 360, 1080 250 S 1440 170, 1440 170 L1440 0 L0 0 Z" fill="#FFFFFF" fill-opacity=".55"/>
-  <path d="M0 640 C 300 520, 620 760, 960 640 S 1300 520, 1440 580 L1440 1000 L0 1000 Z" fill="#DCE3EB" fill-opacity=".55"/>
-  <path d="M0 780 C 380 680, 760 900, 1140 780 S 1440 700, 1440 700 L1440 1000 L0 1000 Z" fill="#CFD8E2" fill-opacity=".45"/>
-  <!-- linhas longas e finas -->
-  <path d="M-40 420 C 320 300, 700 540, 1060 420 S 1480 320, 1480 320" fill="none" stroke="#D5DDE6" stroke-width="2"/>
-  <path d="M-40 470 C 340 360, 720 590, 1080 470 S 1480 380, 1480 380" fill="none" stroke="#E1E7EE" stroke-width="1.5"/>
-  <path d="M-40 120 C 400 40, 800 220, 1180 110 S 1480 60, 1480 60" fill="none" stroke="#E3E9EF" stroke-width="1.5"/>
+  <!-- metade de cima limpa (logo e títulos); curvas só na parte de baixo -->
+  <path d="M0 700 C 300 600, 620 800, 960 700 S 1300 610, 1440 660 L1440 1000 L0 1000 Z" fill="#DCE3EB" fill-opacity=".55"/>
+  <path d="M0 830 C 380 740, 760 930, 1140 830 S 1440 760, 1440 760 L1440 1000 L0 1000 Z" fill="#CFD8E2" fill-opacity=".45"/>
+  <path d="M-40 620 C 320 530, 700 720, 1060 620 S 1480 540, 1480 540" fill="none" stroke="#D5DDE6" stroke-width="2"/>
+  <path d="M-40 665 C 340 580, 720 765, 1080 665 S 1480 590, 1480 590" fill="none" stroke="#E1E7EE" stroke-width="1.5"/>
 </svg>

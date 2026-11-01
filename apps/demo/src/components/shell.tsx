@@ -172,7 +172,7 @@ export function DemoDataPanel() {
     <div className="card">
       <div className="card-title"><span className="ic"><Database size={17} /></span>Dados da demonstração</div>
       <div className="small t2 mb">
-        {s.dbMode === "shared" ? "Banco compartilhado ativo: o que você faz aqui aparece nos outros perfis e aparelhos, em tempo real."
+        {s.dbMode === "shared" ? "Banco de dados ligado: o que você faz aqui aparece nos outros perfis e aparelhos em poucos segundos."
           : s.dbMode === "connecting" ? "Conectando ao banco compartilhado…"
           : s.dbMode === "readonly" ? <><b className="gold">Somente leitura.</b> Você vê o banco compartilhado, mas o que fizer fica salvo só neste aparelho. Para gravar para todos, o dono precisa te convidar por e-mail como Editor (com o link público desligado).</>
           : "Os dados ficam salvos neste aparelho: o que você faz aparece em todos os perfis aqui e continua lá mesmo se fechar ou recarregar."}

@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Video, LogOut, RefreshCw, CheckCircle2, AlertTriangle, Snowflake } from "lucide-react";
 import { nowStamp, type Checkin, type Customer } from "../data/mock";
-import { commit } from "../data/store";
+import { commit, toast } from "../data/store";
+import { isServerDb } from "../data/sync";
 import { Card, Sheet, Progress } from "./ui";
-import { compressToLimit, saveVideo, loadVideo, fmtBytes, daysUntilPurge, VIDEO_LIMITS, type CompressedVideo } from "./video";
+import { compressToLimit, saveVideo, uploadVideo, loadVideo, fmtBytes, daysUntilPurge, VIDEO_LIMITS, type CompressedVideo } from "./video";
 
 export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: Checkin; onClose: () => void }) {
   const required = c.assets.length > 0;
@@ -29,11 +30,16 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
   async function finish() {
     setSaving(true);
     const key = `ck-${checkin.id}`;
-    try { if (video) await saveVideo(key, video.blob); } catch { /* sem armazenamento: segue só com os dados */ }
+    let sent = true;
+    if (video) {
+      try { await saveVideo(key, video.blob); } catch { /* sem armazenamento: segue só com os dados */ }
+      sent = await uploadVideo(key, video.blob);
+    }
     commit(() => {
       checkin.outAt = nowStamp();
       if (video) checkin.video = { key, bytes: video.bytes, originalBytes: video.originalBytes, seconds: Math.round(video.seconds), mime: video.mime, savedAt: checkin.outAt };
     }, `Checkout registrado · visita de ${minutes} min${video ? ` · vídeo ${fmtBytes(video.bytes)}` : ""}`);
+    if (!sent) toast("Sem internet: o vídeo ficou no aparelho e será enviado automaticamente quando a conexão voltar.", "warning", 6000);
     onClose();
   }
 
@@ -76,7 +82,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
         <div className="small muted mb">Cliente sem freezer Galato cadastrado: vídeo não é necessário.</div>
       )}
       <button className="btn btn-primary btn-lg mt" disabled={(required && !video) || busy !== null || saving} onClick={finish}>
-        {required && !video ? "Grave o vídeo para finalizar" : "Finalizar checkout"}
+        {required && !video ? "Grave o vídeo para finalizar" : saving ? "Enviando vídeo…" : "Finalizar checkout"}
       </button>
     </Sheet>
   );
@@ -101,7 +107,7 @@ export function CheckinVideo({ checkin, onClose, title }: { checkin: Checkin; on
         </div>
       ) : url === undefined ? <div className="small muted">Carregando…</div>
         : url ? <video className="checkout-video" src={url} controls autoPlay playsInline muted />
-        : <div className="small muted">O vídeo está guardado no aparelho do vendedor. Com o banco de dados ligado, ele aparece aqui para a gestão.</div>}
+        : <div className="small muted">{isServerDb() ? "O vídeo ainda não chegou: o aparelho do vendedor envia assim que tiver internet." : "O vídeo está guardado no aparelho do vendedor. Com o banco de dados ligado, ele aparece aqui para a gestão."}</div>}
       <div className="xs muted mt">{fmtBytes(v.bytes)} · {v.seconds} s{left !== null && !v.purgedAt ? ` · apaga em ${Math.max(0, left)} dia(s)` : ""}</div>
     </Sheet>
   );

@@ -1,8 +1,10 @@
 import { nowStamp } from "../data/mock";
+import { isServerDb } from "../data/sync";
 /**
  * Vídeo do freezer no checkout.
  * - Reduz o vídeo no próprio aparelho (480p, ~700 kbps, sem áudio, até 15 s) → ~1 MB por 10 s.
- * - Guarda no aparelho (IndexedDB) — sem servidor de arquivos na demonstração.
+ * - Guarda no aparelho (IndexedDB) e, com o banco do site ligado, envia para o banco
+ *   (a gestão assiste de outro aparelho). Se a internet falhar, reenvia depois.
  */
 
 /** "agora" na mesma referência dos registros (dia de demonstração + hora real). */
@@ -110,10 +112,20 @@ export async function saveVideo(key: string, blob: Blob) {
   const db = await open();
   await new Promise<void>((res, rej) => { const tx = db.transaction(STORE, "readwrite"); tx.objectStore(STORE).put(blob, key); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
 }
-export async function loadVideo(key: string): Promise<Blob | null> {
+async function loadLocalVideo(key: string): Promise<Blob | null> {
   try {
     const db = await open();
     return await new Promise((res) => { const r = db.transaction(STORE).objectStore(STORE).get(key); r.onsuccess = () => res((r.result as Blob) ?? null); r.onerror = () => res(null); });
+  } catch { return null; }
+}
+/** Neste aparelho primeiro; senão, do banco do site. */
+export async function loadVideo(key: string): Promise<Blob | null> {
+  const local = await loadLocalVideo(key);
+  if (local) return local;
+  if (!isServerDb()) return null;
+  try {
+    const r = await fetch(`/api/data?r=video&key=${encodeURIComponent(key)}`);
+    return r.ok ? await r.blob() : null;
   } catch { return null; }
 }
 
@@ -122,6 +134,44 @@ export async function deleteVideo(key: string) {
     const db = await open();
     await new Promise<void>((res) => { const tx = db.transaction(STORE, "readwrite"); tx.objectStore(STORE).delete(key); tx.oncomplete = () => res(); tx.onerror = () => res(); });
   } catch { /* ok */ }
+  setPending(getPending().filter((k) => k !== key));
+  if (isServerDb()) { try { await fetch(`/api/data?r=video&key=${encodeURIComponent(key)}`, { method: "DELETE" }); } catch { /* ok */ } }
+}
+
+// ---------------------------------------------------------------- envio para o banco do site
+const PENDING = "galato-video-pending";
+function getPending(): string[] { try { return JSON.parse(localStorage.getItem(PENDING) ?? "[]"); } catch { return []; } }
+function setPending(keys: string[]) { try { localStorage.setItem(PENDING, JSON.stringify([...new Set(keys)])); } catch { /* ok */ } }
+
+function toBase64(blob: Blob): Promise<string> {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(",")[1] ?? "");
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+
+/** Envia o vídeo para o banco. true = enviado (ou sem banco, nada a fazer). */
+export async function uploadVideo(key: string, blob?: Blob | null): Promise<boolean> {
+  if (!isServerDb()) return true;
+  const b = blob ?? (await loadLocalVideo(key));
+  if (!b) { setPending(getPending().filter((k) => k !== key)); return true; }
+  try {
+    const r = await fetch("/api/data?r=video", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, mime: b.type || "video/mp4", data: await toBase64(b) }) });
+    if (!r.ok) throw new Error(String(r.status));
+    setPending(getPending().filter((k) => k !== key));
+    return true;
+  } catch {
+    setPending([...getPending(), key]);
+    return false;
+  }
+}
+
+/** Reenvia vídeos que não subiram (sem internet na hora do checkout). */
+export async function retryPendingUploads() {
+  if (!isServerDb() || !navigator.onLine) return;
+  for (const k of getPending()) await uploadVideo(k);
 }
 
 export const fmtBytes = (b: number) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);

@@ -4,7 +4,7 @@ import "./styles.css";
 import "./future.css";
 import App from "./App";
 import { CHECKINS } from "./data/mock";
-import { deleteVideo, daysUntilPurge } from "./components/video";
+import { deleteVideo, daysUntilPurge, retryPendingUploads } from "./components/video";
 import { persistChanges } from "./data/sync";
 import { setState, getState } from "./data/store";
 
@@ -27,5 +27,9 @@ async function purgeOldVideos() {
   persistChanges();
   setState({ version: getState().version + 1 });
 }
-setTimeout(purgeOldVideos, 3000);
+setTimeout(purgeOldVideos, 10_000);
 setInterval(purgeOldVideos, 6 * 3_600_000);
+
+// vídeos que não subiram por falta de internet: tenta de novo
+setInterval(retryPendingUploads, 30_000);
+window.addEventListener("online", () => { retryPendingUploads(); });

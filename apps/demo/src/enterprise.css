@@ -370,7 +370,7 @@ html.ent .map { border-radius: var(--r-lg); }
 html.ent .login h1 { background: none; -webkit-text-fill-color: currentColor; color: var(--text); }
 
 /* ---------------------------------------------------------------- tela de entrada empresarial */
-html.ent .ent-login { padding: 0 0 40px; align-items: stretch; min-height: 100vh; background: var(--bg); }
+.login.ent-login { padding: 0 0 40px; align-items: stretch; min-height: 100vh; background: transparent; }
 .ent-top {
   display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--surface);
   border-bottom: 1px solid var(--border); flex-wrap: wrap;
@@ -442,13 +442,12 @@ html.ent .bullet-bar.hit { background: var(--chart-hit); }
 html.ent { --bg-grad: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 45%, #DFE5EC 100%); }
 html.ent body { background: #EEF2F6; }
 html.ent .app-bg { background: var(--bg-grad); }
-html.ent .ent-login { background: transparent; }
 html.ent .app-header { background: rgba(248, 250, 252, .78); }
 html.ent .sheet { background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%); }
 html.ent .sheet-head { background: rgba(248, 250, 252, .92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
 /* ---------------------------------------------------------------- área do relógio do iPhone (notch / ilha) */
-html.ent .ent-login { padding-top: 0; }
+.login.ent-login { padding-top: 0; }
 html.ent .ent-top { padding-top: calc(14px + env(safe-area-inset-top)); }
 html.ent .app-header { padding-top: calc(8px + env(safe-area-inset-top)); }
 @media (min-width: 1024px) { html.ent .app-header { padding-top: calc(14px + env(safe-area-inset-top)); } }
@@ -461,13 +460,24 @@ html.ent .ent-hero p.lead { text-align: left; margin-left: 0; }
 .ent-head { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(16px + env(safe-area-inset-top)) 16px 4px; position: relative; }
 .ent-head .ent-tools { align-self: flex-end; margin: 0; }
 .ent-head .logo-big { width: 150px; filter: none; }
-html.ent .ent-head .ent-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; color: var(--text); margin: 4px 0 0; text-align: center; }
+.login .ent-head .ent-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; color: var(--text); margin: 4px 0 0; text-align: center; }
 .ent-head .ent-demo { margin: 0; }
 html.ent .ent-hero h1 { font-size: 22px; }
 @media (min-width: 768px) { html.ent .ent-hero h1 { font-size: 28px; } }
 html.ent .app-header .logo { height: 46px; }
-html.ent .ent-head p.lead { color: var(--text-2); text-align: center; max-width: 520px; margin: 2px 0 6px; font-size: 14px; }
+.login .ent-head p.lead { color: var(--text-2); text-align: center; max-width: 520px; margin: 2px 0 6px; font-size: 14px; }
 
 /* ---------------------------------------------------------------- fundo com curvas longas em cinza */
 html.ent .app-bg { background: url("/bg-curves.svg") center / cover no-repeat, var(--bg-grad); }
 html.ent .sheet .card { background: var(--surface); }
+
+/* ---------------------------------------------------------------- entrada nos modos Clássico e Escuro (mesma estrutura) */
+html:not(.ent) .ent-group, html:not(.ent) .ent-role, html:not(.ent) .ent-tile { backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
+html:not(.ent) .ent-group { border-radius: 22px; }
+html:not(.ent) .ent-role, html:not(.ent) .ent-tile { border-radius: 16px; background: var(--surface-2); }
+[data-theme="dark"] .ent-group { background: rgba(122, 18, 30, .40); border-color: var(--border); }
+[data-theme="dark"] .ent-role, [data-theme="dark"] .ent-tile { background: rgba(60, 8, 14, .55); border-color: var(--border); }
+[data-theme="dark"] .ent-tile.acc .ent-ic { color: var(--gold); }
+[data-theme="dark"] .ent-chev, [data-theme="dark"] .ent-group-title svg { color: var(--gold); }
+[data-theme="dark"] .ent-dev { background: rgba(255,255,255,.08); }
+.login .ent-head .logo-big { width: 150px; }

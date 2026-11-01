@@ -41,7 +41,7 @@ export default function App() {
       <div className="app-bg" />
       <div className="statusbar-shield" aria-hidden="true" />
       <Toasts />
-      {s.role === null && (s.theme === "light" ? <LoginEnterprise /> : <Login />)}
+      {s.role === null && <LoginEnterprise />}
       {s.role === "seller" && <SellerApp />}
       {(s.role === "general_manager" || s.role === "sales_manager" || s.role === "sales_coordinator") && <ManagerApp key={s.role} role={s.role} />}
       {s.role === "driver" && <DriverApp />}
@@ -52,34 +52,6 @@ export default function App() {
   );
 }
 
-function Login() {
-  const s = useStore();
-  return (
-    <div className="login">
-      <div style={{ alignSelf: "flex-end", display: "flex", gap: 8 }}>
-        <button className="icon-btn" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
-        <ThemeSwitch />
-      </div>
-      <img className="logo-big" src="./galato-logo.png" alt="Galato Sorvetes" />
-      <h1>Plataforma Galato</h1>
-      <p className="lead">Comercial, financeiro, faturamento e logística integrados. Demonstração com dados fictícios · {dayLabel(TODAY)} · Escolha um perfil.</p>
-      {GROUPS.map((g) => (
-        <div key={g.title} style={{ width: "100%", display: "contents" }}>
-          <div className="role-group">{g.title}</div>
-          <div className="roles">
-            {g.roles.map((r) => (
-              <button key={r.role} className="card click role-card" onClick={() => { setState({ role: r.role }); window.scrollTo({ top: 0 }); }}>
-                <span className="ic">{r.icon}</span>
-                <div><b>{r.label}</b><span>{r.desc}</span><div className="xs muted" style={{ marginTop: 4 }}>{r.device}</div></div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-      <div style={{ width: "100%", maxWidth: 520, marginTop: 26 }}><DemoDataPanel /></div>
-    </div>
-  );
-}
 
 /** Descrições da tela de entrada nova (Empresarial). */
 const ENT_DESC: Partial<Record<Role, string>> = {

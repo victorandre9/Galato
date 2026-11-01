@@ -4,8 +4,8 @@
    Paleta Galato preservada: vermelho + dourado (claro = Modelo 3, escuro = Modelo 5).
    ========================================================================= */
 :root {
-  --font-display: "Unbounded", "Poppins", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font);
+  --font-mono: var(--font);
   /* bordas de luz */
   --edge-a: rgba(212, 18, 30, .42);
   --edge-b: rgba(245, 168, 0, .55);
@@ -458,3 +458,8 @@ html.ent .statusbar-shield { background: #F8FAFC; }
 [data-theme="dark"] .theme-switch button.on { background: rgba(255,194,51,.18); color: var(--gold); }
 html.ent .theme-switch { border-radius: 10px; box-shadow: var(--shadow-xs); }
 html.ent .theme-switch button { border-radius: 7px; }
+
+/* mesma fonte (Inter) em todos os modos: números alinhados sem fonte mono */
+.num, .kpi .kpi-value, .ring-wrap .ring-label b, .yd-stat b.num, .bucket b, .bullet-pct, .order-row b.num, .qty-badge, .step-val, .patrimony-lock b { font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+h1, h2, .greeting h1, .sheet-head h2, .login h1, .card-title, .section-title { letter-spacing: -.011em; }
+.card-title { font-weight: 600; font-size: 14px; }

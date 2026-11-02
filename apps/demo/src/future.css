@@ -467,7 +467,10 @@ h1, h2, .greeting h1, .sheet-head h2, .login h1, .card-title, .section-title { l
 /* ---------- modo apresentação (tela cheia dentro do app, como slides) ---------- */
 html.present .app-header, html.present .bottom-nav, html.present .offline-bar,
 html.present .ent-tools { display: none !important; }
-/* apresentação: o menu lateral continua (ir direto à tela sem passar 1 a 1) */
+/* apresentação: menu lateral recolhido; sai da borda esquerda ao encostar o mouse e recua ao tirar */
+html.present .shell { grid-template-columns: minmax(0, 1fr) !important; }
+html.present .sidebar { position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 60; transform: translateX(calc(-100% - 12px)); transition: transform .28s cubic-bezier(.2, .8, .2, 1); box-shadow: 8px 0 30px rgba(0, 0, 0, .18); }
+html.present .sidebar.peek { transform: none; }
 html.present .main { max-width: none !important; padding: calc(16px + env(safe-area-inset-top)) clamp(16px, 3vw, 48px) 96px !important; }
 .present-bar {
   position: fixed; z-index: 40; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);

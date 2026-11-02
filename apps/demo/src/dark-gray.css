@@ -648,3 +648,6 @@ html[data-theme="dark"] body .kpi-ic:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
   border: 0 !important;
 }
 html[data-theme="dark"] body :is(.action-tile .ic, .ic-round, .greeting .avatar, .kpi-ic):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x)::before { border-color: transparent !important; }
+/* apresentação: menu lateral flutuante com fundo sólido (não mistura com a tela de trás) */
+html.present body .sidebar:is(*, .x.x.x) { background: #F3F5F8 !important; backdrop-filter: none !important; }
+html.present[data-theme="dark"] body .sidebar:is(*, .x.x.x) { background: #0E0E10 !important; box-shadow: 8px 0 30px rgba(0, 0, 0, .6) !important; }

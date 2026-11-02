@@ -33,6 +33,18 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
 }) {
   const s = useStore();
   const [notifOpen, setNotifOpen] = useState(false);
+  // apresentação: menu lateral escondido; aparece ao encostar o mouse na borda esquerda e recua ao sair dele
+  const [peek, setPeek] = useState(false);
+  useEffect(() => {
+    if (!s.present) { setPeek(false); return; }
+    const onMove = (e: MouseEvent) => {
+      if (e.clientX <= 14) { setPeek(true); return; }
+      const w = (document.querySelector(".sidebar") as HTMLElement | null)?.getBoundingClientRect().width ?? 280;
+      if (e.clientX > w + 24) setPeek(false);
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [s.present]);
   // histórico de abas: o "voltar" (botão da tela ou do aparelho) retorna para a anterior
   const hist = useRef<string[]>([]);
   const [, bump] = useState(0);
@@ -77,7 +89,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
     <>
       {!s.online && <div className="offline-bar">Sem conexão · você continua trabalhando, tudo é salvo no aparelho e sincroniza sozinho</div>}
       <div className={`shell ${narrow ? "narrow" : ""}`}>
-        <aside className="sidebar">
+        <aside className={`sidebar ${peek ? "peek" : ""}`} onMouseLeave={() => setPeek(false)} onClick={(e) => { if (s.present && (e.target as HTMLElement).closest(".side-item")) setPeek(false); }}>
           <div className="brand">
             <img src="./galato-logo.png" alt="Galato Sorvetes" />
             <div><b>Galato</b><span>Plataforma integrada</span></div>

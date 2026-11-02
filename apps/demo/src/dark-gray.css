@@ -363,3 +363,18 @@ html body .bottom-nav .bn-item:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { transform: none
 /* troca de aba instantânea: sem animação de entrada da tela */
 html body .main > * { animation: none !important; }
 html body .main .card, html body .main .action-tile { animation: none !important; }
+
+/* ===== toque universal (JS anima --press-s num ir-e-voltar fluido) ===== */
+html body [data-pressing]:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { transform: scale(var(--press-s)) !important; transition: none !important; }
+html body .press-anim:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { --press-s: 1; }
+/* escuro: aro de fora fica parado (moldura fixa), botão de dentro encolhe */
+html[data-theme="dark"] body .press-frame:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { box-shadow: none !important; position: relative; }
+html[data-theme="dark"] body .press-frame:is(*, .x.x.x.x.x.x.x.x.x.x.x.x)::after {
+  content: "" !important; display: block !important; position: absolute !important; inset: 0 !important; z-index: 3 !important;
+  width: auto !important; height: auto !important; left: 0 !important; top: 0 !important; right: 0 !important; bottom: 0 !important;
+  border-radius: inherit !important; background: none !important; pointer-events: none !important; opacity: 1 !important;
+  padding: 0 !important; mask: none !important; -webkit-mask: none !important; animation: none !important; filter: none !important; transition: none !important; border: 0 !important;
+  box-shadow: var(--rim) !important; transform: scale(calc(1 / var(--press-s))) !important;
+}
+/* claro: tudo junto (aro e fundo), sem mudar cor */
+html:not([data-theme="dark"]) body [data-pressing]:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { filter: none !important; }

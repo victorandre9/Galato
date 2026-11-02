@@ -575,3 +575,10 @@ html:not([data-theme="dark"]) body .progress.neon:is(*, .x.x.x.x.x) > span {
 html:not([data-theme="dark"]) body .progress.neon:is(*, .x.x.x.x.x) > span::after { background: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .15)); height: 45%; }
 html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x) .ring-arc { filter: none !important; }
 html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x) .ring-shine { opacity: .9 !important; }
+html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x.x) .ring-shine { opacity: .7 !important; }
+/* barras: mesmo degradê forte do anel (escuro no início → claro na ponta) */
+html body .progress.neon:is(*, .x.x.x.x.x.x) > span { --c1: #C81E22; --c2: #FF8587; }
+html body .progress.neon.lv-yellow:is(*, .x.x.x.x.x.x) > span { --c1: #D99A00; --c2: #FFE173; }
+html body .progress.neon.lv-green:is(*, .x.x.x.x.x.x) > span { --c1: #0E8F4F; --c2: #5CF0A0; }
+html body .progress.neon.lv-blue:is(*, .x.x.x.x.x.x) > span { --c1: #155FD6; --c2: #7CC2FF; }
+html body .progress.neon.lv-rel:is(*, .x.x.x.x.x.x) > span { --c1: #7F93A8; --c2: #C3D0DD; }

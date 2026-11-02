@@ -73,26 +73,42 @@ export function Progress({ value, thin, rel }: { value: number; color?: "red" | 
   );
 }
 
+/** Cores das faixas (início escuro → ponta clara), iguais às barras. */
+const LEVEL_COLORS: Record<string, [string, string]> = {
+  red: ["#C81E22", "#FF8587"], yellow: ["#D99A00", "#FFE173"], green: ["#0E8F4F", "#5CF0A0"], blue: ["#155FD6", "#7CC2FF"],
+};
+const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i]! - x) * t)).join(",")})`; };
+
 export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: number; size?: number; stroke?: number; label?: ReactNode; sub?: string }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(100, value));
-  const id = `rg${size}${stroke}`;
+  const lvl = pctLevel(value);
+  const [c1, c2] = LEVEL_COLORS[lvl]!;
+  // arco em pedaços: escurece no início e clareia até a ponta, como a barra
+  const len = c * (v / 100);
+  const N = Math.max(1, Math.round(48 * (v / 100)));
+  const seg = len / N;
+  const cx = size / 2;
+  const endA = (v / 100) * 2 * Math.PI; // em coordenadas do svg girado (-90°)
   return (
-    <div className={`ring-wrap ring-${pctLevel(value)}`} style={{ width: size, height: size }}>
+    <div className={`ring-wrap ring-${lvl}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <defs>
-          <linearGradient id={id} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" style={{ stopColor: "var(--ring-a, #FFD35C)", stopOpacity: 0.85 }} />
-            <stop offset="100%" style={{ stopColor: "var(--ring-b, #F5A800)", stopOpacity: 0.95 }} />
-          </linearGradient>
-        </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
-        <circle className="ring-arc" cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth={stroke}
-          strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />
-        {/* brilho branco no meio do arco (mesmo visual da barra neon) */}
-        {v > 0 && <circle className="ring-shine" cx={size / 2} cy={size / 2} r={r + stroke * 0.3} fill="none" stroke="#fff" strokeWidth={Math.max(1.2, stroke * 0.18)}
-          strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />}
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
+        {v > 0 && (
+          <g className="ring-arc">
+            <circle cx={cx} cy={cx} r={r} fill="none" stroke={c1} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${Math.max(0.01, seg)} ${c}`} />
+            {Array.from({ length: N }, (_, i) => (
+              <circle key={i} cx={cx} cy={cx} r={r} fill="none" stroke={mix(c1, c2, N === 1 ? 1 : i / (N - 1))} strokeWidth={stroke}
+                strokeDasharray={`${seg + 0.6} ${c}`} strokeDashoffset={-i * seg} />
+            ))}
+            <circle cx={cx + r * Math.cos(endA)} cy={cx + r * Math.sin(endA)} r={stroke / 2} fill={c2} />
+          </g>
+        )}
+        {/* brilho branco no meio do arco (mesmo visual da barra) */}
+        {v > 0 && <circle className="ring-shine" cx={cx} cy={cx} r={r + stroke * 0.08} fill="none" stroke="#fff" strokeWidth={Math.max(1.5, stroke * 0.3)}
+          strokeLinecap="round" strokeDasharray={`${Math.max(0, len - stroke * 0.6)} ${c}`} strokeDashoffset={-stroke * 0.3} />}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>
     </div>

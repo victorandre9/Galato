@@ -80,8 +80,9 @@ const LEVEL_COLORS: Record<string, [string, string]> = {
 const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i]! - x) * t)).join(",")})`; };
 
-export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: number; size?: number; stroke?: number; label?: ReactNode; sub?: string }) {
-  const r = (size - stroke) / 2;
+export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: { value: number; size?: number; stroke?: number; label?: ReactNode; sub?: string }) {
+  const stroke = strokeIn * 0.8; // mais fino, na proporção da barra
+  const r = (size - stroke) / 2 - 2;
   const c = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(100, value));
   const lvl = pctLevel(value);
@@ -106,9 +107,12 @@ export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: nu
             <circle cx={cx + r * Math.cos(endA)} cy={cx + r * Math.sin(endA)} r={stroke / 2} fill={c2} />
           </g>
         )}
-        {/* brilho branco no meio do arco (mesmo visual da barra) */}
-        {v > 0 && <circle className="ring-shine" cx={cx} cy={cx} r={r + stroke * 0.08} fill="none" stroke="#fff" strokeWidth={Math.max(1.5, stroke * 0.3)}
-          strokeLinecap="round" strokeDasharray={`${Math.max(0, len - stroke * 0.6)} ${c}`} strokeDashoffset={-stroke * 0.3} />}
+        {/* igual à barra: contorno branco fino nas duas bordas + linha de brilho clara perto do topo */}
+        {v > 0 && <g className="ring-shine" fill="none" stroke="#fff" strokeLinecap="round">
+          <circle cx={cx} cy={cx} r={r + stroke / 2 - 0.6} strokeOpacity={0.45} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
+          <circle cx={cx} cy={cx} r={r - stroke / 2 + 0.6} strokeOpacity={0.45} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
+          <circle cx={cx} cy={cx} r={r + stroke * 0.04} strokeOpacity={0.8} strokeWidth={stroke * 0.22} strokeDasharray={`${Math.max(0, len - stroke)} ${c}`} strokeDashoffset={-stroke * 0.5} />
+        </g>}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>
     </div>

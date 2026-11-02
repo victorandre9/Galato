@@ -582,3 +582,4 @@ html body .progress.neon.lv-yellow:is(*, .x.x.x.x.x.x) > span { --c1: #D99A00; -
 html body .progress.neon.lv-green:is(*, .x.x.x.x.x.x) > span { --c1: #0E8F4F; --c2: #5CF0A0; }
 html body .progress.neon.lv-blue:is(*, .x.x.x.x.x.x) > span { --c1: #155FD6; --c2: #7CC2FF; }
 html body .progress.neon.lv-rel:is(*, .x.x.x.x.x.x) > span { --c1: #7F93A8; --c2: #C3D0DD; }
+html body .ring-wrap:is(*, .x.x.x.x.x.x) .ring-shine { opacity: 1 !important; }

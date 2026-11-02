@@ -397,3 +397,33 @@ html:not([data-theme="dark"]) body :is(.icon-btn, .step-btn):is(*, .x.x.x.x.x.x.
 html[data-theme="dark"] .cols-head, html[data-theme="dark"] .cols-head span:last-child, html[data-theme="dark"] .list.cols > .row > .end { border-color: rgba(255,255,255,.12); }
 .cols-head span:last-child, .list.cols > .row > .end { width: 92px; min-width: 92px; max-width: 92px; box-sizing: border-box; flex: none; }
 .cols-head span:last-child { white-space: normal; line-height: 1.2; }
+
+/* claro: aro completo em todos os botões neutros (filtros, cápsulas, quantidade, aparência) */
+html:not([data-theme="dark"]) body :is(.chip:not(.on), .btn-ghost, .btn-soft, .step-btn.minus, .theme-switch, .icon-btn):is(*, .x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .14),
+    inset 0 0 0 1.5px #fff,
+    inset 0 2px 1.5px rgba(255, 255, 255, 1),
+    inset 0 10px 10px -8px rgba(255, 255, 255, .6),
+    0 6px 14px rgba(0, 0, 0, .10) !important;
+}
+/* claro: botões coloridos (filtro marcado, principal, dourado) também com aro fechado */
+html:not([data-theme="dark"]) body :is(.chip.on, .btn-primary, .btn-gold, .btn-danger, .step-btn.plus, .theme-switch button.on):is(*, .x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .16),
+    inset 0 0 0 1.5px rgba(255, 255, 255, .75),
+    inset 0 2px 1.5px rgba(255, 255, 255, .9),
+    inset 0 12px 12px -8px rgba(255, 255, 255, .45),
+    0 6px 14px rgba(0, 0, 0, .14) !important;
+}
+html:not([data-theme="dark"]) body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x)::before { border: 1px solid rgba(255, 255, 255, .95) !important; }
+html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .09),
+    inset 0 0 0 1px rgba(255, 255, 255, .95),
+    inset 0 2.5px 2px rgba(255, 255, 255, 1),
+    inset 0 -2px 2px rgba(255, 255, 255, .85),
+    inset 18px 0 18px -12px rgba(255, 255, 255, .8),
+    inset -18px 0 18px -12px rgba(255, 255, 255, .8),
+    0 8px 26px rgba(0, 0, 0, .10) !important;
+}

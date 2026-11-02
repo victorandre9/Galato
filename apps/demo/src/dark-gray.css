@@ -451,3 +451,16 @@ html:not([data-theme="dark"]) body :is(.chip, .btn, .icon-btn, .step-btn, .theme
 html:not([data-theme="dark"]) body :is(.chip:not(.on), .btn-ghost, .btn-soft, .step-btn.minus, .icon-btn):is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
   background: linear-gradient(180deg, #D9DCE2 0%, #E6E8ED 45%, #F0F1F4 80%, #EDEEF2 100%) !important;
 }
+
+/* claro: aro uniforme também em cards, blocos, linhas de pedido e menu lateral (sem brilho só em cima/embaixo) */
+html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .10),
+    inset 0 0 0 2px rgba(255, 255, 255, .95),
+    inset 0 0 0 3px rgba(30, 40, 60, .06),
+    0 8px 22px rgba(20, 30, 50, .08) !important;
+}
+html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x.x.x.x.x.x)::before { border-color: transparent !important; }
+html:not([data-theme="dark"]) body .side-item.active:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow: 0 0 0 1px rgba(30, 40, 60, .16), inset 0 0 0 2px rgba(255, 255, 255, .72), inset 0 0 0 3px rgba(0, 0, 0, .10), 0 5px 12px rgba(0, 0, 0, .12) !important;
+}

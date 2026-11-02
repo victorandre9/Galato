@@ -50,6 +50,20 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
   const goBack = () => { const prev = hist.current.pop(); if (prev !== undefined) { goingBack.current = true; onTabRef.current(prev); scrollPageTop(); } };
   useEffect(() => { registerTabs({ has: () => hist.current.length > 0, back: goBack }); return () => registerTabs(null); }, []);
   // troca de aba pedida por notificação/alerta
+  // barra de baixo estilo Instagram: descendo a tela ela "engorda" e volta; subindo fica menor
+  const [navSize, setNavSize] = useState("");
+  useEffect(() => {
+    const el = document.getElementById("root"); if (!el) return;
+    let last = el.scrollTop, timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      const y = el.scrollTop, d = y - last; last = y;
+      if (Math.abs(d) < 2) return;
+      setNavSize(d > 0 ? "grow" : "shrink");
+      clearTimeout(timer); timer = setTimeout(() => setNavSize(""), 380);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => { el.removeEventListener("scroll", onScroll); clearTimeout(timer); };
+  }, []);
   const seenNav = useRef(s.navN);
   useEffect(() => {
     if (s.navN === seenNav.current) return;
@@ -110,9 +124,9 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
         {notifOpen && <NotificationCenter onClose={() => setNotifOpen(false)} />}
       </div>
       {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
-      <nav className="bottom-nav">
+      <nav className={`bottom-nav ig ${navSize}`}>
         {tabs.slice(0, 5).map((t) => (
-          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); scrollPageTop(); }}>
+          <button key={t.id} aria-label={t.label} title={t.label} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); scrollPageTop(); }}>
             {t.icon}<span>{t.label}</span>
           </button>
         ))}

@@ -486,3 +486,4 @@ html.present .main { max-width: none !important; padding: calc(16px + env(safe-a
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 #root { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 .bottom-nav { transform: none !important; -webkit-transform: none !important; will-change: auto; }
+

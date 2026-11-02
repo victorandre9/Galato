@@ -1,0 +1,36 @@
+/* Barra de baixo estilo Instagram: vidro translúcido sem borda; cresce ao descer, encolhe ao subir. Carregada por último. */
+/* =================== barra de baixo estilo Instagram (todos os modos) =================== */
+html body .bottom-nav.ig.ig.ig {
+  left: 0; right: 0; margin: 0 auto; width: min(calc(100vw - 28px), 560px);
+  bottom: max(10px, calc(env(safe-area-inset-bottom) * .5));
+  padding: 6px !important; gap: 4px; border-radius: 999px !important;
+  border: 0 !important; outline: 0;
+  background: rgba(246, 246, 248, .55) !important;
+  backdrop-filter: blur(22px) saturate(1.9) brightness(1.06) !important; -webkit-backdrop-filter: blur(22px) saturate(1.9) brightness(1.06) !important;
+  box-shadow: inset 0 0.5px 0 rgba(255,255,255,.75), 0 10px 30px rgba(20, 20, 30, .18) !important;
+  transform: none !important;
+  transition: width .32s cubic-bezier(.3, 1.5, .5, 1), padding .32s cubic-bezier(.3, 1.5, .5, 1), bottom .32s cubic-bezier(.3, 1.5, .5, 1);
+}
+html body .bottom-nav.ig.ig.ig::before, html body .bottom-nav.ig.ig.ig::after { content: none !important; display: none !important; }
+html body .bottom-nav.ig.ig.ig .bn-item {
+  flex: 1; min-width: 0; height: 52px; padding: 0 !important; border-radius: 999px !important; border: 0 !important;
+  background: transparent !important; box-shadow: none !important; color: #111418 !important; text-shadow: none !important;
+  display: grid; place-items: center; transition: background .2s, height .32s cubic-bezier(.3, 1.5, .5, 1);
+}
+html body .bottom-nav.ig.ig.ig .bn-item::before, html body .bottom-nav.ig.ig.ig .bn-item::after { content: none !important; display: none !important; }
+html body .bottom-nav.ig.ig.ig .bn-item span { display: none; }
+html body .bottom-nav.ig.ig.ig .bn-item svg { width: 26px; height: 26px; stroke-width: 2.1; filter: none !important; color: inherit; }
+html body .bottom-nav.ig.ig.ig .bn-item.active { background: rgba(120, 120, 130, .20) !important; }
+html body .bottom-nav.ig.ig.ig .bn-item.active svg { stroke-width: 2.5; }
+/* descendo a tela: engorda e alarga; subindo: fica menor */
+html body .bottom-nav.ig.ig.ig.grow { width: min(calc(100vw - 14px), 600px); padding: 9px !important; }
+html body .bottom-nav.ig.ig.ig.grow .bn-item { height: 56px; }
+html body .bottom-nav.ig.ig.ig.shrink { width: min(calc(100vw - 64px), 500px); padding: 4px !important; }
+html body .bottom-nav.ig.ig.ig.shrink .bn-item { height: 46px; }
+/* modo escuro: vidro escuro */
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig { background: rgba(40, 10, 16, .48) !important; box-shadow: inset 0 0.5px 0 rgba(255,220,180,.25), 0 10px 30px rgba(0,0,0,.45) !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig .bn-item { color: #FFF3EA !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig .bn-item.active { background: rgba(255, 255, 255, .16) !important; }
+@media (prefers-reduced-motion: reduce) { html body .bottom-nav.ig.ig.ig, html body .bottom-nav.ig.ig.ig .bn-item { transition: none; } }
+html body .bottom-nav.ig.ig.ig .bn-item svg, html body .bottom-nav.ig.ig.ig .bn-item.active svg { color: #111418 !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig .bn-item svg { color: #FFF3EA !important; }

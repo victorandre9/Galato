@@ -97,9 +97,9 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
         {v > 0 && <circle className="ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={c1} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={`${len} ${c}`} style={{ transition: "stroke-dasharray .8s ease" }} />}
-        {/* branco que engrossa junto com o índice: 20% da faixa no começo, cresce conforme o % (50% → metade), até no máximo 90% */}
+        {/* branco que engrossa junto com o índice: 20% da faixa no começo, cresce conforme o % (50% → metade), até no máximo 80% */}
         {v > 0 && (() => {
-          const wf = (p: number) => Math.min(0.9, Math.max(0.2, p / 100));
+          const wf = (p: number) => Math.min(0.8, Math.max(0.2, p / 100));
           const N = Math.max(2, Math.round(v / 1.5));
           const seg = len / N;
           const pt = (l: number) => [cx + r * Math.cos(l / r), cx + r * Math.sin(l / r)] as const;

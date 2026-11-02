@@ -587,3 +587,18 @@ html body .ring-wrap:is(*, .x.x.x.x.x.x) .ring-shine { opacity: 1 !important; }
 html:not([data-theme="dark"]) .ring-wrap .neon-a { flood-opacity: 1; }
 html:not([data-theme="dark"]) .ring-wrap .neon-b { flood-opacity: .75; }
 html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x.x.x.x.x) .ring-shine { opacity: 1 !important; }
+
+/* escuro: aro uniforme nos botões (mesma espessura em cima e embaixo), sem brilhos deslocados */
+html[data-theme="dark"] body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, .45),
+    0 0 0 4px rgba(255, 255, 255, .05),
+    inset 0 0 0 1.5px rgba(255, 255, 255, .10),
+    inset 0 0 0 3px rgba(0, 0, 0, .28),
+    0 6px 14px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.chip:not(.on), .btn-ghost, .btn-soft, .icon-btn, .step-btn.minus, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  background: linear-gradient(180deg, #232327 0%, #2C2C31 40%, #3A3A40 75%, #36363C 100%) !important;
+}
+html[data-theme="dark"] body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x)::before { border-color: transparent !important; }
+html[data-theme="dark"] body .side-item.active:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { box-shadow: 0 0 0 1px rgba(255, 255, 255, .10), inset 0 0 0 1.5px rgba(255, 255, 255, .12), 0 5px 12px rgba(0, 0, 0, .5) !important; }

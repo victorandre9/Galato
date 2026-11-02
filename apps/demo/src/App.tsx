@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Maximize, ChevronRight, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
 import { DemoDataPanel, toggleFullscreen, ThemeSwitch, PresentExit } from "./components/shell";
-import { setState, useStore } from "./data/store";
+import { setState, useStore, getState, toast } from "./data/store";
+import { registerRoot, registerBackNotice } from "./components/back";
 import type { Role } from "./data/mock";
 import { TODAY } from "./data/mock";
 import { dayLabel } from "./data/selectors";
@@ -27,6 +28,10 @@ const GROUPS: { title: string; roles: { role: Role; label: string; desc: string;
     { role: "transport_coordinator", label: "Coord. Transportes", desc: "Rotas, entregas, ocorrências", icon: <Layers />, device: "Desktop" },
   ]},
 ];
+
+// voltar do celular: da tela inicial do perfil volta para a escolha de perfil; na escolha, avisa antes de sair
+registerRoot({ has: () => getState().role !== null, back: () => setState({ role: null }) });
+registerBackNotice((text) => toast(text, "info", 2500));
 
 export default function App() {
   const s = useStore();

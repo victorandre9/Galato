@@ -32,7 +32,9 @@ interface UiState {
 function initialTheme(): Theme {
   try {
     const t = localStorage.getItem("galato-theme");
-    if (t === "light" || t === "dark" || t === "classic") return t;
+    // Clássico e vermelho estão guardados (fora das opções): quem estava no clássico volta para o claro
+    if (t === "light" || t === "dark") return t;
+    if (t === "classic") return "light";
   } catch { /* storage indisponível */ }
   try {
     const attr = document.documentElement.dataset.theme;
@@ -114,11 +116,13 @@ export function setTheme(theme: Theme) {
 /** Botão sol/lua: alterna entre o claro escolhido e o escuro. */
 export function toggleDark(current: Theme) {
   let lastLight: Theme = "light";
-  try { const v = localStorage.getItem("galato-light-theme"); if (v === "classic") lastLight = "classic"; } catch { /* ok */ }
+  /* clássico guardado: o claro é sempre o cinza (Empresarial) */
   if (current === "dark") setTheme(lastLight);
   else { try { localStorage.setItem("galato-light-theme", current); } catch { /* ok */ } setTheme("dark"); }
 }
-export const THEME_LABEL: Record<Theme, string> = { light: "Empresarial (claro)", classic: "Clássico (claro anterior)", dark: "Escuro" };
+export const THEME_LABEL: Record<Theme, string> = { light: "Claro", classic: "Clássico (guardado)", dark: "Escuro" };
+/** Aparências disponíveis para o usuário (Clássico e vermelho ficam guardados no código). */
+export const USER_THEMES: Theme[] = ["light", "dark"];
 
 /** Leva para uma aba da tela atual (usado por notificações e alertas). */
 export function requestTab(tab: string) { setState({ navTab: tab, navN: state.navN + 1 }); }

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Palette, Bell, ChevronLeft, ChevronRight, X, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
-import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, getState, setPresent, type Theme } from "../data/store";
+import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, USER_THEMES, getState, setPresent, type Theme } from "../data/store";
 import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest, type NotifLink } from "../data/mock";
 import { daysBetween } from "@galato/domain";
 import { CustomerSheet } from "./business";
@@ -270,7 +270,7 @@ export function ThemePicker() {
   const s = useStore();
   return (
     <div className="chips" role="radiogroup" aria-label="Aparência">
-      {(["light", "classic", "dark"] as Theme[]).map((t) => (
+      {USER_THEMES.map((t) => (
         <button key={t} role="radio" aria-checked={s.theme === t} className={`chip ${s.theme === t ? "on" : ""}`} onClick={() => setTheme(t)}>
           {t === "dark" ? <Moon size={13} /> : <Sun size={13} />} {THEME_LABEL[t]}
         </button>
@@ -282,11 +282,13 @@ export function ThemePicker() {
 /** Três botões pequenos de aparência para o topo: Empresarial · Clássico · Escuro. */
 export function ThemeSwitch() {
   const s = useStore();
-  const opts: { t: Theme; icon: ReactNode; label: string }[] = [
-    { t: "light", icon: <Sun size={16} />, label: "Empresarial (claro)" },
+  // Clássico (🎨) e o escuro vermelho ficam guardados no código, fora das opções do usuário
+  const all: { t: Theme; icon: ReactNode; label: string }[] = [
+    { t: "light", icon: <Sun size={16} />, label: "Claro" },
     { t: "classic", icon: <Palette size={16} />, label: "Clássico (claro anterior)" },
     { t: "dark", icon: <Moon size={16} />, label: "Escuro" },
   ];
+  const opts = all.filter((o) => USER_THEMES.includes(o.t));
   return (
     <div className="theme-switch" role="radiogroup" aria-label="Aparência">
       {opts.map((o) => (

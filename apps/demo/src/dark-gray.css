@@ -320,3 +320,21 @@ html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.clic
   transition: padding .1s cubic-bezier(.4, 0, .6, 1), box-shadow .1s cubic-bezier(.4, 0, .6, 1), filter .1s cubic-bezier(.4, 0, .6, 1) !important;
 }
 html body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .step-btn):is(*, .x.x.x.x.x)::before { transition: transform .1s cubic-bezier(.4, 0, .6, 1) !important; }
+
+/* ===== toque: aro de fora parado, botão de dentro encolhe ~20% e volta ===== */
+@property --press-s { syntax: "<number>"; inherits: true; initial-value: 1; }
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .bullet-row):is(*, .x.x.x.x.x.x.x.x.x.x) {
+  transform: scale(var(--press-s)) !important;
+  transition: --press-s .1s cubic-bezier(.4, 0, .6, 1), filter .1s cubic-bezier(.4, 0, .6, 1) !important;
+}
+html body :is(.press-down):is(*, .x.x.x.x.x.x.x.x.x.x) { --press-s: .8; }
+html body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x) { box-shadow: none !important; position: relative; }
+/* moldura fixa (aro de fora): desfaz a redução para continuar no mesmo lugar */
+html body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x)::after {
+  content: "" !important; display: block !important; position: absolute !important; inset: 0 !important; z-index: 3 !important;
+  width: auto !important; height: auto !important; left: 0 !important; top: 0 !important; right: 0 !important; bottom: 0 !important; filter: none !important; transition: none !important; border: 0 !important;
+  border-radius: inherit !important; background: none !important; pointer-events: none !important; opacity: 1 !important;
+  padding: 0 !important; mask: none !important; -webkit-mask: none !important; animation: none !important;
+  box-shadow: var(--rim) !important;
+  transform: scale(calc(1 / var(--press-s))) !important;
+}

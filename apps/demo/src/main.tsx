@@ -53,3 +53,6 @@ window.addEventListener("online", () => { retryPendingUploads(); });
   window.addEventListener("scroll", update, { passive: true });
   update();
 })();
+
+// Chrome/Android: liga a distorção "bolha" do vidro da barra de baixo (o Safari não suporta)
+try { if (/Chrome|Chromium|Edg\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("can-refract"); } catch { /* ok */ }

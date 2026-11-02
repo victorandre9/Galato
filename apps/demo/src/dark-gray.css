@@ -464,3 +464,7 @@ html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-ti
 html:not([data-theme="dark"]) body .side-item.active:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
   box-shadow: 0 0 0 1px rgba(30, 40, 60, .16), inset 0 0 0 2px rgba(255, 255, 255, .72), inset 0 0 0 3px rgba(0, 0, 0, .10), 0 5px 12px rgba(0, 0, 0, .12) !important;
 }
+
+/* topo: cabeçalho um pouco mais abaixo do relógio, para o número do sino não ser cortado */
+html body .app-header:is(*, .x.x.x.x) { padding-top: calc(env(safe-area-inset-top, 0px) + 18px) !important; }
+@media (min-width: 1024px) { html body .app-header:is(*, .x.x.x.x) { padding-top: calc(env(safe-area-inset-top, 0px) + 16px) !important; } }

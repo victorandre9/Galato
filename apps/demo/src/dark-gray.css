@@ -294,3 +294,14 @@ html[data-theme="dark"] body :is(.press-down, :active:not(:disabled)):is(.btn, .
 html:not([data-theme="dark"]) body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn):is(*, .x.x) {
   box-shadow: inset 0 5px 12px rgba(30, 36, 50, .25), 0 0 2px rgba(30, 36, 50, .2) !important;
 }
+
+/* toque reto: só desce e sobe na vertical (sem encolher, sem levantar no hover, sem pulo do :active) */
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .step-btn, .bullet-row):is(*, .x.x.x):is(:hover, :active, :focus) {
+  transform: translateY(0) !important;
+}
+html body .press-down:is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .bullet-row):is(*, .x.x.x.x) {
+  transform: translateY(8px) !important;
+}
+html body .press-up:is(*, .x.x.x.x) { transform: translateY(0) !important; }
+/* + e − da quantidade (sem espera): só :active, reto */
+html body .step-btn:is(*, .x.x.x.x):active:not(:disabled) { transform: translateY(4px) !important; }

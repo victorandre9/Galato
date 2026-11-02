@@ -91,7 +91,7 @@ export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: nu
         <circle className="ring-arc" cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />
         {/* brilho branco no meio do arco (mesmo visual da barra neon) */}
-        {v > 0 && <circle className="ring-shine" cx={size / 2} cy={size / 2} r={r + stroke * 0.12} fill="none" stroke="#fff" strokeWidth={Math.max(1.5, stroke * 0.28)}
+        {v > 0 && <circle className="ring-shine" cx={size / 2} cy={size / 2} r={r + stroke * 0.3} fill="none" stroke="#fff" strokeWidth={Math.max(1.2, stroke * 0.18)}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>

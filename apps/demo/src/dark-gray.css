@@ -314,3 +314,9 @@ html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.clic
 html body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .step-btn):is(*, .x.x.x.x)::before { transition: transform .2s cubic-bezier(.4, 0, .6, 1) !important; }
 html body .press-down:is(*, .x.x.x.x.x)::before { transform: translateY(var(--press-ring, 0px)) !important; }
 html body .press-up:is(*, .x.x.x.x.x)::before { transform: translateY(0) !important; }
+
+/* toque em 0,1 s para descer e 0,1 s para subir */
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .bullet-row):is(*, .x.x.x.x.x) {
+  transition: padding .1s cubic-bezier(.4, 0, .6, 1), box-shadow .1s cubic-bezier(.4, 0, .6, 1), filter .1s cubic-bezier(.4, 0, .6, 1) !important;
+}
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .step-btn):is(*, .x.x.x.x.x)::before { transition: transform .1s cubic-bezier(.4, 0, .6, 1) !important; }

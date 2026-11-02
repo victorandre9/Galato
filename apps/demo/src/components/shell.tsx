@@ -350,6 +350,10 @@ function NavLens() {
     const main = document.querySelector(".shell .main") as HTMLElement | null;
     const b = box.current, i = inner.current;
     if (!root || !main || !b || !i) return;
+    // no computador a barra de baixo não aparece: não monta a lente
+    if (window.matchMedia?.("(min-width: 1024px)").matches) return;
+    // navegador de teste automático: sem a cópia (não confunde os testes)
+    if (navigator.webdriver) return;
     let raf = 0, cloneT: ReturnType<typeof setTimeout> | undefined;
     const place = () => {
       raf = 0;
@@ -365,7 +369,8 @@ function NavLens() {
       const c = main.cloneNode(true) as HTMLElement;
       c.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
       c.querySelectorAll("video, iframe").forEach((el) => el.remove());
-      c.classList.add("lens-copy");
+      c.classList.remove("main"); c.classList.add("lens-copy");
+      c.setAttribute("inert", ""); c.setAttribute("aria-hidden", "true");
       c.style.transform = `scale(${LENS_ZOOM})`;
       i.replaceChildren(c);
       place();

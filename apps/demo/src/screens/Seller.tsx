@@ -16,7 +16,7 @@ import {
 } from "../data/selectors";
 import { useStore, commit } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty, Progress, ConfirmModal } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty, Progress, ConfirmModal, ColsHead } from "../components/ui";
 import { CustomerSheet, CustomerTable, CustomerRowView, OrderRow, OrderBuilder, fmtDate } from "../components/business";
 
 export function SellerApp() {
@@ -176,7 +176,8 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
         {["A", "B", "C", "D"].map((x) => <Chip key={x} on={curve === x} onClick={() => setCurve(curve === x ? null : x)}>Curva {x}</Chip>)}
       </div>
       <Card>
-        <div className="list">
+        <div className="list cols">
+          <ColsHead left="Cliente" right="Dias sem compra" />
           {list.map((c) => c.sellerId === ME.id
             ? <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} />
             : <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} extra={<Badge tone="neutral">{sellerById.get(c.sellerId)?.name.split(" ")[0]}</Badge>} />)}
@@ -259,7 +260,8 @@ function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
       </div>
       <Card title={`${routeDef.name} · ${list.length} clientes`} sub={day === TODAY_ROUTE?.code ? `hoje, ${dayLabel(TODAY)}` : "próxima semana"}>
         <div className="progress-row mb"><span className="xs muted">Prioridade sugerida: mais dias sem compra primeiro</span></div>
-        <div className="list">
+        <div className="list cols">
+          <ColsHead left="Cliente" right="Dias sem compra" />
           {list.map(({ c, days }) => (
             <div key={c.id} className="row">
               <input type="checkbox" checked={planned[c.id] ?? true} onChange={(e) => setPlanned({ ...planned, [c.id]: e.target.checked })} style={{ width: 18, height: 18, accentColor: "var(--brand)" }} />

@@ -389,3 +389,11 @@ html:not([data-theme="dark"]) body :is(.icon-btn, .theme-switch):is(*, .x.x.x.x.
     0 6px 14px rgba(0, 0, 0, .12) !important;
 }
 html:not([data-theme="dark"]) body :is(.icon-btn, .step-btn):is(*, .x.x.x.x.x.x.x.x.x.x)::before { border: 1px solid rgba(255, 255, 255, .95) !important; box-shadow: 0 0 0 .5px rgba(30, 40, 60, .08) !important; }
+
+/* listas com coluna à direita: título da coluna + linha divisória vertical */
+.cols-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 0 2px 8px; margin-bottom: 2px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cols-head span:last-child { min-width: 78px; text-align: center; padding-left: 12px; border-left: 1px solid var(--border); }
+.list.cols > .row > .end { min-width: 78px; text-align: center; padding-left: 12px; align-self: stretch; display: flex; flex-direction: column; justify-content: center; align-items: center; border-left: 1px solid var(--border); }
+html[data-theme="dark"] .cols-head, html[data-theme="dark"] .cols-head span:last-child, html[data-theme="dark"] .list.cols > .row > .end { border-color: rgba(255,255,255,.12); }
+.cols-head span:last-child, .list.cols > .row > .end { width: 92px; min-width: 92px; max-width: 92px; box-sizing: border-box; flex: none; }
+.cols-head span:last-child { white-space: normal; line-height: 1.2; }

@@ -208,12 +208,18 @@ export function Empty({ icon, text }: { icon: ReactNode; text: string }) {
   return <div className="empty"><div className="ic">{icon}</div>{text}</div>;
 }
 
+/** Cabeçalho de lista com coluna à direita (linha divisória + título da coluna). */
+export function ColsHead({ left, right }: { left: ReactNode; right: ReactNode }) {
+  return <div className="cols-head"><span>{left}</span><span>{right}</span></div>;
+}
+
 export function RankingList({ rows, format, onRow }: {
   rows: { id: string; name: string; position: number | null; attainmentPct: number | null; achieved: number; target: number }[];
   format: (r: { achieved: number; target: number }) => ReactNode; onRow?: (id: string) => void;
 }) {
   return (
-    <div className="list">
+    <div className="list cols">
+      <ColsHead left="Vendedor" right="% da meta" />
       {rows.map((r) => (
         <div key={r.id} className={`row ${onRow ? "click" : ""}`} onClick={() => onRow?.(r.id)}>
           <span className={`pos p${r.position ?? 0}`}>{r.position ? `${r.position}º` : "–"}</span>

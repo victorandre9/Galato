@@ -25,7 +25,7 @@ import { ProofView, BoletoView, AssetView } from "./details";
 import { Video } from "lucide-react";
 import type { Checkin, PaymentRequest, Receivable, Asset } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
-import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper } from "./ui";
+import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper, ColsHead } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
 export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
@@ -73,7 +73,8 @@ export function CustomerRowView({ c, onClick, extra }: { c: Customer; onClick?: 
 export function CustomerTable({ list, onOpen }: { list: Customer[]; onOpen: (c: Customer) => void }) {
   return (
     <>
-      <div className="only-mobile list">
+      <div className="only-mobile list cols">
+        <ColsHead left="Cliente" right="Dias sem compra" />
         {list.map((c) => <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} />)}
       </div>
       <div className="only-desktop table-wrap">

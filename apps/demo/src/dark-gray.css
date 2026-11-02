@@ -430,3 +430,24 @@ html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-ti
 
 /* prospecção: ícone redondo na linha */
 .ic-round { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--gold-soft); color: var(--gold); }
+
+/* claro: aro PADRÃO e uniforme (mesma espessura em cima, embaixo e nas laterais) em todos os botões.
+   Sem brilhos deslocados para cima/baixo e sem o segundo traço desenhado à parte. */
+html:not([data-theme="dark"]) body :is(.chip:not(.on), .btn-ghost, .btn-soft, .step-btn.minus, .theme-switch, .icon-btn):is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .16),
+    inset 0 0 0 2px #fff,
+    inset 0 0 0 3px rgba(30, 40, 60, .15),
+    0 5px 12px rgba(0, 0, 0, .09) !important;
+}
+html:not([data-theme="dark"]) body :is(.chip.on, .btn-primary, .btn-gold, .btn-danger, .step-btn.plus, .theme-switch button.on):is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .18),
+    inset 0 0 0 2px rgba(255, 255, 255, .72),
+    inset 0 0 0 3px rgba(0, 0, 0, .12),
+    0 5px 12px rgba(0, 0, 0, .13) !important;
+}
+html:not([data-theme="dark"]) body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x)::before { border-color: transparent !important; box-shadow: none !important; }
+html:not([data-theme="dark"]) body :is(.chip:not(.on), .btn-ghost, .btn-soft, .step-btn.minus, .icon-btn):is(*, .x.x.x.x.x.x.x.x.x.x.x.x) {
+  background: linear-gradient(180deg, #D9DCE2 0%, #E6E8ED 45%, #F0F1F4 80%, #EDEEF2 100%) !important;
+}

@@ -104,3 +104,28 @@ html[data-theme="dark"] body .bottom-nav.ig.ig.ig {
     linear-gradient(100deg, rgba(255,235,220,0) 18%, rgba(255,235,220,.16) 30%, rgba(255,235,220,0) 42%) !important;
   box-shadow: inset 0 0 0 1px rgba(255, 220, 190, .5), inset 0 2px 1.5px rgba(255, 230, 210, .6), inset 16px 0 18px -12px rgba(255, 200, 170, .4), inset -16px 0 18px -12px rgba(255, 200, 170, .4), 0 0 16px rgba(255, 170, 120, .18), 0 8px 26px rgba(0, 0, 0, .45) !important;
 }
+
+/* ---- lente: o fundo atrás da barra aparece ampliado ("barriga" da lupa) ---- */
+html body .bottom-nav.ig.ig.ig { isolation: isolate; overflow: hidden; }
+.nav-lens {
+  position: absolute; inset: 0; z-index: -1; border-radius: inherit; overflow: hidden; pointer-events: none;
+  background: var(--bg);
+}
+html.ent .nav-lens { background: #EEF2F6; }
+.nav-lens-inner { position: absolute; left: 0; top: 0; will-change: transform; }
+.nav-lens .lens-copy {
+  max-width: none !important; margin: 0 !important; pointer-events: none;
+  filter: blur(1.6px) saturate(1.5) brightness(1.06);
+}
+.nav-lens .lens-copy * { animation: none !important; transition: none !important; }
+/* a "barriga": bordas da lente mais claras e o centro mais nítido */
+.nav-lens::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(130% 160% at 50% 50%, rgba(255,255,255,0) 45%, rgba(255,255,255,.55) 100%);
+}
+html[data-theme="dark"] .nav-lens::after { background: radial-gradient(130% 160% at 50% 50%, rgba(255,255,255,0) 50%, rgba(255,220,200,.18) 100%); }
+/* com a lente, o vidro não precisa mais embaçar o que está atrás */
+html body .bottom-nav.ig.ig.ig, html.can-refract body .bottom-nav.ig.ig.ig { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background-color: transparent !important; }
+html body .bottom-nav.ig.ig.ig .bn-item { position: relative; z-index: 1; }
+html[data-theme="dark"] .nav-lens { background: linear-gradient(180deg, #4E0C15, #3A0910); }
+html:not(.ent):not([data-theme="dark"]) .nav-lens { background: #F6F0EB; }

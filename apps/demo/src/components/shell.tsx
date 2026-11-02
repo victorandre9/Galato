@@ -125,6 +125,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
       </div>
       {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
       <nav className={`bottom-nav ig ${navSize}`}>
+        <NavLens />
         {tabs.slice(0, 5).map((t) => (
           <button key={t.id} aria-label={t.label} title={t.label} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); scrollPageTop(); }}>
             {t.icon}<span>{t.label}</span>
@@ -334,4 +335,48 @@ export function PresentExit() {
   const s = useStore();
   if (!s.present || s.role) return null;
   return <div className="present-bar solo"><button className="icon-btn" onClick={() => toggleFullscreen()} aria-label="Sair da apresentação"><X size={18} /></button></div>;
+}
+
+/**
+ * Lente da barra de baixo (efeito Instagram): mostra o que está atrás AMPLIADO, como uma lupa.
+ * Funciona em qualquer navegador (inclusive iPhone): uma cópia da tela, alinhada e ampliada, acompanha a rolagem.
+ */
+const LENS_ZOOM = 1.22;
+function NavLens() {
+  const box = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = document.getElementById("root");
+    const main = document.querySelector(".shell .main") as HTMLElement | null;
+    const b = box.current, i = inner.current;
+    if (!root || !main || !b || !i) return;
+    let raf = 0, cloneT: ReturnType<typeof setTimeout> | undefined;
+    const place = () => {
+      raf = 0;
+      const m = main.getBoundingClientRect(), n = b.getBoundingClientRect();
+      const left = m.left - n.left, top = m.top - n.top;
+      const ox = n.width / 2 - left, oy = n.height / 2 - top;
+      i.style.width = `${m.width}px`;
+      i.style.transform = `translate(${left}px, ${top}px)`;
+      (i.firstElementChild as HTMLElement | null)?.style.setProperty("transform-origin", `${ox}px ${oy}px`);
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(place); };
+    const clone = () => {
+      const c = main.cloneNode(true) as HTMLElement;
+      c.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+      c.querySelectorAll("video, iframe").forEach((el) => el.remove());
+      c.classList.add("lens-copy");
+      c.style.transform = `scale(${LENS_ZOOM})`;
+      i.replaceChildren(c);
+      place();
+    };
+    clone();
+    const mo = new MutationObserver(() => { clearTimeout(cloneT); cloneT = setTimeout(clone, 250); });
+    mo.observe(main, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "style"] });
+    root.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    const ro = new ResizeObserver(schedule); ro.observe(b);
+    return () => { mo.disconnect(); ro.disconnect(); root.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); cancelAnimationFrame(raf); clearTimeout(cloneT); };
+  }, []);
+  return <div className="nav-lens" ref={box} aria-hidden="true"><div className="nav-lens-inner" ref={inner} /></div>;
 }

@@ -175,3 +175,29 @@ html[data-theme="dark"]:not(.ent) {
   --g-face: linear-gradient(180deg, #5C1520 0%, #6A1A26 28%, #7A202C 55%, #8E2A35 80%, #A4363F 93%, #82222B 100%);
   --g-nav-bg: linear-gradient(180deg, #5C1520 0%, #6E1C27 50%, #842631 100%);
 }
+
+/* tema vermelho: borda branca translúcida com metade da intensidade */
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x) {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 225, 205, .19),
+    inset 0 1.5px 1px rgba(255, 232, 215, .22),
+    inset 0 -1px 1px rgba(255, 215, 190, .1),
+    inset 10px 0 12px -10px rgba(255, 210, 185, .11),
+    inset -10px 0 12px -10px rgba(255, 210, 185, .11),
+    0 0 12px rgba(255, 170, 120, .05),
+    0 8px 24px rgba(0, 0, 0, .45) !important;
+}
+html[data-theme="dark"] body :is(.btn, .icon-btn, .chip, .step-btn, .theme-switch, .bucket, .yd-stat, .product-row, .route-pick, .occ-type, .freezer-row, .stepper, .pill):is(*, .x.x.x) {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 225, 205, .20),
+    inset 0 1.5px 1px rgba(255, 232, 215, .25),
+    inset 0 10px 10px -8px rgba(255, 225, 205, .09),
+    inset 8px 0 10px -8px rgba(255, 210, 185, .09),
+    inset -8px 0 10px -8px rgba(255, 210, 185, .09),
+    0 6px 14px rgba(0, 0, 0, .45) !important;
+}
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile, .btn, .icon-btn, .chip, .step-btn, .theme-switch):is(*, .x.x.x)::before { border-color: rgba(255, 225, 205, .15) !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig { box-shadow: inset 0 0 0 1px rgba(255, 225, 205, .19), inset 0 1.5px 1px rgba(255, 232, 215, .22), inset 12px 0 14px -11px rgba(255, 210, 185, .12), inset -12px 0 14px -11px rgba(255, 210, 185, .12), 0 0 12px rgba(255, 170, 120, .06), 0 8px 26px rgba(0, 0, 0, .45) !important; }
+html[data-theme="dark"] body :is(.card.click, .order-row.click, .ent-role, .ent-tile, .action-tile):is(*, .x.x.x):hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 225, 205, .25), inset 0 1.5px 1px rgba(255, 232, 215, .28), inset 10px 0 12px -10px rgba(255, 210, 185, .14), inset -10px 0 12px -10px rgba(255, 210, 185, .14), 0 0 14px rgba(255, 170, 120, .08), 0 10px 26px rgba(0, 0, 0, .5) !important;
+}

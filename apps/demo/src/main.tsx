@@ -48,11 +48,21 @@ window.addEventListener("online", () => { retryPendingUploads(); });
   const update = () => {
     const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
     root.style.setProperty("--vv-bottom", `${Math.round(offset)}px`);
-    root.classList.toggle("kb-open", offset > 120); // teclado aberto: esconde a barra
+    // teclado aberto: só esconde a barra se houver um campo de texto em uso
+    const a = document.activeElement as HTMLElement | null;
+    const typing = !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable);
+    root.classList.toggle("kb-open", typing && offset > 120);
   };
   vv.addEventListener("resize", update);
   vv.addEventListener("scroll", update);
   window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("focusin", update);
+  window.addEventListener("focusout", () => setTimeout(update, 50));
+  // voltando do app minimizado: recalcula (o iPhone informa uma altura errada por um instante)
+  const resume = () => { root.classList.remove("kb-open"); update(); setTimeout(update, 300); setTimeout(update, 900); };
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") resume(); });
+  window.addEventListener("pageshow", resume);
+  window.addEventListener("focus", resume);
   update();
 })();
 

@@ -39,8 +39,14 @@ if (typeof window !== "undefined") {
     }
     setTimeout(arm, 60);
   });
-  // primeira entrada: o voltar já cai no app
+  // primeira entrada: o voltar já cai no app (navegadores que aceitam sem toque)
   if (document.readyState === "complete") arm(); else window.addEventListener("load", () => arm(), { once: true });
+  // Chrome/Android ignora a marcação de "voltar" feita sem toque do usuário e fecha o app.
+  // Por isso a marcação é refeita a cada toque/tecla, que o Chrome aceita.
+  const onGesture = () => { if (!guard && !leaving) { guard = false; arm(); } };
+  window.addEventListener("pointerdown", onGesture, { capture: true, passive: true });
+  window.addEventListener("touchstart", onGesture, { capture: true, passive: true });
+  window.addEventListener("keydown", onGesture, { capture: true });
 }
 
 /** Janela (folha/modal) aberta: o voltar fecha ela. Retorna a função de remover. */

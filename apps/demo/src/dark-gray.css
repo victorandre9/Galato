@@ -203,3 +203,9 @@ html body .app-header .header-right { justify-self: end; grid-column: 3; }
   .app-header .header-left:not(:has(.back-btn)) { display: none; }
   html body .app-header .header-right { grid-column: auto; }
 }
+
+/* ícones redondos dos quadros (Orçamentos, Faturados, etc.): sem o fundo bordô; contorno preto translúcido em volta do cinza */
+html[data-theme="dark"] body :is(.action-tile .ic, .kpi .kpi-ic, .ent-ic, .greeting .avatar, .occ-ic, .freezer-ic):is(*, .x.x.x.x) {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .45), 0 0 0 4px rgba(255, 255, 255, .05), 0 6px 14px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .12) !important;
+  outline: none !important; filter: none !important;
+}

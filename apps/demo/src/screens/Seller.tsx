@@ -175,6 +175,16 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
   return <>{head}<SellerCarteira onOpen={onOpen} /></>;
 }
 
+/** Busca sem acento e sem pontuação: nome, razão social, CNPJ, código, bairro, endereço, cidade ou vendedor. */
+const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function matches(c: Customer, q: string) {
+  if (!q.trim()) return true;
+  const hay = norm(`${c.tradeName} ${c.legalName} ${c.code} ${c.document} ${c.district} ${c.address} ${c.city} ${sellerById.get(c.sellerId)?.name ?? ""}`);
+  const digits = q.replace(/\D/g, "");
+  if (digits.length >= 5 && c.document.replace(/\D/g, "").includes(digits)) return true;
+  return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+
 function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"mine" | "others" | "all">("mine");
@@ -182,12 +192,12 @@ function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const inScope = (c: Customer) => scope === "all" || (scope === "mine" ? c.sellerId === ME.id : c.sellerId !== ME.id);
   const list = CUSTOMERS.filter((c) =>
     inScope(c) && (!curve || c.abcd === curve) &&
-    (!q || `${c.tradeName} ${c.code} ${c.document} ${c.city} ${sellerById.get(c.sellerId)?.name ?? ""}`.toLowerCase().includes(q.toLowerCase())),
+    matches(c, q),
   ).sort((a, b) => (scope === "mine" ? 0 : a.tradeName.localeCompare(b.tradeName, "pt-BR"))).slice(0, 300);
   const others = CUSTOMERS.filter((c) => c.sellerId !== ME.id).length;
   return (
     <>
-      <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, código, CNPJ, cidade ou vendedor" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+      <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, CNPJ, bairro, cidade ou vendedor" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="chips mb">
         <Chip on={scope === "mine"} onClick={() => setScope("mine")}>Minha carteira ({CUSTOMERS.length - others})</Chip>
         <Chip on={scope === "others"} onClick={() => setScope("others")}>Outras carteiras ({others})</Chip>

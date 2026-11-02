@@ -142,6 +142,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
         <Card>
           <div className="flex mb"><Badge tone="warning">Cliente de outra carteira</Badge></div>
           <dl className="kv">
+            <dt>CNPJ</dt><dd className="num">{c.document || "—"}</dd>
+            <dt>Razão social</dt><dd>{c.legalName}</dd>
             <dt>Código</dt><dd>{v.code}</dd>
             <dt>Cidade</dt><dd>{v.city}/{v.state}</dd>
             <dt>Região</dt><dd>{v.region}</dd>

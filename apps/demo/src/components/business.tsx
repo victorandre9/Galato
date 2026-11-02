@@ -14,6 +14,10 @@ import {
 import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
+import { VisitHistoryCard } from "./visits";
+import { customerOrders, type HistOrder } from "../data/history";
+import { OrderDetail } from "../screens/Reports";
+import { statusLabel } from "../data/selectors";
 import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS, FREEZER_OCCURRENCES, type FreezerOccurrence } from "../data/mock";
 import { PhotoCapture } from "./photo";
 import { newestFirst, applySalesDelta, logOrder, orderStatusText } from "../data/orders";
@@ -123,7 +127,9 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const r = customerRow(c);
   const history = ORDERS.filter((o) => o.customerId === c.id).sort(newestFirst<Order>((x) => x.createdAt));
   const requests = PAYMENT_REQUESTS.filter((p) => p.customerId === c.id);
-  const checkinsOfCustomer = CHECKINS.filter((k) => k.customerId === c.id);
+  const pastOrders = customerOrders(c.id).filter((o) => !o.live);
+  const [morePast, setMorePast] = useState(false);
+  const [pastOpen, setPastOpen] = useState<HistOrder | null>(null);
   const [openOrder, setOpenOrder] = useState<Order | null>(null);
   const [detail, setDetail] = useState<{ kind: "proof"; p: PaymentRequest } | { kind: "boleto"; x: Receivable } | { kind: "asset"; a: Asset } | null>(null);
   const [openOcc, setOpenOcc] = useState<FreezerOccurrence | null>(null);
@@ -182,6 +188,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;
   if (mode === "occurrence") return <FreezerOccurrenceSheet c={c} onClose={() => setMode(null)} />;
   if (mode === "checkout" && openCheckin) return <CheckoutSheet c={c} checkin={openCheckin} onClose={() => setMode(null)} />;
+  if (pastOpen) return <OrderDetail o={pastOpen} onClose={() => setPastOpen(null)} />;
   if (playVideo) return <CheckinVideo checkin={playVideo} title={`Vídeo do freezer · ${c.tradeName}`} onClose={() => setPlayVideo(null)} />;
   if (openOcc) return <OccurrenceDetail occ={openOcc} viewer={viewerSellerId ? "seller" : "manager"} onClose={() => setOpenOcc(null)} />;
 
@@ -245,10 +252,17 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
                 : <>Visita de hoje concluída: {doneToday.map((k) => `${hhmm(k.inAt)}–${hhmm(k.outAt!)}`).join(", ")}.</>}
             </div>
           )}
-          <Card title={`Pedidos do cliente (${history.filter((o) => o.kind === "ORDER").length})`} icon={<History size={17} />} sub="toque no pedido para abrir">
+          <Card title={`Histórico de pedidos (${history.filter((o) => o.kind === "ORDER").length + pastOrders.length})`} icon={<History size={17} />} sub="toque no pedido para abrir">
             <div className="list">
               {history.filter((o) => o.kind === "ORDER").slice(0, 10).map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpenOrder(o)} />)}
-              {!history.some((o) => o.kind === "ORDER") && <div className="small muted">Nenhum pedido recente.</div>}
+              {pastOrders.slice(0, morePast ? 60 : 6).map((o) => (
+                <div key={o.id} className="row click" onClick={() => setPastOpen(o)}>
+                  <div className="grow"><div className="title small">{o.number} · {fmtDate(o.date)}</div><div className="sub">{o.invoiceNumber ?? "sem NF"} · {o.items.length} itens · {termShort(o.paymentTermDays)}</div></div>
+                  <div className="end"><div className="num semi small">{brl(o.totalCents)}</div><div className="xs muted">{statusLabel(o.status)}</div></div>
+                </div>
+              ))}
+              {pastOrders.length > 6 && <button className="link" onClick={() => setMorePast(!morePast)}>{morePast ? "Ver menos" : `Ver todos (${pastOrders.length})`}</button>}
+              {!history.some((o) => o.kind === "ORDER") && !pastOrders.length && <div className="small muted">Nenhum pedido ainda.</div>}
             </div>
             {history.some((o) => o.kind === "QUOTE") && (
               <>
@@ -256,7 +270,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
                 {history.filter((o) => o.kind === "QUOTE").slice(0, 4).map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpenOrder(o)} />)}
               </>
             )}
-            {(requests.length > 0 || checkinsOfCustomer.length > 0) && <div className="divider" />}
+            {requests.length > 0 && <div className="divider" />}
             {requests.map((p) => (
               <div key={p.id} className="row click" onClick={() => setDetail({ kind: "proof", p })}>
                 <Receipt size={16} className="muted" />
@@ -264,14 +278,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
                 <Badge tone={PAYMENT_REQUEST_STATUS[p.status].tone}>{PAYMENT_REQUEST_STATUS[p.status].label}</Badge>
               </div>
             ))}
-            {checkinsOfCustomer.map((k) => (
-              <div key={k.id} className="row">
-                <LogIn size={16} className="muted" />
-                <div className="grow"><div className="title small">Visita · {sellerById.get(k.sellerId)?.name}</div><div className="sub">check-in {fmtDateTime(k.inAt)}{k.outAt ? ` · checkout ${fmtTime(k.outAt)}` : " · em andamento"}</div></div>
-                {k.video && <button className="btn btn-soft btn-sm" onClick={() => setPlayVideo(k)}><Video size={14} /> Vídeo</button>}
-              </div>
-            ))}
           </Card>
+          <VisitHistoryCard customerId={c.id} onVideo={(id) => { const k = CHECKINS.find((x) => x.id === id); if (k?.video) setPlayVideo(k); }} />
         </div>
 
         <div className="stack">

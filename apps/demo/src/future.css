@@ -465,9 +465,9 @@ h1, h2, .greeting h1, .sheet-head h2, .login h1, .card-title, .section-title { l
 .card-title { font-weight: 600; font-size: 14px; }
 
 /* ---------- modo apresentação (tela cheia dentro do app, como slides) ---------- */
-html.present .app-header, html.present .sidebar, html.present .bottom-nav, html.present .offline-bar,
+html.present .app-header, html.present .bottom-nav, html.present .offline-bar,
 html.present .ent-tools { display: none !important; }
-html.present .shell { grid-template-columns: minmax(0, 1fr) !important; }
+/* apresentação: o menu lateral continua (ir direto à tela sem passar 1 a 1) */
 html.present .main { max-width: none !important; padding: calc(16px + env(safe-area-inset-top)) clamp(16px, 3vw, 48px) 96px !important; }
 .present-bar {
   position: fixed; z-index: 40; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);

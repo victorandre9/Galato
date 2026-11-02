@@ -173,6 +173,7 @@ export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewe
       {canAct && (
         <div className="stack mt">
           {l.stage === "lead" && <button className="btn btn-primary btn-block" onClick={() => setStep("contato")}><Phone size={16} /> Registrar 1º contato</button>}
+          {OPEN_STAGES.includes(l.stage) && l.stage !== "lead" && <button className="btn btn-ghost btn-block" onClick={() => setStep("contato")}><Phone size={16} /> Registrar visita / contato</button>}
           {l.stage === "contato" && <button className="btn btn-primary btn-block" onClick={() => setStep("quali")}><Target size={16} /> Qualificar cliente</button>}
           {l.stage === "qualificacao" && <button className="btn btn-primary btn-block" onClick={() => setStep("proposta")}><ClipboardCheck size={16} /> Montar proposta</button>}
           {l.stage === "proposta" && <div className="grid g2" style={{ marginBottom: 0 }}>
@@ -206,7 +207,7 @@ export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewe
       {viewer !== "seller" && l.stage === "cliente" && c && <button className="btn btn-ghost btn-block mt" onClick={() => setCust(true)}>Abrir ficha do cliente</button>}
 
       <div className="card mt">
-        <div className="card-title"><span className="ic"><History size={16} /></span><span>Histórico</span></div>
+        <div className="card-title"><span className="ic"><History size={16} /></span><span>Histórico de contatos e visitas</span></div>
         <div className="list">
           {[...l.log].reverse().map((e, i) => (
             <div key={i} className="row"><div className="grow"><div className="small">{e.text}</div><div className="sub xs">{fmtDateTime(e.at)} · {e.by}</div></div></div>
@@ -218,16 +219,26 @@ export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewe
 }
 
 function ContactForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => void }) {
+  const first = l.stage === "lead";
   const [res, setRes] = useState<string | null>(null);
+  const [who, setWho] = useState(l.contact || "");
+  const [kind, setKind] = useState<string>("Visita");
   const [next, setNext] = useState(addDays(TODAY, 2));
   const [note, setNote] = useState("");
   return (
-    <Sheet title={`1º contato · ${l.name}`} onClose={onClose} icon={<Phone size={18} />}>
+    <Sheet title={`${first ? "1º contato" : "Registrar contato"} · ${l.name}`} onClose={onClose} icon={<Phone size={18} />}>
+      <Field label="Tipo"><OneChips options={["Visita", "Ligação", "WhatsApp"]} value={kind} onChange={setKind} /></Field>
+      <Field label="Com quem falou (nome e cargo)"><input id="lead-who" className="input" value={who} onChange={(e) => setWho(e.target.value)} placeholder="Ex.: Carlos, dono" /></Field>
       <Field label="Como foi?"><OneChips options={CONTACT_RESULTS} value={res} onChange={setRes} /></Field>
       <Field label="Próximo passo em"><input type="date" className="input" value={next} onChange={(e) => setNext(e.target.value)} /></Field>
       <Field label="Anotação (opcional)"><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
       <button className="btn btn-primary btn-block" disabled={!res} onClick={() => {
-        commit(() => { l.stage = "contato"; l.nextAt = next; l.nextStep = "Qualificar: marca, freezer e volume"; log(l, by, `1º contato · ${res}${note ? ` · ${note}` : ""}`); }, "Contato registrado");
+        commit(() => {
+          if (first) { l.stage = "contato"; l.nextStep = "Qualificar: marca, freezer e volume"; }
+          if (who.trim() && !l.contact) l.contact = who.trim();
+          l.nextAt = next;
+          log(l, by, `${first ? "1º contato" : kind} · ${res}${who.trim() ? ` · falou com ${who.trim()}` : ""}${note ? ` · ${note}` : ""}`);
+        }, "Contato registrado no histórico");
         onClose();
       }}>Salvar contato</button>
     </Sheet>

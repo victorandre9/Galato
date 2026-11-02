@@ -4,7 +4,7 @@ import { Video, LogOut, RefreshCw, CheckCircle2, AlertTriangle, Snowflake } from
 import { nowStamp, type Checkin, type Customer } from "../data/mock";
 import { commit, toast } from "../data/store";
 import { isServerDb } from "../data/sync";
-import { Card, Sheet, Progress } from "./ui";
+import { Card, Sheet, Progress, Chip } from "./ui";
 import { compressToLimit, saveVideo, uploadVideo, loadVideo, fmtBytes, daysUntilPurge, VIDEO_LIMITS, type CompressedVideo } from "./video";
 
 export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: Checkin; onClose: () => void }) {
@@ -15,6 +15,9 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [contact, setContact] = useState(c.buyerName);
+  const [result, setResult] = useState<string | null>(null);
+  const [note, setNote] = useState("");
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   const minutes = Math.max(1, Math.round((Date.parse(nowStamp()) - new Date(checkin.inAt).getTime()) / 60000));
 
@@ -37,6 +40,9 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
     }
     commit(() => {
       checkin.outAt = nowStamp();
+      if (contact.trim()) checkin.contact = contact.trim();
+      if (result) checkin.result = result;
+      if (note.trim()) checkin.note = note.trim();
       if (video) checkin.video = { key, bytes: video.bytes, originalBytes: video.originalBytes, seconds: Math.round(video.seconds), mime: video.mime, savedAt: checkin.outAt };
     }, `Checkout registrado · visita de ${minutes} min${video ? ` · vídeo ${fmtBytes(video.bytes)}` : ""}`);
     if (!sent) toast("Sem internet: o vídeo ficou no aparelho e será enviado automaticamente quando a conexão voltar.", "warning", 6000);
@@ -46,6 +52,11 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
   return (
     <Sheet title="Checkout da visita" onClose={onClose} icon={<LogOut size={18} />}>
       <div className="small t2 mb">{c.tradeName} · visita em andamento há {minutes} min</div>
+      <div className="field"><label>Com quem falou</label><input id="ck-contact" className="input" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Nome e cargo (ex.: Carlos, gerente)" /></div>
+      <div className="field"><label>Resultado da visita</label>
+        <div className="chips">{["Tirou pedido", "Sem pedido · estoque alto", "Sem pedido · pediu retorno", "Comprador ausente", "Cliente fechado"].map((r) => <Chip key={r} on={result === r} onClick={() => setResult(result === r ? null : r)}>{r}</Chip>)}</div>
+      </div>
+      <div className="field"><label>Anotação (opcional)</label><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: pediu promoção de picolé na próxima" /></div>
       {required ? (
         <>
           <div className="card mb" style={{ background: "var(--gold-soft)" }}>

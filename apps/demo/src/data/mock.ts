@@ -552,6 +552,8 @@ export const YESTERDAY_ROUTES: YesterdayRoute[] = ydRoutes.map(([routeName, driv
 // ---------------------------------------------------------------- check-ins (visitas)
 export interface Checkin {
   id: string; customerId: string; sellerId: string; inAt: string; outAt?: string; date: IsoDate;
+  /** com quem o vendedor falou, resultado e anotação (registrados no checkout) */
+  contact?: string; result?: string; note?: string;
   /** vídeo do freezer no checkout (arquivo guardado no aparelho; aqui só os dados) */
   video?: { key: string; bytes: number; originalBytes: number; seconds: number; mime: string; savedAt?: string; purgedAt?: string };
 }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { BarChart3, Users, MapPin, Target, PieChart } from "lucide-react";
 import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainment, daysBetween, inactivityBucket, bucketLabel, ORDER_STATUS, type IsoDate } from "@galato/domain";
 import { FileText, UserX, History } from "lucide-react";
+import { VisitHistoryCard } from "../components/visits";
 import { sellerMonthOrders, customerOrders, customersWithoutPurchaseThisMonth, type HistOrder } from "../data/history";
 import { fmtDate, fmtDateTime, termLabel, termShort } from "../components/business";
 import { PARAMS, SELLERS, CUSTOMERS, ORDERS, TODAY, PRODUCTS, sellerById, customerById } from "../data/mock";
@@ -628,6 +629,7 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
           </table>
         </div>
       </Card>
+      <div className="mt"><VisitHistoryCard customerId={id} /></div>
       <div className="small t2 mt">{c.address} — {c.district}, {c.city}/{c.state} · {c.buyerName} · {c.whatsapp}</div>
       {order && <OrderDetail o={order} onClose={() => setOrder(null)} />}
     </Sheet>

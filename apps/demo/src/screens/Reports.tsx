@@ -28,18 +28,11 @@ function businessDaysSoFar(): IsoDate[] {
 
 /** Venda diária por vendedor: distribui o realizado do mês pelos dias úteis já passados. */
 function sellerDaily(sellerId: string) {
-  const s = SELLERS.find((x) => x.id === sellerId)!;
+  // cada barra = soma dos pedidos daquele dia (o toque na barra mostra exatamente esses pedidos)
   const days = businessDaysSoFar();
-  const past = days.slice(0, -1);
-  const weights = past.map((d) => 0.55 + hash(sellerId + d) * 0.9);
-  const wsum = weights.reduce((a, b) => a + b, 0) || 1;
-  const pastTotal = s.monthAchievedCents - s.todayAchievedCents;
+  const orders = sellerMonthOrders(sellerId);
   const daily = sellerGoal(sellerId).dailyGoalCents;
-  return days.map((d, i) => ({
-    date: d,
-    sales: i < past.length ? Math.round((pastTotal * weights[i]!) / wsum) : s.todayAchievedCents,
-    goal: daily,
-  }));
+  return days.map((d) => ({ date: d, sales: orders.filter((o) => o.date === d).reduce((a, o) => a + o.totalCents, 0), goal: daily }));
 }
 
 function teamDaily(ids: string[]) {
@@ -153,8 +146,11 @@ function YearSummary({ data }: { data: MonthPoint[] }) {
 }
 
 // ---------------------------------------------------------------- gráficos
-function DailyChart({ data, height = 220 }: { data: { date: IsoDate; sales: number; goal: number }[]; height?: number }) {
+function DailyChart({ data, height = 220, orders, hideCustomer }: { data: { date: IsoDate; sales: number; goal: number }[]; height?: number; orders?: HistOrder[]; hideCustomer?: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
+  const [openO, setOpenO] = useState<HistOrder | null>(null);
+  const pick = (i: number) => { setHover(i); if (orders) setSel(sel === i ? null : i); };
   const W = 720, H = height, padL = 52, padR = 12, padT = 14, padB = 30;
   const max = Math.max(...data.map((d) => Math.max(d.sales, d.goal))) * 1.12 || 1;
   const step = (W - padL - padR) / data.length;
@@ -177,7 +173,7 @@ function DailyChart({ data, height = 220 }: { data: { date: IsoDate; sales: numb
           const top = y(d.sales);
           const hit = d.sales >= d.goal;
           return (
-            <g key={d.date} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)}>
+            <g key={d.date} onMouseEnter={() => setHover(i)} onClick={() => pick(i)} style={orders ? { cursor: "pointer" } : undefined} opacity={sel !== null && sel !== i ? 0.4 : 1}>
               <rect x={padL + i * step} y={padT} width={step} height={H - padT - padB} fill="transparent" />
               <path d={`M${x},${H - padB} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${H - padB} Z`}
                 className={`bar ${hit ? "bar-hit" : ""} ${hover === i ? "bar-hover" : ""}`} />
@@ -197,6 +193,24 @@ function DailyChart({ data, height = 220 }: { data: { date: IsoDate; sales: numb
         </div>
       )}
       <div className="chart-legend"><span><i className="sw sw-bar" /> Vendido no dia</span><span><i className="sw sw-hit" /> Bateu a meta</span><span><i className="sw sw-goal" /> Meta diária</span></div>
+      {orders && sel === null && <div className="xs muted mt">Toque no dia para ver os pedidos daquele dia.</div>}
+      {orders && sel !== null && (() => {
+        const d = data[sel]!;
+        const list = orders.filter((o) => o.date === d.date);
+        return (
+          <div className="day-orders mt">
+            <div className="flex between" style={{ alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <b className="small">Pedidos de {dayLabel(d.date)} ({list.length}) · {brl0(list.reduce((a, o) => a + o.totalCents, 0))}</b>
+              <button className="link" onClick={() => setSel(null)}>Fechar</button>
+            </div>
+            <div className="order-cards">
+              {list.map((o) => <OrderBalloon key={o.id} o={o} hideCustomer={hideCustomer} onClick={() => setOpenO(o)} />)}
+              {!list.length && <div className="small muted">Nenhum pedido neste dia.</div>}
+            </div>
+          </div>
+        );
+      })()}
+      {openO && <OrderDetail o={openO} onClose={() => setOpenO(null)} />}
     </div>
   );
 }
@@ -272,8 +286,8 @@ export function ReportsView({ scope }: { scope: string[] }) {
         <Kpi icon={<Users size={17} />} tone="success" label="Ticket médio" onClick={() => scrollToId("rel-diario")} value={brl0(ticket)} foot={`${daysHit} de ${daily.length} dias com meta batida`} />
       </div>
 
-      <Card id="rel-diario" title="Vendas por dia útil x meta diária" icon={<BarChart3 size={17} />} sub="equipe · passe o mouse ou toque na barra">
-        <DailyChart data={daily} />
+      <Card id="rel-diario" title="Vendas por dia útil x meta diária" icon={<BarChart3 size={17} />} sub="equipe · toque no dia para ver os pedidos">
+        <DailyChart data={daily} orders={scope.flatMap(sellerMonthOrders)} />
       </Card>
 
       <Card title="Vendas x meta · últimos 12 meses" icon={<BarChart3 size={17} />} sub="equipe · sazonalidade (inverno é temporada baixa)" className="mt">
@@ -372,7 +386,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
             : "sem dias úteis restantes no mês"} />
         <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido · toque p/ ver clientes`} onClick={() => setBuyersOpen(true)} />
       </div>
-      <Card id={`sp-daily-${id}`} title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} /></Card>
+      <Card id={`sp-daily-${id}`} title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} orders={orders} /></Card>
       <Card id={`sp-year-${id}`} title="Vendas x meta · últimos 12 meses" className="mt" sub="evolução e sazonalidade">
         <YearChart data={sellerYear(id)} />
         <YearSummary data={sellerYear(id)} />

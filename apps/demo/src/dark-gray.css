@@ -270,9 +270,6 @@ html body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .a
 html[data-theme="dark"] body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn) {
   box-shadow: 0 0 0 4px rgba(0, 0, 0, .7), inset 0 3px 8px rgba(0, 0, 0, .45), 0 1px 4px rgba(0, 0, 0, .5) !important;
 }
-html:not([data-theme="dark"]) body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn) {
-  box-shadow: inset 0 3px 8px rgba(30, 36, 50, .18), 0 1px 3px rgba(30, 36, 50, .15) !important;
-}
 html body .press-up { transform: translateY(0) scale(1) !important; }
 /* nova tela entrando */
 .main > * { animation: screenIn .2s ease both; }
@@ -290,9 +287,6 @@ html body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .a
 }
 html[data-theme="dark"] body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn):is(*, .x.x) {
   box-shadow: 0 0 0 5px rgba(0, 0, 0, .8), inset 0 5px 12px rgba(0, 0, 0, .6), 0 0 2px rgba(0, 0, 0, .6) !important;
-}
-html:not([data-theme="dark"]) body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn):is(*, .x.x) {
-  box-shadow: inset 0 5px 12px rgba(30, 36, 50, .25), 0 0 2px rgba(30, 36, 50, .2) !important;
 }
 
 /* toque reto: só desce e sobe na vertical (sem encolher, sem levantar no hover, sem pulo do :active) */
@@ -359,3 +353,8 @@ html body .sheet .sheet-body {
 }
 @media (min-width: 1024px) { html body .sheet .sheet-body { margin: 0 -26px; padding: 16px 26px 28px; } }
 html body .modal .sheet-body { padding-bottom: 16px; }
+
+/* ===== modo claro: o botão inteiro (com o aro) encolhe e volta; sem mudar de cor ===== */
+html:not([data-theme="dark"]) body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x.x) { box-shadow: var(--rim) !important; filter: none !important; }
+html:not([data-theme="dark"]) body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x.x)::after { content: none !important; display: none !important; }
+html:not([data-theme="dark"]) body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .bn-item, .side-item, .row, .kpi, .bucket, .route-pick, .occ-type, .step-btn, .bullet-row):is(*, .x.x.x.x.x.x.x.x.x.x.x):active { filter: none !important; }

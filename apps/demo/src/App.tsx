@@ -38,7 +38,7 @@ export default function App() {
     const root = document.documentElement;
     root.dataset.theme = s.theme === "dark" ? "dark" : "light";
     root.classList.toggle("ent", s.theme === "light");
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", s.theme === "dark" ? "#1B0407" : s.theme === "light" ? "#F5F7FA" : "#F6F4F1");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", s.theme === "dark" ? "#000000" : s.theme === "light" ? "#F5F7FA" : "#F6F4F1");
   }, [s.theme]);
   return (
     <>

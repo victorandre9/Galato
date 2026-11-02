@@ -566,3 +566,12 @@ input.chk { width: 22px; height: 22px; flex: none; margin: 2px 0 0; accent-color
 .row.row-sel { background: rgba(47, 111, 214, .07); border-radius: 12px; }
 html[data-theme="dark"] .row.row-sel { background: rgba(255, 255, 255, .06); }
 html body .ring-wrap:is(*, .x.x.x) svg { overflow: visible !important; }
+
+/* tema claro: sem o borrado colorido em volta das barras/anéis; brilho branco mais forte */
+html:not([data-theme="dark"]) body .progress.neon:is(*, .x.x.x.x.x) > span {
+  background: linear-gradient(90deg, var(--c1), var(--c2)) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45) !important;
+}
+html:not([data-theme="dark"]) body .progress.neon:is(*, .x.x.x.x.x) > span::after { background: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .15)); height: 45%; }
+html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x) .ring-arc { filter: none !important; }
+html:not([data-theme="dark"]) body .ring-wrap:is(*, .x.x.x.x) .ring-shine { opacity: .9 !important; }

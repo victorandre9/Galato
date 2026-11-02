@@ -305,3 +305,12 @@ html body .press-down:is(.btn, .icon-btn, .chip, .action-tile, .card.click, .ord
 html body .press-up:is(*, .x.x.x.x) { transform: translateY(0) !important; }
 /* + e − da quantidade (sem espera): só :active, reto */
 html body .step-btn:is(*, .x.x.x.x):active:not(:disabled) { transform: translateY(4px) !important; }
+
+/* aro de fora travado: o elemento não se move; o segundo aro e o conteúdo descem/sobem */
+html body .press-down.press-down:is(*, .x.x.x.x.x.x.x.x), html body .press-up.press-up:is(*, .x.x.x.x.x.x.x.x) { transform: none !important; }
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .bullet-row):is(*, .x.x.x.x) {
+  transition: padding .2s cubic-bezier(.4, 0, .6, 1), box-shadow .2s cubic-bezier(.4, 0, .6, 1), filter .2s cubic-bezier(.4, 0, .6, 1) !important;
+}
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .step-btn):is(*, .x.x.x.x)::before { transition: transform .2s cubic-bezier(.4, 0, .6, 1) !important; }
+html body .press-down:is(*, .x.x.x.x.x)::before { transform: translateY(var(--press-ring, 0px)) !important; }
+html body .press-up:is(*, .x.x.x.x.x)::before { transform: translateY(0) !important; }

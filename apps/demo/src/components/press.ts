@@ -15,11 +15,25 @@ function onClick(e: MouseEvent) {
   if (el.dataset.pressing) { e.preventDefault(); e.stopPropagation(); return; }
   e.preventDefault(); e.stopPropagation();
   el.dataset.pressing = "1";
+  // aro de fora parado: só o segundo aro e o conteúdo descem
+  const cs = getComputedStyle(el), ring = getComputedStyle(el, "::before");
+  const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+  const big = el.matches(".card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile");
+  const d = Math.min(big ? 5 : 3, Math.max(0, pb - 2));
+  const gap = ring.content !== "none" ? parseFloat(ring.top) || 0 : 0;
+  const ringShift = Math.max(0, Math.min(d, gap - 1));
+  const orig = { pt: el.style.paddingTop, pb: el.style.paddingBottom };
+  el.style.setProperty("--press-ring", `${ringShift}px`);
   el.classList.add("press-down");
+  el.style.setProperty("padding-top", `${pt + d}px`, "important");
+  el.style.setProperty("padding-bottom", `${pb - d}px`, "important");
   setTimeout(() => {
     el.classList.remove("press-down"); el.classList.add("press-up");
+    el.style.setProperty("padding-top", `${pt}px`, "important");
+    el.style.setProperty("padding-bottom", `${pb}px`, "important");
     setTimeout(() => {
       el.classList.remove("press-up"); delete el.dataset.pressing;
+      el.style.paddingTop = orig.pt; el.style.paddingBottom = orig.pb; el.style.removeProperty("--press-ring");
       if (!el.isConnected) return;
       replaying = true;
       try { (t && el.contains(t) ? t : el).dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window })); }

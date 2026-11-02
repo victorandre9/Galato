@@ -234,3 +234,14 @@ html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .e
     0 8px 24px rgba(0, 0, 0, .6) !important;
 }
 html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x)::before { border-color: rgba(255, 255, 255, .10) !important; }
+
+/* faixa preta bem visível entre as duas linhas cinza da borda (cards, modo noturno) */
+html[data-theme="dark"] body :is(.card, .ent-group):is(*, .x.x.x.x.x.x.x) { --gl-ring: 6px; }
+html[data-theme="dark"] body :is(.order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x) { --gl-ring: 5px; }
+html[data-theme="dark"] body :is(.card, .ent-group):is(*, .x.x.x.x.x.x.x) {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .16), inset 0 0 0 6px #000, 0 8px 24px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x) {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .16), inset 0 0 0 5px #000, 0 8px 24px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x)::before { border: 1.5px solid rgba(255, 255, 255, .16) !important; }

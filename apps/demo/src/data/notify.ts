@@ -1,12 +1,13 @@
 /** Central de notificações: cria e filtra por quem está vendo. */
-import { NOTIFICATIONS, CURRENT_SELLER, CURRENT_DRIVER, nowStamp, type NotifKind, type Role } from "./mock";
+import { NOTIFICATIONS, CURRENT_SELLER, CURRENT_DRIVER, nowStamp, type NotifKind, type NotifLink, type Role } from "./mock";
 
 let seq = 0;
-export function notify(n: { kind: NotifKind; title: string; text: string; to: string[]; priority?: "normal" | "high" }) {
+export function notify(n: { kind: NotifKind; title: string; text: string; to: string[]; priority?: "normal" | "high"; link?: NotifLink }) {
   NOTIFICATIONS.unshift({
     id: `n${Date.now().toString(36)}${(seq++).toString(36)}`,
     at: nowStamp(),
     kind: n.kind, priority: n.priority ?? "normal", title: n.title, text: n.text, to: n.to, readBy: [],
+    ...(n.link ? { link: n.link } : {}),
   });
 }
 

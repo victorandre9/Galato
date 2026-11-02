@@ -85,7 +85,7 @@ export function FreezerOccurrenceSheet({ c, onClose }: { c: Customer; onClose: (
       base.log.push({ at: base.createdAt, by, text: kind === "defeito" ? "Defeito registrado · visita do técnico solicitada" : "Ocorrência aberta · enviada à gestão" });
       FREEZER_OCCURRENCES.unshift(base);
       const what = kind === "perda" ? `perda de ${lost.length} produto(s) · ${brl(lossTotal)} · ${lossReason}` : kind === "defeito" ? `defeito · ${fault ? "culpa do cliente" : "sem culpa do cliente"} · técnico solicitado` : "outros produtos no freezer";
-      notify({ kind: "comercial", priority: "high", title: `Ocorrência de freezer: ${OCC_TYPES[kind!].short}`, text: `${c.tradeName} · patrimônio ${pat} · ${what} · ${by}.`, to: managerOf(c.sellerId) });
+      notify({ link: { t: "occ", id: base.id }, kind: "comercial", priority: "high", title: `Ocorrência de freezer: ${OCC_TYPES[kind!].short}`, text: `${c.tradeName} · patrimônio ${pat} · ${what} · ${by}.`, to: managerOf(c.sellerId) });
     }, `Ocorrência registrada · ${kind === "defeito" ? "visita do técnico solicitada à gestão" : "enviada à gestão"}`);
     onClose();
   }
@@ -200,7 +200,7 @@ export function OccurrenceDetail({ occ: view, viewer, onClose }: { occ: FreezerO
   const act = (status: FreezerOccStatus, text: string, toast: string, extra?: () => void) => commit(() => {
     o.status = status; extra?.();
     o.log.push({ at: nowStamp(), by: who, text: note.trim() ? `${text} · ${note.trim()}` : text });
-    notify({ kind: "comercial", title: `Ocorrência ${o.number}: ${OCC_STATUS[status].label}`, text: `${c.tradeName} · patrimônio ${o.patrimony}${note.trim() ? ` · ${note.trim()}` : ""}.`, to: viewer === "manager" ? [`seller:${o.sellerId}`] : managerOf(o.sellerId) });
+    notify({ link: { t: "occ", id: o.id }, kind: "comercial", title: `Ocorrência ${o.number}: ${OCC_STATUS[status].label}`, text: `${c.tradeName} · patrimônio ${o.patrimony}${note.trim() ? ` · ${note.trim()}` : ""}.`, to: viewer === "manager" ? [`seller:${o.sellerId}`] : managerOf(o.sellerId) });
   }, toast);
   // após a ação volta para a lista (o aviso confirma)
   const act2 = (...args: Parameters<typeof act>) => { act(...args); onClose(); };

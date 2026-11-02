@@ -148,7 +148,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             onSubmit={(reason) => {
               commit(() => {
                 TRANSFER_REQUESTS.unshift({ id: `tr${Date.now()}`, customerId: c.id, fromSellerId: c.sellerId, toSellerId: viewerSellerId!, reason, createdAt: nowStamp(), status: "pending" });
-                notify({ kind: "comercial", title: "Pedido de transferência de carteira", text: `${sellerById.get(viewerSellerId!)?.name} pediu ${c.tradeName} (carteira de ${sellerById.get(c.sellerId)?.name}).`, to: ["sales_coordinator", "sales_manager", "general_manager"] });
+                notify({ link: { t: "transfer", id: TRANSFER_REQUESTS[0]!.id }, kind: "comercial", title: "Pedido de transferência de carteira", text: `${sellerById.get(viewerSellerId!)?.name} pediu ${c.tradeName} (carteira de ${sellerById.get(c.sellerId)?.name}).`, to: ["sales_coordinator", "sales_manager", "general_manager"] });
               }, "Solicitação enviada ao gerente/coordenador. Transferência só ocorre após aprovação.");
               onClose();
             }} />
@@ -156,7 +156,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
           <ReasonForm title="Encaminhar oportunidade ao responsável" placeholder="Descreva a oportunidade (produto, volume, contato)"
             cta={`Encaminhar para ${v.responsibleSellerName.split(" ")[0]}`} onCancel={() => setMode(null)}
             onSubmit={(text) => {
-              commit(() => notify({ kind: "comercial", title: "Oportunidade encaminhada", text: `${sellerById.get(viewerSellerId!)?.name} indicou ${c.tradeName}: ${text}`, to: [`seller:${c.sellerId}`] }),
+              commit(() => notify({ link: { t: "customer", id: c.id }, kind: "comercial", title: "Oportunidade encaminhada", text: `${sellerById.get(viewerSellerId!)?.name} indicou ${c.tradeName}: ${text}`, to: [`seller:${c.sellerId}`] }),
                 "Oportunidade encaminhada. Comissão por indicação: regra a definir pela empresa.");
               onClose();
             }} />
@@ -385,7 +385,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
             amountCents: target?.openCents ?? 0, receivableDoc: target?.doc ?? "Não identificado", createdAt: nowStamp(),
             status: "pending", attachmentName: "comprovante-pagamento.jpg", attachmentDataUrl: photo!,
           });
-          notify({ kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
+          notify({ link: { t: "proof", id: PAYMENT_REQUESTS[0]!.id }, kind: "financeiro", title: `Novo comprovante ${method}`, text: `${c.tradeName} · ${target ? target.doc : "débito não identificado"} · ${brl(target?.openCents ?? 0)} · enviado por ${sellerById.get(c.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
         }, "Comprovante enviado ao financeiro · acompanhe o status em Pendências");
         onClose();
       }}><Send size={16} /> Enviar ao financeiro</button>
@@ -429,7 +429,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         applySalesDelta(editing, before);
         if (status !== "draft") {
           c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
-          notify({
+          notify({ link: { t: "order", id: editing.id },
             kind: "financeiro", priority: "high", title: "Pedido alterado pelo vendedor",
             text: `${editing.number} · ${c.tradeName} · ${brl(oldTotal)} → ${brl(total)} · prazo ${termLabel(granted)} · volta para o financeiro.`,
             to: ["finance", ...MANAGERS_KEYS],
@@ -458,7 +458,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         const s = SELLERS.find((x) => x.id === c.sellerId);
         if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; s.ordersToday += 1; }
         c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
-        notify({
+        notify({ link: { t: "order", id: o.id },
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
           title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido enviado ao crédito",
           text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,

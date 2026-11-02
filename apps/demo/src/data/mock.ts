@@ -460,15 +460,25 @@ export const TEMP_ACCESS: TempAccess[] = [];
 
 // ---------------------------------------------------------------- notificações
 export type NotifKind = "operacional" | "alerta" | "financeiro" | "comercial" | "logistica" | "sistema";
+/** Para onde a notificação leva quando tocada. */
+export type NotifLink =
+  | { t: "order"; id: string } | { t: "proof"; id: string } | { t: "customer"; id: string }
+  | { t: "route"; id: string } | { t: "occ"; id: string } | { t: "seller"; id: string }
+  | { t: "nc"; id: string } | { t: "incident"; id: string } | { t: "epi"; id: string } | { t: "transfer"; id: string }
+  | { t: "orders"; title: string; statuses: string[] }
+  | { t: "proofs"; title: string; late?: boolean }
+  | { t: "clients-route"; sellerId: string; days: number }
+  | { t: "tab"; tab: string };
 export interface Notification {
   id: string; at: string; kind: NotifKind; priority: "normal" | "high"; title: string; text: string;
   /** destinatários: papel ("finance") ou pessoa ("seller:s1", "driver:d1") */
   to: string[]; readBy: string[];
+  link?: NotifLink;
 }
 export const NOTIFICATIONS: Notification[] = [
-  { id: "n1", at: new Date(NOW.getTime() - 50 * 60_000).toISOString(), kind: "financeiro", priority: "high", title: "Solicitações sem resposta há +24h", text: "3 comprovantes aguardam o financeiro além do SLA.", to: ["finance", "sales_manager", "sales_coordinator", "general_manager"], readBy: [] },
-  { id: "n2", at: new Date(NOW.getTime() - 95 * 60_000).toISOString(), kind: "logistica", priority: "high", title: "Não conformidade crítica", text: "Refrigeração do veículo HJK-9D10 marcando -12 °C.", to: ["transport_coordinator", "general_manager"], readBy: [] },
-  { id: "n3", at: new Date(NOW.getTime() - 3 * 3_600_000).toISOString(), kind: "comercial", priority: "normal", title: "Clientes da rota sem compra", text: "2 clientes da rota de hoje estão há mais de 28 dias sem comprar.", to: ["seller:s1"], readBy: [] },
+  { id: "n1", at: new Date(NOW.getTime() - 50 * 60_000).toISOString(), kind: "financeiro", priority: "high", title: "Solicitações sem resposta há +24h", text: "3 comprovantes aguardam o financeiro além do SLA.", link: { t: "proofs", title: "Comprovantes além do SLA", late: true }, to: ["finance", "sales_manager", "sales_coordinator", "general_manager"], readBy: [] },
+  { id: "n2", at: new Date(NOW.getTime() - 95 * 60_000).toISOString(), kind: "logistica", priority: "high", title: "Não conformidade crítica", link: { t: "nc", id: "nc1" }, text: "Refrigeração do veículo HJK-9D10 marcando -12 °C.", to: ["transport_coordinator", "general_manager"], readBy: [] },
+  { id: "n3", at: new Date(NOW.getTime() - 3 * 3_600_000).toISOString(), kind: "comercial", priority: "normal", title: "Clientes da rota sem compra", link: { t: "clients-route", sellerId: "s1", days: 28 }, text: "2 clientes da rota de hoje estão há mais de 28 dias sem comprar.", to: ["seller:s1"], readBy: [] },
 ];
 
 // ---------------------------------------------------------------- comprovantes (foto)

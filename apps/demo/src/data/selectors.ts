@@ -6,7 +6,7 @@ import {
 } from "@galato/domain";
 import {
   PARAMS, TODAY, NOW, SELLERS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, DELIVERY_ROUTES, ASSETS, INCIDENTS,
-  NONCONFORMITIES, TODAY_ROUTE, DRIVERS, VEHICLES, type Customer, type DeliveryRoute,
+  NONCONFORMITIES, TODAY_ROUTE, DRIVERS, VEHICLES, type Customer, type DeliveryRoute, type NotifLink,
 } from "./mock";
 
 const cal = PARAMS.workCalendar;
@@ -126,15 +126,16 @@ export function logisticsOverview() {
   const delivered = routes.reduce((a, x) => a + x.p.delivered, 0);
   const failed = routes.reduce((a, x) => a + x.p.failed, 0);
   const nowMin = minutesOf(timeInTimezone(NOW, PARAMS.timezone));
-  const alerts: { tone: "danger" | "warning"; text: string }[] = [];
+  const alerts: { tone: "danger" | "warning"; text: string; link: NotifLink }[] = [];
   for (const x of routes) {
+    const link: NotifLink = { t: "route", id: x.r.id };
     if (!x.r.startedAt && nowMin > minutesOf(PARAMS.logistics.driverNotStartedAlertAfter))
-      alerts.push({ tone: "danger", text: `${x.driver.name.split(" ")[0]} não iniciou a rota ${x.r.name}` });
-    if (x.p.behind) alerts.push({ tone: "warning", text: `Rota ${x.r.name} abaixo do ritmo esperado (${Math.round(x.p.pct)}% vs ${Math.round(x.p.expectedPct ?? 0)}%)` });
-    if (x.p.failed) alerts.push({ tone: "warning", text: `${x.p.failed} entrega(s) não realizada(s) na rota ${x.r.name}` });
+      alerts.push({ tone: "danger", text: `${x.driver.name.split(" ")[0]} não iniciou a rota ${x.r.name}`, link });
+    if (x.p.behind) alerts.push({ tone: "warning", text: `Rota ${x.r.name} abaixo do ritmo esperado (${Math.round(x.p.pct)}% vs ${Math.round(x.p.expectedPct ?? 0)}%)`, link });
+    if (x.p.failed) alerts.push({ tone: "warning", text: `${x.p.failed} entrega(s) não realizada(s) na rota ${x.r.name}`, link });
   }
   for (const nc of NONCONFORMITIES.filter((n) => n.severity === "critical" && n.status !== "resolved"))
-    alerts.push({ tone: "danger", text: `Não conformidade crítica: ${nc.item} — ${VEHICLES.find((v) => v.id === nc.vehicleId)?.plate}` });
+    alerts.push({ tone: "danger", text: `Não conformidade crítica: ${nc.item} — ${VEHICLES.find((v) => v.id === nc.vehicleId)?.plate}`, link: { t: "nc", id: nc.id } });
   const openIncidents = INCIDENTS.filter((i) => i.status !== "resolved");
   const yesterdayPending = openIncidents.filter((i) => !i.createdAt.startsWith(TODAY)).length;
   return {

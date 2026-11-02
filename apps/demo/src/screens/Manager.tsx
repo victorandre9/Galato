@@ -5,7 +5,7 @@ import {
   BarChart3, AlertTriangle, Trophy, Receipt, ClipboardList, Clock, ArrowRightLeft, CalendarRange, Check, X as XIcon,
 } from "lucide-react";
 import { bucketLabel, PAYMENT_REQUEST_STATUS, daysBetween, type AbcdClass } from "@galato/domain";
-import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role } from "../data/mock";
+import { PARAMS, SELLERS, CUSTOMERS, MANAGERS, TODAY, customerById, sellerById, TRANSFER_REQUESTS, TEMP_ACCESS, type Customer, type Role , type NotifLink } from "../data/mock";
 import { notify } from "../data/notify";
 import { ReportsView, RankingSheet, SellerPanel, ClientList } from "./Reports";
 import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occurrences";
@@ -14,6 +14,7 @@ import { AlertOctagon } from "lucide-react";
 import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
+import { AlertLine } from "../components/links";
 import { CheckinVideo } from "../components/checkout";
 import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
@@ -104,13 +105,14 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
   const [proofOpen, setProofOpen] = useState<PaymentRequest | null>(null);
   const [pipe, setPipe] = useState<string | null>(null);
   const [sellerOpen, setSellerOpen] = useState<string | null>(null);
-  const alerts: { tone: "danger" | "warning"; text: string; tab: string }[] = [
-    ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, tab: "sales" })),
-    ...(fq.breached ? [{ tone: "danger" as const, text: `${fq.breached} solicitações financeiras sem resposta há +${PARAMS.financialSla.responseHours}h`, tab: "finance" }] : []),
-    ...log.alerts.slice(0, 3).map((a) => ({ ...a, tab: "deliveries" })),
-    { tone: "warning", text: `${countByStatus(orders, ["blocked"])} pedidos bloqueados por crédito`, tab: "finance" },
-    { tone: "warning", text: `${assets.idleCount} freezers sem giro (${brl0(assets.idleValue)})`, tab: "assets" },
-    ...(() => { const n = FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length; return n ? [{ tone: "danger" as const, text: `${n} ocorrência(s) de freezer aguardando a gestão`, tab: "fzocc" }] : []; })(),
+  const alerts: { tone: "danger" | "warning"; text: string; link: NotifLink }[] = [
+    ...ranking.filter((r) => (r.attainmentPct ?? 0) < 70).map((r) => ({ tone: "danger" as const, text: `${r.name} em ${pct(r.attainmentPct ?? 0)} da meta ${rankMode === "day" ? "do dia" : "do mês"}`, link: { t: "seller", id: r.id } as NotifLink })),
+    ...(fq.breached ? [{ tone: "danger" as const, text: `${fq.breached} solicitações financeiras sem resposta há +${PARAMS.financialSla.responseHours}h`, link: { t: "proofs", title: "Comprovantes além do SLA", late: true } as NotifLink }] : []),
+    ...log.alerts.slice(0, 3),
+    { tone: "warning", text: `${countByStatus(orders, ["blocked"])} pedidos bloqueados pelo crédito`, link: { t: "orders", title: "Pedidos bloqueados pelo crédito", statuses: ["blocked"] } },
+    { tone: "warning", text: `${countByStatus(orders, ["awaiting_credit_review", "in_approval"])} pedidos aguardando o crédito`, link: { t: "orders", title: "Pedidos enviados ao crédito", statuses: ["awaiting_credit_review", "in_approval"] } },
+    { tone: "warning", text: `${assets.idleCount} freezers sem giro (${brl0(assets.idleValue)})`, link: { t: "tab", tab: "assets" } },
+    ...(() => { const n = FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length; return n ? [{ tone: "danger" as const, text: `${n} ocorrência(s) de freezer aguardando a gestão`, link: { t: "tab", tab: "fzocc" } as NotifLink }] : []; })(),
   ];
 
   return (
@@ -150,11 +152,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
           ); })()}
         </Card>
         <Card title={`Exceções e alertas (${alerts.length})`} icon={<AlertTriangle size={17} />}>
-          {alerts.map((a, i) => (
-            <div key={i} className="alert-line click" style={{ cursor: "pointer" }} onClick={() => goTab(a.tab)}>
-              <span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}
-            </div>
-          ))}
+          {alerts.map((a, i) => <AlertLine key={i} tone={a.tone} text={a.text} link={a.link} />)}
         </Card>
       </div>
 
@@ -429,7 +427,7 @@ function DeliveriesView() {
       <Card title="Por rota, motorista e veículo" sub="toque na rota para ver entregas e comprovantes"><DeliveriesTable /></Card>
       <ChecklistsCard />
       <Card title="Entregas com atenção" icon={<AlertTriangle size={17} />} className="mt">
-        {log.alerts.map((a, i) => <div key={i} className="alert-line"><span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}</div>)}
+        {log.alerts.map((a, i) => <AlertLine key={i} tone={a.tone} text={a.text} link={a.link} />)}
       </Card>
     </>
   );
@@ -543,7 +541,7 @@ function PortfolioView() {
     const c = customerById.get(r.customerId)!;
     r.status = ok ? "approved" : "rejected"; r.decidedAt = nowStamp(); r.decidedBy = "Gestão";
     if (ok) c.sellerId = r.toSellerId;
-    notify({ kind: "comercial", title: ok ? "Transferência aprovada" : "Transferência recusada", text: `${c.tradeName}: ${ok ? `agora na carteira de ${sellerById.get(r.toSellerId)?.name}` : "permanece com o vendedor atual"}.`, to: [`seller:${r.toSellerId}`, `seller:${r.fromSellerId}`] });
+    notify({ link: { t: "customer", id: c.id }, kind: "comercial", title: ok ? "Transferência aprovada" : "Transferência recusada", text: `${c.tradeName}: ${ok ? `agora na carteira de ${sellerById.get(r.toSellerId)?.name}` : "permanece com o vendedor atual"}.`, to: [`seller:${r.toSellerId}`, `seller:${r.fromSellerId}`] });
   }, ok ? "Transferência aprovada · carteira anterior, aprovador e motivo registrados" : "Transferência rejeitada · histórico registrado");
   return (
     <>
@@ -583,7 +581,7 @@ function PortfolioView() {
           <p className="xs muted mb">Acesso removido automaticamente no fim do período. Preparado para integração futura com RH.</p>
           <button className="btn btn-primary btn-block" disabled={!form.to || form.to < form.from} onClick={() => commit(() => {
             TEMP_ACCESS.unshift({ id: `ta${Date.now()}`, holderSellerId: form.titular, substituteSellerId: form.sub, from: form.from, to: form.to, reason: form.reason, createdAt: nowStamp() });
-            notify({ kind: "comercial", title: "Acesso temporário liberado", text: `Você cobre a carteira de ${sellerById.get(form.titular)?.name} de ${fmtDate(form.from)} a ${fmtDate(form.to)} (${form.reason}).`, to: [`seller:${form.sub}`] });
+            notify({ link: { t: "tab", tab: "customers" }, kind: "comercial", title: "Acesso temporário liberado", text: `Você cobre a carteira de ${sellerById.get(form.titular)?.name} de ${fmtDate(form.from)} a ${fmtDate(form.to)} (${form.reason}).`, to: [`seller:${form.sub}`] });
           }, `Carteira de ${sellerById.get(form.titular)?.name.split(" ")[0]} liberada para ${sellerById.get(form.sub)?.name.split(" ")[0]} até ${fmtDate(form.to)}`)}>Liberar acesso temporário</button>
           {TEMP_ACCESS.length > 0 && <div className="section-title" style={{ fontSize: 13 }}>Acessos ativos</div>}
           {TEMP_ACCESS.map((t) => (
@@ -647,8 +645,8 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
     r.deliveries.push({ id: `re-${d.id}`, seq: r.deliveries.length + 1, customerId: d.customerId, invoiceNumber: d.invoiceNumber, orderNumber: "—", volumes: 10, status: r.startedAt ? "in_transit" : "scheduled" });
     d.rescheduledTo = r.id;
     const c = customerById.get(d.customerId)!;
-    notify({ kind: "logistica", title: "Reentrega incluída na sua rota", text: `${c.tradeName} · ${d.invoiceNumber} (pendente de ontem${d.reason ? `: ${d.reason}` : ""}).`, to: [`driver:${r.driverId}`, "transport_coordinator"] });
-    notify({ kind: "logistica", title: "Entrega reprogramada", text: `${c.tradeName} · ${d.invoiceNumber} volta para rota hoje.`, to: [`seller:${c.sellerId}`] });
+    notify({ link: { t: "route", id: r.id }, kind: "logistica", title: "Reentrega incluída na sua rota", text: `${c.tradeName} · ${d.invoiceNumber} (pendente de ontem${d.reason ? `: ${d.reason}` : ""}).`, to: [`driver:${r.driverId}`, "transport_coordinator"] });
+    notify({ link: { t: "customer", id: c.id }, kind: "logistica", title: "Entrega reprogramada", text: `${c.tradeName} · ${d.invoiceNumber} volta para rota hoje.`, to: [`seller:${c.sellerId}`] });
   }, "Entrega reprogramada para hoje · motorista e coordenação avisados");
   return (
     <Sheet title={`Fechamento de ontem · ${dayLabel(y.date)}`} onClose={onClose} wide icon={<History size={18} />}>
@@ -731,8 +729,8 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
       </Card>
       {(y.openPayments > 0 || y.openIncidents > 0) && (
         <Card title="Ainda abertos desde ontem" icon={<AlertTriangle size={17} />} className="mt">
-          <div className="alert-line"><span className="dotc" style={{ background: "var(--danger)" }} />{y.openPayments} comprovante(s) de pagamento sem resposta do financeiro</div>
-          <div className="alert-line"><span className="dotc" style={{ background: "var(--gold)" }} />{y.openIncidents} ocorrência(s) logística(s) em aberto</div>
+          <AlertLine tone="danger" text={`${y.openPayments} comprovante(s) de pagamento sem resposta do financeiro`} link={{ t: "proofs", title: "Comprovantes sem resposta do financeiro" }} />
+          <AlertLine tone="warning" text={`${y.openIncidents} ocorrência(s) logística(s) em aberto`} link={{ t: "tab", tab: "deliveries" }} />
         </Card>
       )}
     </Sheet>

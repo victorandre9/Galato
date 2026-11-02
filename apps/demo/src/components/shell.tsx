@@ -3,12 +3,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Palette, Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
 import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, type Theme } from "../data/store";
-import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest } from "../data/mock";
+import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest, type NotifLink } from "../data/mock";
 import { daysBetween } from "@galato/domain";
 import { CustomerSheet } from "./business";
 import { OrderOpen } from "./order-flow";
 import { ProofView, InfoSheet } from "./details";
 import { ClientList } from "../screens/Reports";
+import { LinkView } from "./links";
 import { dayLabel } from "../data/selectors";
 import { notificationsFor, viewerId } from "../data/notify";
 import { persistChanges, resetDemo } from "../data/sync";
@@ -52,6 +53,13 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
   const go = (t: string) => onTab(t);
   const goBack = () => { const prev = hist.current.pop(); if (prev !== undefined) { goingBack.current = true; onTabRef.current(prev); window.scrollTo({ top: 0 }); } };
   useEffect(() => { registerTabs({ has: () => hist.current.length > 0, back: goBack }); return () => registerTabs(null); }, []);
+  // troca de aba pedida por notificação/alerta
+  const seenNav = useRef(s.navN);
+  useEffect(() => {
+    if (s.navN === seenNav.current) return;
+    seenNav.current = s.navN;
+    if (s.navTab && tabs.some((t) => t.id === s.navTab)) { onTabRef.current(s.navTab); window.scrollTo({ top: 0 }); }
+  }, [s.navN]);
   const mine = s.role ? notificationsFor(s.role) : [];
   const me = s.role ? viewerId(s.role) : "";
   const unread = mine.filter((n) => !n.readBy.includes(me)).length;
@@ -183,6 +191,7 @@ function targetOf(n: { title: string; text: string; to: string[] }): NotifTarget
 function NotificationCenter({ onClose }: { onClose: () => void }) {
   const s = useStore();
   const [target, setTarget] = useState<NotifTarget | null>(null);
+  const [link, setLink] = useState<NotifLink | null>(null);
   const [cust, setCust] = useState<Customer | null>(null);
   const list = s.role ? notificationsFor(s.role) : [];
   const me = s.role ? viewerId(s.role) : "";
@@ -197,7 +206,7 @@ function NotificationCenter({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title={`Notificações (${list.filter((n) => !n.readBy.includes(me)).length} novas)`} onClose={close} icon={<Bell size={18} />}>
       {list.map((n) => (
-        <div key={n.id} className="row click" onClick={() => { if (!n.readBy.includes(me)) { n.readBy.push(me); persistChanges(); } setTarget(targetOf(n)); }} style={{ alignItems: "flex-start", opacity: n.readBy.includes(me) ? 0.6 : 1 }}>
+        <div key={n.id} className="row click" onClick={() => { if (!n.readBy.includes(me)) { n.readBy.push(me); persistChanges(); } if (n.link) setLink(n.link); else setTarget(targetOf(n)); }} style={{ alignItems: "flex-start", opacity: n.readBy.includes(me) ? 0.6 : 1 }}>
           <span className="dotc" style={{ width: 9, height: 9, borderRadius: 9, marginTop: 6, flexShrink: 0, background: n.readBy.includes(me) ? "transparent" : n.priority === "high" ? "var(--danger)" : "var(--gold)" }} />
           <div className="grow">
             <div className="flex between"><span className="semi">{n.title}</span><span className="xs muted">{new Date(n.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>
@@ -207,6 +216,7 @@ function NotificationCenter({ onClose }: { onClose: () => void }) {
         </div>
       ))}
       {!list.length && <Empty icon={<BellOff />} text="Nenhuma notificação." />}
+      {link && <LinkView link={link} onClose={() => setLink(null)} onNavigate={() => { setLink(null); close(); }} />}
       {target?.kind === "order" && <OrderOpen order={target.o} canEdit={s.role === "seller"} onClose={() => setTarget(null)} />}
       {target?.kind === "proof" && <ProofView p={target.p} onClose={() => setTarget(null)} />}
       {target?.kind === "customer" && <CustomerSheet c={target.c} viewerSellerId={s.role === "seller" ? target.c.sellerId : undefined} onClose={() => setTarget(null)} />}

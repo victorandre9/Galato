@@ -60,7 +60,7 @@ export function cancelOrder(o: Order, reason: string) {
   setOrderStatus(o, "cancelled", sellerById.get(o.sellerId)?.name ?? "Vendedor", `Cancelado pelo vendedor · ${reason}`);
   applySalesDelta(o, before);
   const c = customerById.get(o.customerId);
-  notify({ kind: "comercial", priority: "high", title: "Pedido cancelado pelo vendedor", text: `${o.number} · ${c?.tradeName} · ${formatBRL(o.totalCents)} · ${reason} · ${sellerById.get(o.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
+  notify({ link: { t: "order", id: o.id }, kind: "comercial", priority: "high", title: "Pedido cancelado pelo vendedor", text: `${o.number} · ${c?.tradeName} · ${formatBRL(o.totalCents)} · ${reason} · ${sellerById.get(o.sellerId)?.name}.`, to: ["finance", ...MANAGERS_KEYS] });
 }
 
 export const findOrder = (id: string) => ORDERS.find((o) => o.id === id);

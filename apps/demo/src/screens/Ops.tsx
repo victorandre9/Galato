@@ -21,6 +21,7 @@ import { DeliveryListSheet } from "./Manager";
 import { fmtDate, fmtDateTime, CustomerName } from "../components/business";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
+import { AlertLine } from "../components/links";
 import { CustomerHistory } from "./Reports";
 
 // =================================================================== TRANSPORTES
@@ -80,7 +81,7 @@ function TransportHome({ goTab }: { goTab: (t: string) => void }) {
       </div>
       <Card title={`Alertas (${log.alerts.length})`} icon={<Bell size={17} />} className="mb">
         <div className="grid gd gd-2" style={{ gap: 4, marginBottom: 0 }}>
-          {log.alerts.map((a, i) => <div key={i} className="alert-line"><span className="dotc" style={{ background: a.tone === "danger" ? "var(--danger)" : "var(--gold)" }} />{a.text}</div>)}
+          {log.alerts.map((a, i) => <AlertLine key={i} tone={a.tone} text={a.text} link={a.link} />)}
         </div>
         <div className="xs muted mt">Limites configuráveis: motorista sem iniciar após {PARAMS.logistics.driverNotStartedAlertAfter}; rota {PARAMS.logistics.routeBehindPacePercent} p.p. abaixo do ritmo.</div>
       </Card>
@@ -212,7 +213,7 @@ function ImportSheet({ mode, onClose }: { mode: "system" | "manual"; onClose: ()
                   driverId: driver, vehicleId: vehicle, startedAt: null, finishedAt: null, expectedEnd: "17:00",
                   deliveries: extractedReal.map((x, k) => ({ id: `dl-new-${Date.now()}-${k}`, seq: k + 1, customerId: x.customerId, invoiceNumber: x.nf, orderNumber: "—", volumes: x.vol, status: "scheduled" as const })),
                 });
-                notify({ kind: "logistica", title: "Nova rota atribuída", text: `Rota ${name} com ${extractedReal.length} entregas atribuída a você.`, to: [`driver:${driver}`] });
+                notify({ link: { t: "route", id: DELIVERY_ROUTES[DELIVERY_ROUTES.length - 1]!.id }, kind: "logistica", title: "Nova rota atribuída", text: `Rota ${name} com ${extractedReal.length} entregas atribuída a você.`, to: [`driver:${driver}`] });
               }, `Rota “${name}” confirmada e atribuída · motorista notificado`);
               onClose();
             }}>Confirmar importação</button>
@@ -365,7 +366,7 @@ function FinanceQueue() {
               <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · {o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
               <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
                 setOrderStatus(o, "credit_approved", FINANCE_USER.name, "Pedido liberado pelo crédito");
-                notify({ kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
+                notify({ link: { t: "order", id: o.id }, kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
               }, `${o.number} liberado pelo crédito · segue para faturamento`)}>Liberar</button>
             </div>
           ))}
@@ -408,7 +409,7 @@ function AnalyzeSheet({ p: view, onClose }: { p: PaymentRequest; onClose: () => 
               <button key={st} className={`btn btn-sm ${st === "confirmed" ? "btn-primary" : "btn-ghost"}`} onClick={() => {
                 commit(() => {
                   p.status = st; p.respondedAt = nowStamp();
-                  notify({ kind: "financeiro", priority: st === "confirmed" ? "normal" : "high", title: `Comprovante ${p.number}: ${label}`, text: `${c.tradeName} · ${p.method} · ${brl(p.amountCents)}.`, to: [`seller:${p.sellerId}`, "sales_manager"] });
+                  notify({ link: { t: "proof", id: p.id }, kind: "financeiro", priority: st === "confirmed" ? "normal" : "high", title: `Comprovante ${p.number}: ${label}`, text: `${c.tradeName} · ${p.method} · ${brl(p.amountCents)}.`, to: [`seller:${p.sellerId}`, "sales_manager"] });
                 }, `${label} · vendedor e gerente notificados`);
                 onClose();
               }}>{st === "confirmed" && <Check size={14} />} {label}</button>
@@ -486,7 +487,7 @@ function BillingBoard() {
                   </div>
                   {col.next && <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
                     setOrderStatus(o, col.next![0], BILLING_USER.name, col.next![0] === "invoiced" && o.fiscalDoc === "sem_nf" ? "Faturado sem nota fiscal" : undefined);
-                    if (o.status === "invoiced") notify({ kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
+                    if (o.status === "invoiced") notify({ link: { t: "order", id: o.id }, kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
                     if (o.status === "invoiced" && o.fiscalDoc !== "sem_nf") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
                     if (o.status !== "billing_error") o.billingError = undefined;
                   }, `${o.number}: ${ORDER_STATUS[col.next![0] as keyof typeof ORDER_STATUS].label}`)}>{col.next[1]}</button>}
@@ -528,7 +529,7 @@ function EpiCard() {
               {(next[e.status] ?? []).map(([to, label]) => (
                 <button key={to} className={`btn btn-sm ${to === "rejected" ? "btn-ghost" : "btn-soft"}`} onClick={() => commit(() => {
                   e.status = to;
-                  notify({ kind: "operacional", title: `EPI: ${EPI_STATUS[to as keyof typeof EPI_STATUS].label}`, text: `Sua solicitação de ${e.qty}× ${e.type} foi atualizada.`, to: [`driver:${e.driverId}`] });
+                  notify({ link: { t: "epi", id: e.id }, kind: "operacional", title: `EPI: ${EPI_STATUS[to as keyof typeof EPI_STATUS].label}`, text: `Sua solicitação de ${e.qty}× ${e.type} foi atualizada.`, to: [`driver:${e.driverId}`] });
                 }, `EPI ${EPI_STATUS[to as keyof typeof EPI_STATUS].label.toLowerCase()} · motorista avisado`)}>{label}</button>
               ))}
             </div>
@@ -565,8 +566,8 @@ function InvoicedAwaitingRoute() {
               const vol = o.items.reduce((a, it) => a + it.qty, 0);
               r.deliveries.push({ id: `dl-${o.id}`, seq: r.deliveries.length + 1, customerId: o.customerId, invoiceNumber: o.invoiceNumber ?? (o.fiscalDoc === "sem_nf" ? `${o.number} (sem NF)` : "NF —"), orderNumber: o.number, volumes: vol, status: r.startedAt ? "in_transit" : "scheduled", orderId: o.id });
               setOrderStatus(o, r.startedAt ? "in_transit" : "in_delivery_route", TRANSPORT_COORD.name, `Em rota de entrega · ${r.name} · placa ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—"}`);
-              notify({ kind: "logistica", title: "Nova entrega na sua rota", text: `${c.tradeName} · ${o.invoiceNumber} · ${vol} volumes.`, to: [`driver:${r.driverId}`] });
-              notify({ kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name} · placa ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—"}.`, to: [`seller:${o.sellerId}`] });
+              notify({ link: { t: "route", id: r.id }, kind: "logistica", title: "Nova entrega na sua rota", text: `${c.tradeName} · ${o.invoiceNumber} · ${vol} volumes.`, to: [`driver:${r.driverId}`] });
+              notify({ link: { t: "order", id: o.id }, kind: "logistica", title: "Pedido em rota de entrega", text: `${o.number} · ${c.tradeName} entrou na rota ${r.name} · placa ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? "—"}.`, to: [`seller:${o.sellerId}`] });
             }, `${o.invoiceNumber} incluída na rota · motorista avisado`)}>Incluir</button>
           </div>
         );
@@ -590,8 +591,8 @@ export function ChecklistSummary({ r }: { r: DeliveryRoute }) {
       {ncs.length > 0 && (
         <div className="mt">
           {ncs.map((n) => (
-            <div key={n.id} className="alert-line"><span className="dotc" style={{ background: n.severity === "critical" ? "var(--danger)" : "var(--gold)" }} />
-              <span><b>{n.item}</b> · {n.description} <span className="muted">({n.status === "open" ? "aberta" : "em tratamento"})</span></span></div>
+            <AlertLine key={n.id} tone={n.severity === "critical" ? "danger" : "warning"} link={{ t: "nc", id: n.id }}>
+              <span><b>{n.item}</b> · {n.description} <span className="muted">({n.status === "open" ? "aberta" : "em tratamento"})</span></span></AlertLine>
           ))}
         </div>
       )}

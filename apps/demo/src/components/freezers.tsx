@@ -188,7 +188,7 @@ export function FreezerManager({ c, onClose }: { c: Customer; onClose: () => voi
         commit(() => {
           const r = applyFreezers(c, drafts, removed, by, false);
           if (r.added || r.edited || r.removed)
-            notify({ kind: "comercial", title: "Freezers atualizados", text: `${c.tradeName}: ${r.added} incluído(s), ${r.edited} editado(s), ${r.removed} retirado(s) · ${by}.`, to: [...MANAGERS_KEYS] });
+            notify({ link: { t: "customer", id: c.id }, kind: "comercial", title: "Freezers atualizados", text: `${c.tradeName}: ${r.added} incluído(s), ${r.edited} editado(s), ${r.removed} retirado(s) · ${by}.`, to: [...MANAGERS_KEYS] });
         }, "Freezers salvos · histórico registrado");
         onClose();
       }}>Salvar alterações</button>
@@ -259,7 +259,7 @@ export function FirstVisitSheet({ c, onClose, onDone }: { c: Customer; onClose: 
           c.routeCode = route!;
           const r = applyFreezers(c, drafts, removed, by, true);
           c.onboardedAt = nowStamp(); c.onboardedBy = by;
-          notify({
+          notify({ link: { t: "customer", id: c.id },
             kind: "comercial", title: "Cliente cadastrado na 1ª visita",
             text: `${c.tradeName}: ${PARAMS.commercialRoutes.find((x) => x.code === route)?.name}${oldRoute !== route ? ` (antes ${PARAMS.commercialRoutes.find((x) => x.code === oldRoute)?.name})` : ""} · ${c.assets.length} freezer(s)${r.added ? ` · ${r.added} incluído(s)` : ""}${r.removed ? ` · ${r.removed} retirado(s)` : ""} · ${by}.`,
             to: [...MANAGERS_KEYS],

@@ -97,9 +97,9 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
         {v > 0 && <g className="ring-shine" fill="none" stroke="#fff" strokeLinecap="round">
           <circle cx={cx} cy={cx} r={r + stroke / 2 - 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
           <circle cx={cx} cy={cx} r={r - stroke / 2 + 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
-          <circle cx={cx} cy={cx} r={r} strokeOpacity={1} strokeWidth={stroke * 0.26} strokeDasharray={`${Math.max(0, len - stroke)} ${c}`} strokeDashoffset={-stroke * 0.5} />
-          {/* bolinha branca maior na ponta */}
-          <circle cx={cx + r * Math.cos((len - stroke * 0.5) / r)} cy={cx + r * Math.sin((len - stroke * 0.5) / r)} r={stroke * 0.3} fill="#fff" stroke="none" />
+          <circle cx={cx} cy={cx} r={r} strokeOpacity={1} strokeWidth={stroke * 0.26} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.5} />
+          {/* bola branca na ponta, do tamanho da faixa (como a bola colorida do início) */}
+          <circle cx={cx + r * Math.cos(len / r)} cy={cx + r * Math.sin(len / r)} r={stroke / 2} fill="#fff" stroke="none" />
         </g>}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>

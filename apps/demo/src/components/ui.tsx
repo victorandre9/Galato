@@ -149,7 +149,7 @@ export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNo
           <h2>{title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fechar"><X size={18} /></button>
         </div>
-        {children}
+        <div className="sheet-body">{children}</div>
       </div>
     </div>,
     document.body,

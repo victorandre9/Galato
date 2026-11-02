@@ -338,3 +338,24 @@ html body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x)::after {
   box-shadow: var(--rim) !important;
   transform: scale(calc(1 / var(--press-s))) !important;
 }
+
+/* ===== janelas: começam abaixo do relógio; cabeçalho travado; só o conteúdo rola ===== */
+html body .overlay { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
+html body .sheet:is(*, .x.x.x) {
+  display: flex !important; flex-direction: column !important;
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - 10px) !important;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 10px) !important;
+  overflow: hidden !important; padding-bottom: 0 !important;
+}
+html body .sheet .grab { flex: none; }
+html body .sheet .sheet-head:is(*, .x.x.x) {
+  position: relative !important; top: auto !important; flex: none; z-index: 2;
+  padding-top: 10px !important; padding-bottom: 10px !important; margin-bottom: 0 !important;
+}
+html body .sheet .sheet-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  margin: 0 -16px; padding: 14px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) { html body .sheet .sheet-body { margin: 0 -26px; padding: 16px 26px 28px; } }
+html body .modal .sheet-body { padding-bottom: 16px; }

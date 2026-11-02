@@ -245,3 +245,15 @@ html[data-theme="dark"] body :is(.order-row, .action-tile, .ent-role, .ent-tile)
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .16), inset 0 0 0 5px #000, 0 8px 24px rgba(0, 0, 0, .6) !important;
 }
 html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x)::before { border: 1.5px solid rgba(255, 255, 255, .16) !important; }
+
+/* mais respiro dentro dos cards: texto longe dos aros (mesma fonte), nos dois temas */
+html body .card:is(*, .x.x.x.x.x.x) { padding: 22px 22px 20px !important; }
+html body .card.kpi:is(*, .x.x.x.x.x.x) { padding: 20px 20px 18px !important; }
+html body :is(.ent-group):is(*, .x.x.x.x.x.x) { padding: 20px !important; }
+html body :is(.ent-role, .ent-tile, .order-row):is(*, .x.x.x.x.x.x) { padding: 14px 18px !important; }
+html body .action-tile:is(*, .x.x.x.x.x.x) { padding: 18px 12px !important; }
+html body .sheet .card:is(*, .x.x.x.x.x.x) { padding: 20px !important; }
+@media (max-width: 380px) {
+  html body .card:is(*, .x.x.x.x.x.x) { padding: 18px 16px 16px !important; }
+  html body .card.kpi:is(*, .x.x.x.x.x.x) { padding: 16px 14px 14px !important; }
+}

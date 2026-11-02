@@ -25,6 +25,8 @@ interface UiState {
   /** pedido de troca de aba (vindo de notificação/alerta) */
   navTab: string | null;
   navN: number;
+  /** modo apresentação (tela cheia dentro do app, como slides) */
+  present: boolean;
 }
 
 function initialTheme(): Theme {
@@ -42,7 +44,7 @@ function initialTheme(): Theme {
 
 let state: UiState = {
   role: null, theme: initialTheme(), online: true, pendingSync: 0, sync: "synced", lastSyncedAt: new Date(),
-  toasts: [], version: 0, dbMode: "connecting", navTab: null, navN: 0,
+  toasts: [], version: 0, dbMode: "connecting", navTab: null, navN: 0, present: false,
 };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -120,3 +122,10 @@ export const THEME_LABEL: Record<Theme, string> = { light: "Empresarial (claro)"
 
 /** Leva para uma aba da tela atual (usado por notificações e alertas). */
 export function requestTab(tab: string) { setState({ navTab: tab, navN: state.navN + 1 }); }
+
+/** Modo apresentação: some topo, menus e barras; fica só o conteúdo. */
+export function setPresent(on: boolean) {
+  setState({ present: on });
+  try { document.documentElement.classList.toggle("present", on); } catch { /* ok */ }
+  window.scrollTo({ top: 0 });
+}

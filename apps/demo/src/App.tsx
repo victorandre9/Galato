@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { UserRound, Crown, Users, Briefcase, Wallet, FileCheck2, Truck, Layers, Maximize, ChevronRight, BarChart3, Landmark, Route as RouteIcon } from "lucide-react";
-import { DemoDataPanel, toggleFullscreen, ThemeSwitch } from "./components/shell";
+import { DemoDataPanel, toggleFullscreen, ThemeSwitch, PresentExit } from "./components/shell";
 import { setState, useStore } from "./data/store";
 import type { Role } from "./data/mock";
 import { TODAY } from "./data/mock";
@@ -41,6 +41,7 @@ export default function App() {
       <div className="app-bg" />
       <div className="statusbar-shield" aria-hidden="true" />
       <Toasts />
+      <PresentExit />
       {s.role === null && <LoginEnterprise />}
       {s.role === "seller" && <SellerApp />}
       {(s.role === "general_manager" || s.role === "sales_manager" || s.role === "sales_coordinator") && <ManagerApp key={s.role} role={s.role} />}

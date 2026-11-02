@@ -1,8 +1,8 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
-import { Palette, Bell, ChevronLeft, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
-import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, type Theme } from "../data/store";
+import { Palette, Bell, ChevronLeft, ChevronRight, X, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
+import { setState, setTheme, useStore, toast, toggleDark, THEME_LABEL, getState, setPresent, type Theme } from "../data/store";
 import { TODAY, TODAY_ROUTE, PARAMS, CUSTOMERS, ORDERS, PAYMENT_REQUESTS, customerById, type Customer, type Order, type PaymentRequest, type NotifLink } from "../data/mock";
 import { daysBetween } from "@galato/domain";
 import { CustomerSheet } from "./business";
@@ -15,19 +15,15 @@ import { notificationsFor, viewerId } from "../data/notify";
 import { persistChanges, resetDemo } from "../data/sync";
 import { SyncIndicator, Sheet, Badge, ConfirmModal, Empty } from "./ui";
 
-const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const isMac = () => /Mac/.test(navigator.platform) && !isIOS();
-const IOS_TIP = "No iPhone/iPad a Apple não permite tela cheia em sites. No Safari, toque em “aA” ao lado do endereço → “Ocultar Barra de Ferramentas”. Virar o celular na horizontal também ajuda.";
-const desktopTip = () => (isMac() ? "Para tela cheia use Ctrl + Cmd + F." : "Para tela cheia aperte F11.");
 
 export function toggleFullscreen() {
-  if (isIOS()) { toast(IOS_TIP, "info", 9000); return; }
+  const on = !getState().present;
+  setPresent(on);
+  // computador/Android: também usa a tela cheia do navegador (sem aviso se não der; no iPhone fica só o modo apresentação)
   try {
-    if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
-    const req = document.documentElement.requestFullscreen?.();
-    if (!req) { toast(desktopTip(), "info", 6000); return; }
-    req.catch(() => toast(desktopTip(), "info", 6000));
-  } catch { toast(desktopTip(), "info", 6000); }
+    if (on && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+    if (!on && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  } catch { /* ok */ }
 }
 
 export interface Tab { id: string; label: string; icon: ReactNode; count?: number }
@@ -113,6 +109,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
         </main>
         {notifOpen && <NotificationCenter onClose={() => setNotifOpen(false)} />}
       </div>
+      {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
       <nav className="bottom-nav">
         {tabs.slice(0, 5).map((t) => (
           <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); window.scrollTo({ top: 0 }); }}>
@@ -283,4 +280,44 @@ export function ThemeSwitch() {
       ))}
     </div>
   );
+}
+
+/** Modo apresentação: barrinha discreta para passar de tela (como slides) e sair. */
+function PresentBar({ tabs, tab, onTab }: { tabs: Tab[]; tab: string; onTab: (t: string) => void }) {
+  const i = Math.max(0, tabs.findIndex((t) => t.id === tab));
+  const go = (d: number) => { const n = tabs[(i + d + tabs.length) % tabs.length]; if (n) { onTab(n.id); window.scrollTo({ top: 0 }); } };
+  const goRef = useRef(go); goRef.current = go;
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (document.querySelector(".sheet")) return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") goRef.current(1);
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") goRef.current(-1);
+      else if (e.key === "Escape") setPresent(false);
+    };
+    // arrastar para o lado troca de tela (celular)
+    let x0 = 0, y0 = 0;
+    const ts = (e: TouchEvent) => { x0 = e.touches[0]!.clientX; y0 = e.touches[0]!.clientY; };
+    const te = (e: TouchEvent) => {
+      if (document.querySelector(".sheet")) return;
+      const dx = e.changedTouches[0]!.clientX - x0, dy = e.changedTouches[0]!.clientY - y0;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) goRef.current(dx < 0 ? 1 : -1);
+    };
+    window.addEventListener("keydown", key); window.addEventListener("touchstart", ts, { passive: true }); window.addEventListener("touchend", te, { passive: true });
+    return () => { window.removeEventListener("keydown", key); window.removeEventListener("touchstart", ts); window.removeEventListener("touchend", te); };
+  }, []);
+  return (
+    <div className="present-bar" role="toolbar" aria-label="Apresentação">
+      <button className="icon-btn" onClick={() => go(-1)} aria-label="Tela anterior"><ChevronLeft size={18} /></button>
+      <span className="present-label">{tabs[i]?.label} <small>{i + 1}/{tabs.length}</small></span>
+      <button className="icon-btn" onClick={() => go(1)} aria-label="Próxima tela"><ChevronRight size={18} /></button>
+      <button className="icon-btn" onClick={() => toggleFullscreen()} aria-label="Sair da apresentação" title="Sair da apresentação"><X size={18} /></button>
+    </div>
+  );
+}
+
+/** Botão de sair da apresentação na tela de entrada (sem barra de telas). */
+export function PresentExit() {
+  const s = useStore();
+  if (!s.present || s.role) return null;
+  return <div className="present-bar solo"><button className="icon-btn" onClick={() => toggleFullscreen()} aria-label="Sair da apresentação"><X size={18} /></button></div>;
 }

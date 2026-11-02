@@ -1,5 +1,5 @@
 /** Design system Galato — componentes base. */
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { registerLayer } from "./back";
 import { createPortal } from "react-dom";
 import { Plus, Minus, Trash2, X, ChevronLeft, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
@@ -87,6 +87,7 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
   const [c1] = LEVEL_COLORS[lvl]!;
   const len = c * (v / 100);
   const cx = size / 2;
+  const uid = useId().replace(/:/g, "");
   // texto maior (ex.: 110%) diminui para caber certinho no meio do círculo
   const text = label ?? pct(value);
   const chars = typeof text === "string" || typeof text === "number" ? String(text).length : 3;
@@ -94,18 +95,27 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
   return (
     <div className={`ring-wrap ring-${lvl}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <defs>
+          <filter id={`neon-${uid}`} x="-30%" y="-30%" width="160%" height="160%" colorInterpolationFilters="sRGB">
+            <feGaussianBlur in="SourceAlpha" stdDeviation={stroke * 0.35} result="blur" />
+            <feFlood floodColor={c1} floodOpacity="0.9" />
+            <feComposite in2="blur" operator="in" result="glow" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation={0.8} result="soft" />
+            <feMerge><feMergeNode in="glow" /><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
         {v > 0 && <circle className="ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={c1} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={`${len} ${c}`} style={{ transition: "stroke-dasharray .8s ease" }} />}
-        {/* branco que engrossa junto com o índice: 20% da faixa no começo, cresce conforme o % (50% → metade), até no máximo 80% */}
+        {/* branco que engrossa junto com o índice (fino no começo, mais gordo na ponta) */}
         {v > 0 && (() => {
-          const wf = (p: number) => Math.min(0.8, Math.max(0.2, p / 100));
+          const wf = (p: number) => 0.2 + 0.35 * Math.min(1, Math.max(0, p / 100)); // 20% no começo → até ~55% da faixa
           const N = Math.max(2, Math.round(v / 1.5));
           const seg = len / N;
           const pt = (l: number) => [cx + r * Math.cos(l / r), cx + r * Math.sin(l / r)] as const;
           const [ex, ey] = pt(len);
           return (
-            <g className="ring-shine" fill="none" stroke="#fff">
+            <g className="ring-shine" fill="none" stroke="#fff" filter={`url(#neon-${uid})`}>
               {Array.from({ length: N }, (_, i) => (
                 <circle key={i} cx={cx} cy={cx} r={r} strokeWidth={stroke * wf(((i + 0.5) / N) * v)} strokeDasharray={`${seg + 0.4} ${c}`} strokeDashoffset={-i * seg} />
               ))}
@@ -115,7 +125,7 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
           );
         })()}
       </svg>
-      <div className="ring-label"><b className="num" style={{ display: "inline-block", transform: `scale(${fit})`, transformOrigin: "center" }}>{text}</b>{sub && <span>{sub}</span>}</div>
+      <div className="ring-label"><b className="num" style={{ display: "block", transform: `scale(${fit})`, transformOrigin: "center" }}>{text}</b>{sub && <span>{sub}</span>}</div>
     </div>
   );
 }

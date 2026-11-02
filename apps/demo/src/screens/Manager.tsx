@@ -31,7 +31,7 @@ import { History, CheckCircle2, XCircle, CalendarClock, ChevronRight, Package } 
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId, Curve } from "../components/ui";
 import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
@@ -640,6 +640,9 @@ function YesterdayCard({ scope }: { scope: string[] }) {
 function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => void }) {
   useStore();
   const y = yesterdaySummary(scope);
+  const [visits, setVisits] = useState<string | "all" | null>(null);
+  const [panel, setPanel] = useState<string | null>(null);
+  const [cust, setCust] = useState<string | null>(null);
   const reschedule = (d: YesterdayDelivery) => commit(() => {
     const r = DELIVERY_ROUTES.find((x) => x.name === d.routeName && !x.finishedAt) ?? DELIVERY_ROUTES.find((x) => !x.finishedAt)!;
     r.deliveries.push({ id: `re-${d.id}`, seq: r.deliveries.length + 1, customerId: d.customerId, invoiceNumber: d.invoiceNumber, orderNumber: "—", volumes: 10, status: r.startedAt ? "in_transit" : "scheduled" });
@@ -651,13 +654,13 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
   return (
     <Sheet title={`Fechamento de ontem · ${dayLabel(y.date)}`} onClose={onClose} wide icon={<History size={18} />}>
       <div className="grid g3">
-        <Kpi label="Faturamento x meta" value={brl0(y.sales)} foot={`meta ${brl0(y.goal)} · ${pct(y.salesPct)}`} />
-        <Kpi label="Visitas x planejadas" tone="info" value={`${y.vDone}/${y.vPlanned}`} foot={pct(y.visitsPct)} />
-        <Kpi label="Entregas x programadas" tone="success" value={`${y.delivered}/${y.deliveriesTotal}`} foot={pct(y.deliveriesPct)} />
+        <Kpi label="Faturamento x meta" value={brl0(y.sales)} foot={`meta ${brl0(y.goal)} · ${pct(y.salesPct)} · ver por vendedor`} onClick={() => scrollToId("yd-metas")} />
+        <Kpi label="Visitas x planejadas" tone="info" value={`${y.vDone}/${y.vPlanned}`} foot={`${pct(y.visitsPct)} · ver quem não visitou`} onClick={() => setVisits("all")} />
+        <Kpi label="Entregas x programadas" tone="success" value={`${y.delivered}/${y.deliveriesTotal}`} foot={`${pct(y.deliveriesPct)} · ver pendentes`} onClick={() => scrollToId("yd-entregas")} />
       </div>
       <Card title={`Vendedores abaixo da meta do dia (${y.belowGoal.length})`} icon={<Target size={17} />}>
         {y.belowGoal.sort((a, b) => a.salesPct - b.salesPct).map((r) => (
-          <div key={r.sellerId} className="row">
+          <div key={r.sellerId} className="row click" onClick={() => setPanel(r.sellerId)}>
             <div className="grow">
               <div className="title">{r.name}</div>
               <div className="sub">Meta {brl0(r.goalCents)} · vendeu {brl0(r.salesCents)} · faltou <b className="red">{brl0(r.goalCents - r.salesCents)}</b></div>
@@ -674,7 +677,7 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
             <thead><tr><th>Motorista</th><th>Veículo</th><th>Rota</th><th className="r">Entregues</th><th>Início</th><th>Fim</th><th>Situação</th></tr></thead>
             <tbody>
               {y.routes.sort((a, b) => Number(!!a.finishedAt) - Number(!!b.finishedAt)).map((r) => (
-                <tr key={r.routeName}>
+                <tr key={r.routeName} className="click" onClick={() => scrollToId("yd-entregas")}>
                   <td className="semi">{r.driver.name}</td><td>{r.vehicle.plate} · {r.vehicle.model.split(" ").slice(0, 2).join(" ")}</td><td>{r.routeName}</td>
                   <td className={`r semi ${r.delivered < r.total ? "red" : "green"}`}>{r.delivered}/{r.total}</td>
                   <td>{new Date(r.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: PARAMS.timezone })}</td>
@@ -686,7 +689,7 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
           </table>
         </div>
       </Card>
-      <Card title="Metas e visitas por vendedor" sub="ordenado por % da meta" className="mt">
+      <Card id="yd-metas" title="Metas e visitas por vendedor" sub="toque no vendedor para ver as visitas e os clientes" className="mt">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>#</th><th>Vendedor</th><th className="r">Meta do dia</th><th className="r">Vendido</th><th className="r">%</th><th className="r">Pedidos</th><th className="r">Visitas</th><th>Não visitados</th></tr></thead>
@@ -694,7 +697,7 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
               {y.salesRank.map((rk) => {
                 const r = y.rows.find((x) => x.sellerId === rk.id)!;
                 return (
-                  <tr key={r.sellerId}>
+                  <tr key={r.sellerId} className="click" onClick={() => setVisits(r.sellerId)}>
                     <td><span className={`pos p${rk.position}`}>{rk.position}º</span></td>
                     <td className="semi">{r.name}</td>
                     <td className="r num">{brl0(r.goalCents)}</td><td className="r num">{brl0(r.salesCents)}</td>
@@ -709,18 +712,18 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
           </table>
         </div>
       </Card>
-      <Card title={`Entregas não concluídas (${y.failed.length})`} icon={<Package size={17} />} className="mt">
+      <Card id="yd-entregas" title={`Entregas não concluídas (${y.failed.length})`} icon={<Package size={17} />} className="mt" sub="toque no cliente para ver os dados">
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>Cliente</th><th>Nota</th><th>Rota</th><th>Motorista</th><th>Situação</th><th></th></tr></thead>
             <tbody>
               {y.failed.map((d) => (
-                <tr key={d.id}>
+                <tr key={d.id} className="click" onClick={() => setCust(d.customerId)}>
                   <td className="semi">{customerById.get(d.customerId)?.tradeName}</td><td>{d.invoiceNumber}</td><td>{d.routeName}</td>
                   <td>{DRIVERS.find((x) => x.id === d.driverId)?.name}</td>
                   <td>{d.status === "no_record" ? <Badge tone="danger">Sem baixa do motorista</Badge> : <Badge tone="warning">{d.reason}</Badge>}</td>
                   <td>{d.rescheduledTo ? <Badge tone="success">Reprogramada hoje</Badge>
-                    : <button className="btn btn-soft btn-sm" onClick={() => reschedule(d)}><CalendarClock size={14} /> Reprogramar hoje</button>}</td>
+                    : <button className="btn btn-soft btn-sm" onClick={(e) => { e.stopPropagation(); reschedule(d); }}><CalendarClock size={14} /> Reprogramar hoje</button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -733,6 +736,9 @@ function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => vo
           <AlertLine tone="warning" text={`${y.openIncidents} ocorrência(s) logística(s) em aberto`} link={{ t: "tab", tab: "deliveries" }} />
         </Card>
       )}
+      {visits && <YesterdayVisitsSheet scope={scope} sellerId={visits} onClose={() => setVisits(null)} onCustomer={setCust} onSeller={setPanel} />}
+      {panel && <SellerPanel id={panel} onClose={() => setPanel(null)} />}
+      {cust && customerById.get(cust) && <CustomerSheet c={customerById.get(cust)!} onClose={() => setCust(null)} />}
     </Sheet>
   );
 }
@@ -834,6 +840,41 @@ export function DeliveryListSheet({ filter, onClose }: { filter: "all" | "delive
           </tbody>
         </table>
       </div>
+    </Sheet>
+  );
+}
+
+/** Visitas de ontem: quem não visitou e em quais clientes (toque no cliente abre a ficha com últimos pedidos). */
+function YesterdayVisitsSheet({ scope, sellerId, onClose, onCustomer, onSeller }: { scope: string[]; sellerId: string; onClose: () => void; onCustomer: (id: string) => void; onSeller: (id: string) => void }) {
+  useStore();
+  const y = yesterdaySummary(scope);
+  const rows = (sellerId === "all" ? y.rows : y.rows.filter((r) => r.sellerId === sellerId)).slice().sort((a, b) => b.missedCustomerIds.length - a.missedCustomerIds.length);
+  const routeCode = YESTERDAY_ROUTE?.code;
+  const line = (id: string, missed: boolean) => {
+    const c = customerById.get(id); if (!c) return null;
+    const days = c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null;
+    return (
+      <div key={id} className="row click" onClick={() => onCustomer(id)}>
+        <Curve c={c.abcd} />
+        <div className="grow"><div className="title small">{c.tradeName}</div><div className="sub">{c.code} · {c.district} · última compra {fmtDate(c.lastPurchaseDate)}{days !== null ? ` (${days} dias)` : ""}</div></div>
+        <Badge tone={missed ? "danger" : "success"}>{missed ? "Não visitado" : "Visitado"}</Badge>
+      </div>
+    );
+  };
+  return (
+    <Sheet title={sellerId === "all" ? "Visitas de ontem · quem não visitou" : `Visitas de ontem · ${sellerById.get(sellerId)?.name}`} onClose={onClose} wide icon={<MapPin size={18} />}>
+      <p className="small muted mb">Toque no cliente para ver a ficha: últimos pedidos, financeiro, freezers e visitas.</p>
+      {rows.map((r) => {
+        const planned = CUSTOMERS.filter((c) => c.sellerId === r.sellerId && c.routeCode === routeCode).map((c) => c.id);
+        const visited = planned.filter((id) => !r.missedCustomerIds.includes(id));
+        return (
+          <Card key={r.sellerId} className="mt" title={`${r.name} · ${r.visitsDone}/${r.visitsPlanned} visitas`} sub={r.missedCustomerIds.length ? `${r.missedCustomerIds.length} cliente(s) não visitado(s)` : "visitou todos"} link="Painel do vendedor" onLink={() => onSeller(r.sellerId)}>
+            {r.missedCustomerIds.map((id) => line(id, true))}
+            {(sellerId !== "all" || !r.missedCustomerIds.length) && visited.map((id) => line(id, false))}
+            {!planned.length && <div className="small muted">Sem clientes planejados na rota de ontem.</div>}
+          </Card>
+        );
+      })}
     </Sheet>
   );
 }

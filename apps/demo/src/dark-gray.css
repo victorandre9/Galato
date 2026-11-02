@@ -177,3 +177,18 @@ html[data-theme="dark"] .nav-lens::after {
 /* sem a lente (computador/testes): mesmo tom no próprio menu */
 html.ent body .bottom-nav.ig.ig.ig, html:not([data-theme="dark"]) body .bottom-nav.ig.ig.ig { background-color: rgba(40, 48, 62, .10) !important; }
 html[data-theme="dark"] body .bottom-nav.ig.ig.ig { background-color: rgba(255, 255, 255, .09) !important; }
+
+/* menu de baixo: claro um pouco mais escuro */
+html.ent .nav-lens::after, html:not([data-theme="dark"]) .nav-lens::after {
+  background: linear-gradient(rgba(40, 48, 62, .24), rgba(40, 48, 62, .24)), radial-gradient(130% 160% at 50% 50%, rgba(255,255,255,0) 45%, rgba(255,255,255,.35) 100%) !important;
+}
+html.ent body .bottom-nav.ig.ig.ig, html:not([data-theme="dark"]) body .bottom-nav.ig.ig.ig { background-color: rgba(40, 48, 62, .20) !important; }
+
+/* nomes do menu de volta, em negrito e maiores; ícones mais grossos (dois temas) */
+html body .bottom-nav.ig.ig.ig .bn-item { height: 58px; display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+html body .bottom-nav.ig.ig.ig .bn-item span { display: block !important; font-size: 11.5px; font-weight: 700; letter-spacing: .01em; line-height: 1.1; color: inherit; }
+html body .bottom-nav.ig.ig.ig .bn-item svg { width: 24px; height: 24px; stroke-width: 2.3; }
+html body .bottom-nav.ig.ig.ig .bn-item.active svg { stroke-width: 2.6; }
+html body .bottom-nav.ig.ig.ig.grow .bn-item { height: 62px; }
+html body .bottom-nav.ig.ig.ig.shrink .bn-item { height: 52px; }
+html body .bottom-nav.ig.ig.ig.shrink .bn-item span { font-size: 10.5px; }

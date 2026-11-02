@@ -477,3 +477,10 @@ html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-ti
     0 8px 22px rgba(20, 30, 50, .08) !important;
 }
 html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x)::before { border: 1.5px solid rgba(255, 255, 255, .98) !important; box-shadow: none !important; }
+/* claro: espaço entre os dois aros dos cards também branco */
+html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, .98),
+    inset 0 0 0 4.5px #fff,
+    0 8px 22px rgba(20, 30, 50, .08) !important;
+}

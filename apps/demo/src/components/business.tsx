@@ -15,6 +15,7 @@ import { customerRow, financial } from "../data/selectors";
 import { commit, toast } from "../data/store";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { VisitHistoryCard } from "./visits";
+import { matchCustomer } from "../data/search";
 import { customerOrders, type HistOrder } from "../data/history";
 import { OrderDetail } from "../screens/Reports";
 import { statusLabel } from "../data/selectors";
@@ -29,7 +30,7 @@ import { ProofView, BoletoView, AssetView } from "./details";
 import { Video } from "lucide-react";
 import type { Checkin, PaymentRequest, Receivable, Asset } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
-import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper, ColsHead } from "./ui";
+import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper, ColsHead, SearchBox } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
 export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
@@ -74,9 +75,12 @@ export function CustomerRowView({ c, onClick, extra, other }: { c: Customer; onC
 }
 
 /** Lista detalhada (seção 28): cliente, curva, última compra, dias, valor, média, freezers, financeiro, contato. */
-export function CustomerTable({ list, onOpen }: { list: Customer[]; onOpen: (c: Customer) => void }) {
+export function CustomerTable({ list: all, onOpen }: { list: Customer[]; onOpen: (c: Customer) => void }) {
+  const [q, setQ] = useState("");
+  const list = all.filter((c) => matchCustomer(c, q));
   return (
     <>
+      {all.length > 4 && <SearchBox value={q} onChange={setQ} />}
       <div className="only-mobile list cols">
         <ColsHead left="Cliente" right="Dias sem compra" />
         {list.map((c) => <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} />)}

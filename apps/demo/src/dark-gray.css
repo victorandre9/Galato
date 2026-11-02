@@ -665,3 +665,8 @@ html[data-theme="dark"] body .list .row.row-other:is(*, .x.x.x.x) .badge { backg
 html body .list.cols > .row > .end .badge:is(*, .x.x) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
 /* outra carteira: sem a faixa mais escura no início */
 html body .list .row.row-other:is(*, .x.x.x.x.x) { box-shadow: none !important; }
+/* busca: botão de limpar à direita */
+.search .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0; }
+.search .search-clear svg { position: static; transform: none; }
+.search input[type=search]::-webkit-search-cancel-button { display: none; }
+.search .input { padding-right: 40px; }

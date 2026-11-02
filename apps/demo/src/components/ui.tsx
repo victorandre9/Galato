@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { registerLayer } from "./back";
 import { createPortal } from "react-dom";
-import { Plus, Minus, Trash2, X, ChevronLeft, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
+import { Search, Plus, Minus, Trash2, X, ChevronLeft, ChevronRight, Cloud, CloudOff, RefreshCw, CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
 import { formatBRL, formatPct, type Tone } from "@galato/domain";
 import { setOnline, useStore } from "../data/store";
 
@@ -304,6 +304,17 @@ export function Stepper({ value, onChange, min = 0, max, size = "md", label = "q
       <button type="button" className="step-btn plus" aria-label="Adicionar" disabled={max !== undefined && value >= max} onClick={inc}>
         <Plus size={size === "sm" ? 14 : 16} />
       </button>
+    </div>
+  );
+}
+
+/** Caixa de busca padrão (clientes, pedidos, prospects, pendências). */
+export function SearchBox({ value, onChange, placeholder = "Buscar por nome, CNPJ, bairro, cidade, vendedor ou nº" }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div className="search mb">
+      <Search size={17} />
+      <input className="input" type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      {value && <button className="search-clear" aria-label="Limpar busca" onClick={() => onChange("")}><X size={15} /></button>}
     </div>
   );
 }

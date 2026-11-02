@@ -13,7 +13,8 @@ import {
 import { financeQueue } from "../data/selectors";
 import { newestFirst } from "../data/orders";
 import { requestTab, useStore } from "../data/store";
-import { Badge, Sheet, brl, Empty } from "./ui";
+import { Badge, Sheet, brl, Empty, SearchBox } from "./ui";
+import { matchRecord } from "../data/search";
 import { ProofView, InfoSheet } from "./details";
 import { OrderOpen } from "./order-flow";
 import { CustomerSheet, OrderRow, fmtDateTime } from "./business";
@@ -141,10 +142,12 @@ function NcSheet({ title, rows, routeId, onClose }: { title: string; rows: [stri
 export function OrdersListSheet({ title, statuses, scope, canEdit, onClose }: { title: string; statuses: string[]; scope: string[]; canEdit?: boolean; onClose: () => void }) {
   useStore();
   const [open, setOpen] = useState<Order | null>(null);
-  const list = ORDERS.filter((o) => o.kind === "ORDER" && scope.includes(o.sellerId) && statuses.includes(o.status)).sort(newestFirst<Order>((x) => x.createdAt));
+  const [sq, setSq] = useState("");
+  const list = ORDERS.filter((o) => o.kind === "ORDER" && scope.includes(o.sellerId) && statuses.includes(o.status) && matchRecord(o, sq)).sort(newestFirst<Order>((x) => x.createdAt));
   if (open) return <OrderOpen order={open} canEdit={!!canEdit && open.sellerId === CURRENT_SELLER.id} onClose={() => setOpen(null)} />;
   return (
     <Sheet title={`${title} (${list.length})`} onClose={onClose} icon={<ClipboardList size={18} />}>
+      <SearchBox value={sq} onChange={setSq} placeholder="Nº do pedido, NF, cliente, CNPJ, bairro ou vendedor" />
       <p className="small muted mb">Toque no pedido para ver itens, linha do tempo e o que fazer.</p>
       <div className="list">{list.map((o) => <OrderRow key={o.id} o={o} onClick={() => setOpen(o)} />)}</div>
       {!list.length && <Empty icon={<ClipboardList />} text="Nenhum pedido nesta situação agora." />}
@@ -156,10 +159,12 @@ export function OrdersListSheet({ title, statuses, scope, canEdit, onClose }: { 
 function ProofsListSheet({ title, late, scope, onClose }: { title: string; late: boolean; scope: string[]; onClose: () => void }) {
   useStore();
   const [open, setOpen] = useState<PaymentRequest | null>(null);
-  const q = financeQueue().queue.filter((p) => scope.includes(p.sellerId) && (!late || p.sla.level === "breached"));
+  const [sq, setSq] = useState("");
+  const q = financeQueue().queue.filter((p) => scope.includes(p.sellerId) && (!late || p.sla.level === "breached") && matchRecord({ ...p, extra: `${p.method} ${p.receivableDoc}` }, sq));
   if (open) return <ProofView p={open} onClose={() => setOpen(null)} />;
   return (
     <Sheet title={`${title} (${q.length})`} onClose={onClose} icon={<Receipt size={18} />}>
+      <SearchBox value={sq} onChange={setSq} />
       <p className="small muted mb">Prazo de resposta do financeiro: {PARAMS.financialSla.responseHours}h. Toque para ver o comprovante.</p>
       {q.map((p) => (
         <div key={p.id} className="row click" onClick={() => setOpen(PAYMENT_REQUESTS.find((x) => x.id === p.id) ?? null)}>

@@ -12,6 +12,7 @@ import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occ
 import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
 import { ManagerProspect, LeadListSheet } from "../components/leads";
+import { matchRecord } from "../data/search";
 import { LEADS } from "../data/leads";
 import { RouteDetail, ChecklistSummary, RoutesView, IssuesView, FleetView, EpiCard } from "./Ops";
 import { ApprovalsView, approvalsCount } from "../components/approvals";
@@ -36,7 +37,7 @@ import { History, CheckCircle2, XCircle, CalendarClock, ChevronRight, Package } 
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId, Curve } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId, Curve, SearchBox } from "../components/ui";
 import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
@@ -834,12 +835,15 @@ function PipelineSheet({ title, scope, onClose }: { title: string; scope: string
 export function DeliveryListSheet({ filter, onClose }: { filter: "all" | "delivered" | "pending" | "not_delivered"; onClose: () => void }) {
   useStore();
   const [route, setRoute] = useState<DeliveryRoute | null>(null);
+  const [sq, setSq] = useState("");
   const rows = DELIVERY_ROUTES.flatMap((r) => r.deliveries.map((d) => ({ r, d })))
-    .filter(({ d }) => filter === "all" || (filter === "pending" ? d.status === "scheduled" || d.status === "in_transit" : d.status === filter));
+    .filter(({ d }) => filter === "all" || (filter === "pending" ? d.status === "scheduled" || d.status === "in_transit" : d.status === filter))
+    .filter(({ r, d }) => matchRecord({ customerId: d.customerId, number: d.orderNumber, invoiceNumber: d.invoiceNumber, extra: `${r.name} ${VEHICLES.find((v) => v.id === r.vehicleId)?.plate ?? ""}` }, sq));
   const title = { all: "Entregas programadas", delivered: "Entregas realizadas", pending: "Entregas pendentes", not_delivered: "Entregas não realizadas" }[filter];
   if (route) return <RouteDetail r={route} onClose={() => setRoute(null)} />;
   return (
     <Sheet title={`${title} (${rows.length})`} onClose={onClose} wide icon={<Truck size={18} />}>
+      <SearchBox value={sq} onChange={setSq} placeholder="Cliente, CNPJ, bairro, NF, pedido, rota ou placa" />
       <p className="small muted mb">Toque na entrega para abrir a rota, com comprovantes e checklist.</p>
       <div className="table-wrap">
         <table className="t">

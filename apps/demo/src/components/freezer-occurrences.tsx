@@ -5,6 +5,7 @@
  *  C) Outros produtos no freezer Galato → foto + descrição → gestão registra tratativa
  * Toda ocorrência é ligada a um patrimônio e forma o histórico de manutenções dele.
  */
+import { matchRecord } from "../data/search";
 import { useState, type ReactElement } from "react";
 import { Plus, AlertOctagon, PackageX, Wrench, Ban, CheckCircle2, XCircle, CalendarClock, Search, QrCode, History } from "lucide-react";
 import {
@@ -13,7 +14,7 @@ import {
 } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit, useStore } from "../data/store";
-import { Badge, Card, Chip, Sheet, Stepper, brl } from "./ui";
+import { Badge, Card, Chip, Sheet, Stepper, brl, SearchBox } from "./ui";
 import { PhotoCapture } from "./photo";
 
 export const OCC_TYPES: Record<FreezerOccType, { label: string; short: string; hint: string; icon: ReactElement }> = {
@@ -317,11 +318,13 @@ export function ManagerFreezerOccurrences({ scope }: { scope: string[] }) {
   const [f, setF] = useState<"open" | "all" | FreezerOccType>("open");
   const [open, setOpen] = useState<FreezerOccurrence | null>(null);
   const all = FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId));
-  const list = all.filter((o) => f === "all" || (f === "open" ? OCC_STATUS[o.status].open : o.type === f));
+  const [sq, setSq] = useState("");
+  const list = all.filter((o) => (f === "all" || (f === "open" ? OCC_STATUS[o.status].open : o.type === f)) && matchRecord({ customerId: o.customerId, sellerId: o.sellerId, number: o.number, extra: `${o.patrimony} ${OCC_TYPES[o.type].short}` }, sq));
   return (
     <>
       <h2 style={{ margin: "6px 0 4px" }}>Ocorrências de freezer</h2>
       <p className="small muted mb">Abertas pelos vendedores: perda de produtos (bonificação), defeito (visita técnica) e outros produtos no freezer.</p>
+      <SearchBox value={sq} onChange={setSq} placeholder="Cliente, CNPJ, bairro, patrimônio, nº ou vendedor" />
       <div className="chips mb">
         <Chip on={f === "open"} onClick={() => setF("open")}>Pendentes ({all.filter((o) => OCC_STATUS[o.status].open).length})</Chip>
         {(Object.keys(OCC_TYPES) as FreezerOccType[]).map((k) => <Chip key={k} on={f === k} onClick={() => setF(k)}>{OCC_TYPES[k].short} ({all.filter((o) => o.type === k).length})</Chip>)}

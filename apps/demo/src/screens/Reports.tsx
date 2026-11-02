@@ -5,6 +5,8 @@ import { BarChart3, Users, MapPin, Target, PieChart } from "lucide-react";
 import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainment, daysBetween, inactivityBucket, bucketLabel, ORDER_STATUS, type IsoDate } from "@galato/domain";
 import { FileText, UserX, History } from "lucide-react";
 import { VisitHistoryCard } from "../components/visits";
+import { matchCustomer } from "../data/search";
+import { SearchBox } from "../components/ui";
 import { sellerMonthOrders, customerOrders, customersWithoutPurchaseThisMonth, type HistOrder } from "../data/history";
 import { fmtDate, fmtDateTime, termLabel, termShort } from "../components/business";
 import { PARAMS, SELLERS, CUSTOMERS, ORDERS, TODAY, PRODUCTS, sellerById, customerById } from "../data/mock";
@@ -444,12 +446,14 @@ export function ClientList({ items, onOpen, showDays = true }: { items: ClientIt
   const [sort, setSort] = useState(showDays ? "days" : "name");
   const [curve, setCurve] = useState<string | null>(null);
   const [route, setRoute] = useState<string>("");
+  const [q, setQ] = useState("");
   const routes = [...new Set(items.map((x) => x.c.routeCode))].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
   const sorts = SORTS.filter((x) => showDays || x.id !== "days");
   const cmp = (sorts.find((x) => x.id === sort) ?? sorts[0]!).cmp;
-  const list = items.filter((x) => (!curve || x.c.abcd === curve) && (!route || x.c.routeCode === route)).sort(cmp);
+  const list = items.filter((x) => (!curve || x.c.abcd === curve) && (!route || x.c.routeCode === route) && matchCustomer(x.c, q)).sort(cmp);
   return (
     <>
+      <SearchBox value={q} onChange={setQ} />
       <div className="filter-box">
         <div className="filter-row">
           <label className="filter-f"><span>Ordenar por</span>

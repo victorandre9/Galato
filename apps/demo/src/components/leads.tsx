@@ -15,8 +15,9 @@ import {
 } from "../data/leads";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit, useStore } from "../data/store";
-import { Card, Kpi, Sheet, Badge, Chip, Curve, Empty, Progress, Stepper, ColsHead, brl, brl0, pct } from "./ui";
+import { Card, Kpi, Sheet, Badge, Chip, Curve, Empty, Progress, Stepper, ColsHead, SearchBox, brl, brl0, pct } from "./ui";
 import { CustomerSheet, fmtDateTime } from "./business";
+import { matchLead } from "../data/search";
 
 type Viewer = "seller" | "manager" | "finance";
 const fmtDay = (d?: string) => (d ? new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—");
@@ -434,10 +435,12 @@ export function SellerProspect({ sellerId = CURRENT_SELLER.id }: { sellerId?: st
   const [form, setForm] = useState(false);
   const mine = LEADS.filter((l) => l.sellerId === sellerId);
   const today = mine.filter((l) => OPEN_STAGES.includes(l.stage) && l.nextAt && l.nextAt <= TODAY);
-  const list = stage === "open" ? mine.filter((l) => OPEN_STAGES.includes(l.stage)) : stage === "today" ? today : mine.filter((l) => l.stage === stage);
+  const [sq, setSq] = useState("");
+  const list = (stage === "open" ? mine.filter((l) => OPEN_STAGES.includes(l.stage)) : stage === "today" ? today : mine.filter((l) => l.stage === stage)).filter((l) => matchLead(l, sq));
   return (
     <>
       <button className="btn btn-primary btn-block mb" onClick={() => setForm(true)}><UserPlus size={17} /> Novo cliente (pré-cadastro)</button>
+      <SearchBox value={sq} onChange={setSq} placeholder="Nome, responsável, telefone, bairro ou CNPJ" />
       <div className="chips mb">
         <Chip on={stage === "open"} onClick={() => setStage("open")}>Em andamento ({mine.filter((l) => OPEN_STAGES.includes(l.stage)).length})</Chip>
         <Chip on={stage === "today"} onClick={() => setStage("today")}>Para hoje ({today.length})</Chip>
@@ -529,11 +532,14 @@ export function ManagerProspect({ scope }: { scope: string[] }) {
   );
 }
 
-export function LeadListSheet({ title, items, viewer, onClose }: { title: string; items: Lead[]; viewer: Viewer; onClose: () => void }) {
+export function LeadListSheet({ title, items: allItems, viewer, onClose }: { title: string; items: Lead[]; viewer: Viewer; onClose: () => void }) {
   const [open, setOpen] = useState<Lead | null>(null);
+  const [sq, setSq] = useState("");
+  const items = allItems.filter((l) => matchLead(l, sq));
   if (open) return <LeadSheet lead={open} viewer={viewer} onClose={() => setOpen(null)} />;
   return (
     <Sheet title={`${title} (${items.length})`} onClose={onClose} icon={<Filter size={18} />}>
+      {allItems.length > 4 && <SearchBox value={sq} onChange={setSq} placeholder="Nome, responsável, bairro, CNPJ ou vendedor" />}
       <div className="list">{items.map((l) => <LeadRow key={l.id} l={l} showSeller onClick={() => setOpen(l)} />)}</div>
       {!items.length && <Empty icon={<Filter />} text="Nenhum prospect aqui." />}
     </Sheet>

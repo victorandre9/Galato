@@ -17,8 +17,10 @@ import {
   sellerSalesToday, financeQueue, customerRow, dayLabel,
 } from "../data/selectors";
 import { useStore, commit } from "../data/store";
+import { matchCustomer, matchRecord } from "../data/search";
+import { statusLabel } from "../data/selectors";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty, Progress, ConfirmModal, ColsHead } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Empty, Progress, ConfirmModal, ColsHead, SearchBox } from "../components/ui";
 import { CustomerSheet, CustomerTable, CustomerRowView, OrderRow, OrderBuilder, fmtDate } from "../components/business";
 
 export function SellerApp() {
@@ -175,16 +177,6 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
   return <>{head}<SellerCarteira onOpen={onOpen} /></>;
 }
 
-/** Busca sem acento e sem pontuação: nome, razão social, CNPJ, código, bairro, endereço, cidade ou vendedor. */
-const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-function matches(c: Customer, q: string) {
-  if (!q.trim()) return true;
-  const hay = norm(`${c.tradeName} ${c.legalName} ${c.code} ${c.document} ${c.district} ${c.address} ${c.city} ${sellerById.get(c.sellerId)?.name ?? ""}`);
-  const digits = q.replace(/\D/g, "");
-  if (digits.length >= 5 && c.document.replace(/\D/g, "").includes(digits)) return true;
-  return norm(q).split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
-}
-
 function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"mine" | "others" | "all">("mine");
@@ -192,12 +184,12 @@ function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const inScope = (c: Customer) => scope === "all" || (scope === "mine" ? c.sellerId === ME.id : c.sellerId !== ME.id);
   const list = CUSTOMERS.filter((c) =>
     inScope(c) && (!curve || c.abcd === curve) &&
-    matches(c, q),
+    matchCustomer(c, q),
   ).sort((a, b) => (scope === "mine" ? 0 : a.tradeName.localeCompare(b.tradeName, "pt-BR"))).slice(0, 300);
   const others = CUSTOMERS.filter((c) => c.sellerId !== ME.id).length;
   return (
     <>
-      <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, CNPJ, bairro, cidade ou vendedor" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+      <SearchBox value={q} onChange={setQ} placeholder="Nome, CNPJ, bairro, cidade ou vendedor" />
       <div className="chips mb">
         <Chip on={scope === "mine"} onClick={() => setScope("mine")}>Minha carteira ({CUSTOMERS.length - others})</Chip>
         <Chip on={scope === "others"} onClick={() => setScope("others")}>Outras carteiras ({others})</Chip>
@@ -221,8 +213,9 @@ function SellerOrders() {
   const [kind, setKind] = useState<"ORDER" | "QUOTE">("ORDER");
   const [filter, setFilter] = useState<string>("all");
   const [open, setOpen] = useState<Order | null>(null);
+  const [q, setQ] = useState("");
   const sortNewest = newestFirst<Order>((x) => x.createdAt);
-  const all = (kind === "ORDER" ? ordersOf(ME.id) : quotesOf(ME.id)).sort(sortNewest);
+  const all = (kind === "ORDER" ? ordersOf(ME.id) : quotesOf(ME.id)).sort(sortNewest).filter((o) => matchRecord({ ...o, extra: statusLabel(o.status) }, q));
   const groups: { id: string; label: string; statuses: string[] }[] = kind === "ORDER" ? [
     { id: "all", label: "Todos", statuses: [] },
     { id: "credit", label: "Enviados ao crédito", statuses: AWAITING_CREDIT },
@@ -243,6 +236,7 @@ function SellerOrders() {
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Meus pedidos</h2>
+      <SearchBox value={q} onChange={setQ} placeholder="Nº do pedido, NF, cliente, CNPJ ou bairro" />
       <div className="chips mb">
         <Chip on={kind === "ORDER"} onClick={() => { setKind("ORDER"); setFilter("all"); }}>Pedidos</Chip>
         <Chip on={kind === "QUOTE"} onClick={() => { setKind("QUOTE"); setFilter("all"); }}>Orçamentos</Chip>
@@ -273,8 +267,9 @@ function SellerOrders() {
 function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [day, setDay] = useState(TODAY_ROUTE?.code ?? "R1");
   const [planned, setPlanned] = useState<Record<string, boolean>>({});
+  const [q, setQ] = useState("");
   const routeDef = PARAMS.commercialRoutes.find((r) => r.code === day)!;
-  const list = CUSTOMERS.filter((c) => c.sellerId === ME.id && c.routeCode === day)
+  const list = CUSTOMERS.filter((c) => c.sellerId === ME.id && c.routeCode === day && matchCustomer(c, q))
     .map(customerRow).sort((a, b) => (b.days ?? 999) - (a.days ?? 999));
   return (
     <>
@@ -287,6 +282,7 @@ function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
           </Chip>
         ))}
       </div>
+      <SearchBox value={q} onChange={setQ} placeholder="Buscar cliente da rota (nome, CNPJ, bairro)" />
       <Card title={`${routeDef.name} · ${list.length} clientes`} sub={day === TODAY_ROUTE?.code ? `hoje, ${dayLabel(TODAY)}` : "próxima semana"}>
         <div className="progress-row mb"><span className="xs muted">Prioridade sugerida: mais dias sem compra primeiro</span></div>
         <div className="list cols">

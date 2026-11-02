@@ -16,13 +16,14 @@ import { EPI_STATUS } from "@galato/domain";
 import { logisticsOverview, routeProgress, financeQueue, financial, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle, scrollToId } from "../components/ui";
+import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle, scrollToId, SearchBox } from "../components/ui";
 import { DeliveryListSheet } from "./Manager";
 import { fmtDate, fmtDateTime, CustomerName } from "../components/business";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
 import { AlertLine } from "../components/links";
 import { CustomerHistory } from "./Reports";
+import { matchRecord } from "../data/search";
 import { FinanceCadastros, pendingCadastros } from "../components/leads";
 
 // =================================================================== TRANSPORTES
@@ -325,12 +326,14 @@ function FinanceQueue() {
   const fq = financeQueue();
   const [filter, setFilter] = useState<"all" | "PIX" | "BOLETO" | "late">("all");
   const [open, setOpen] = useState<PaymentRequest | null>(null);
-  const blocked = ORDERS.filter((o) => o.kind === "ORDER" && ["blocked", "awaiting_credit_review", "in_approval"].includes(o.status));
+  const [sq, setSq] = useState("");
+  const blocked = ORDERS.filter((o) => o.kind === "ORDER" && ["blocked", "awaiting_credit_review", "in_approval"].includes(o.status) && matchRecord(o, sq));
   const [openOrder, setOpenOrder] = useState<Order | null>(null);
-  const list = fq.queue.filter((q) => filter === "all" || (filter === "late" ? q.sla.level === "breached" : q.method === filter));
+  const list = fq.queue.filter((q) => (filter === "all" || (filter === "late" ? q.sla.level === "breached" : q.method === filter)) && matchRecord({ ...q, extra: `${q.method} ${q.receivableDoc}` }, sq));
   return (
     <>
       <Greeting icon={<Wallet size={22} />} title={`Olá, ${FINANCE_USER.name.split(" ")[0]}!`} sub="Pagamentos que precisam ser verificados agora" />
+      <SearchBox value={sq} onChange={setSq} placeholder="Cliente, CNPJ, bairro, vendedor, nº do comprovante ou pedido" />
       <div className="grid g2 gd-4">
         <Kpi icon={<Receipt size={17} />} label="Pendentes" value={fq.queue.length} foot={`${fq.carryOver} do dia anterior`} onClick={() => { setFilter("all"); scrollToId("fila"); }} />
         <Kpi icon={<Clock size={17} />} tone="red" label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} value={fq.breached} onClick={() => { setFilter("late"); scrollToId("fila"); }} foot="alerta para gerente, coordenação e vendedor" />
@@ -429,10 +432,12 @@ function AnalyzeSheet({ p: view, onClose }: { p: PaymentRequest; onClose: () => 
 function FinanceHistory() {
   useStore();
   const [open, setOpen] = useState<(typeof PAYMENT_REQUESTS)[number] | null>(null);
-  const done = PAYMENT_REQUESTS.filter((p) => !["pending", "in_analysis"].includes(p.status));
+  const [sq, setSq] = useState("");
+  const done = PAYMENT_REQUESTS.filter((p) => !["pending", "in_analysis"].includes(p.status) && matchRecord({ ...p, extra: `${p.method} ${p.receivableDoc} ${PAYMENT_REQUEST_STATUS[p.status].label}` }, sq));
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Histórico de solicitações</h2>
+      <SearchBox value={sq} onChange={setSq} />
       <Card>
         {done.map((p) => (
           <div key={p.id} className="row click" onClick={() => setOpen(p)}>
@@ -479,8 +484,9 @@ function BillingBoard() {
   const [openOrder, setOpenOrder] = useState<(typeof ORDERS)[number] | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const orders = ORDERS.filter((o) => o.kind === "ORDER");
-  const todo = orders.filter((o) => TO_BILL.includes(o.status));
-  const done = orders.filter((o) => o.status === "invoiced");
+  const [sq, setSq] = useState("");
+  const todo = orders.filter((o) => TO_BILL.includes(o.status) && matchRecord(o, sq));
+  const done = orders.filter((o) => o.status === "invoiced" && matchRecord(o, sq));
   const chosen = todo.filter((o) => sel.has(o.id));
   const all = todo.length > 0 && chosen.length === todo.length;
   const toggle = (id: string) => setSel((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -504,6 +510,7 @@ function BillingBoard() {
   return (
     <>
       <Greeting icon={<FileCheck2 size={22} />} title={`Olá, ${BILLING_USER.name.split(" ")[0]}!`} sub="Pedidos liberados pelo crédito → notas → logística" />
+      <SearchBox value={sq} onChange={setSq} placeholder="Nº do pedido, NF, cliente, CNPJ, bairro ou vendedor" />
       <div className="grid g2 gd-4">
         <Kpi onClick={() => scrollToId("col-todo")} label="A faturar" tone="gold" value={todo.length} />
         <Kpi onClick={() => scrollToId("col-done")} label="Faturados" tone="gold" value={done.length} />

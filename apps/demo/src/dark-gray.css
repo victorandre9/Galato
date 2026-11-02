@@ -279,3 +279,18 @@ html body .press-up { transform: translateY(0) scale(1) !important; }
 @keyframes screenIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 html body .sheet { animation: up .2s ease !important; }
 @media (prefers-reduced-motion: reduce) { .main > * { animation: none; } }
+
+/* toque mais profundo e lento: desce 0,2 s inteiros e sobe 0,2 s inteiros, em ritmo constante */
+html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .step-btn, .bullet-row):is(*, .x.x) {
+  transition: transform .2s cubic-bezier(.4, 0, .6, 1), box-shadow .2s cubic-bezier(.4, 0, .6, 1), filter .2s cubic-bezier(.4, 0, .6, 1) !important;
+}
+html body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .step-btn, .bullet-row):is(*, .x.x) {
+  transform: translateY(9px) scale(.955) !important;
+  filter: brightness(.88);
+}
+html[data-theme="dark"] body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn):is(*, .x.x) {
+  box-shadow: 0 0 0 5px rgba(0, 0, 0, .8), inset 0 5px 12px rgba(0, 0, 0, .6), 0 0 2px rgba(0, 0, 0, .6) !important;
+}
+html:not([data-theme="dark"]) body :is(.press-down, :active:not(:disabled)):is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .step-btn):is(*, .x.x) {
+  box-shadow: inset 0 5px 12px rgba(30, 36, 50, .25), 0 0 2px rgba(30, 36, 50, .2) !important;
+}

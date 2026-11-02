@@ -435,18 +435,25 @@ export function ClientList({ items, onOpen, showDays = true }: { items: ClientIt
   const list = items.filter((x) => (!curve || x.c.abcd === curve) && (!route || x.c.routeCode === route)).sort(cmp);
   return (
     <>
-      <div className="sort-bar">
-        <span className="xs muted semi">Ordenar</span>
-        <div className="chips">{sorts.map((x) => <Chip key={x.id} on={sort === x.id} onClick={() => setSort(x.id)}>{x.label}</Chip>)}</div>
-      </div>
-      <div className="sort-bar">
-        <span className="xs muted semi">Filtrar</span>
-        <div className="chips">
-          {["A", "B", "C", "D"].map((k) => <Chip key={k} on={curve === k} onClick={() => setCurve(curve === k ? null : k)}>Curva {k} ({items.filter((x) => x.c.abcd === k).length})</Chip>)}
-          <select className="input input-sm" value={route} onChange={(e) => setRoute(e.target.value)} aria-label="Rota">
-            <option value="">Todas as rotas</option>
-            {routes.map((r) => <option key={r} value={r}>{routeName(r)} ({items.filter((x) => x.c.routeCode === r).length})</option>)}
-          </select>
+      <div className="filter-box">
+        <div className="filter-row">
+          <label className="filter-f"><span>Ordenar por</span>
+            <select className="input input-sm" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Ordenar por">
+              {sorts.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+            </select>
+          </label>
+          <label className="filter-f"><span>Rota</span>
+            <select className="input input-sm" value={route} onChange={(e) => setRoute(e.target.value)} aria-label="Rota">
+              <option value="">Todas as rotas</option>
+              {routes.map((r) => <option key={r} value={r}>{routeName(r)} ({items.filter((x) => x.c.routeCode === r).length})</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="filter-f"><span>Curva</span>
+          <div className="seg-curve" role="radiogroup" aria-label="Curva">
+            <button className={!curve ? "on" : ""} onClick={() => setCurve(null)}>Todas</button>
+            {["A", "B", "C", "D"].map((k) => <button key={k} className={curve === k ? "on" : ""} onClick={() => setCurve(curve === k ? null : k)}>{k} <small>{items.filter((x) => x.c.abcd === k).length}</small></button>)}
+          </div>
         </div>
       </div>
       <div className="xs muted mb">{list.length} cliente(s)</div>
@@ -559,9 +566,13 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
   const [order, setOrder] = useState<HistOrder | null>(null);
   const days = c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null;
   const fin = financial(c);
-  const months = [...c.monthlyHistoryCents.map((v, i) => ({ label: monthLabel(c.monthlyHistoryCents.length - i), v })),
-    { label: "Atual", v: orders.filter((o) => o.date >= monthBounds(TODAY).first).reduce((a, o) => a + o.totalCents, 0) }];
+  const months = [...c.monthlyHistoryCents.map((v, i) => ({ label: monthLabel(c.monthlyHistoryCents.length - i), key: monthKey(c.monthlyHistoryCents.length - i), v })),
+    { label: "Atual", key: TODAY.slice(0, 7), v: orders.filter((o) => o.date >= monthBounds(TODAY).first).reduce((a, o) => a + o.totalCents, 0) }];
   const max = Math.max(...months.map((m) => m.v)) || 1;
+  const [sel, setSel] = useState<string | null>(null);
+  const selM = months.find((m) => m.key === sel);
+  const shown = sel ? orders.filter((o) => o.date.slice(0, 7) === sel) : orders;
+  const pick = (k: string) => { setSel(sel === k ? null : k); setTimeout(() => scrollToId("hist-pedidos"), 60); };
   return (
     <Sheet title={`${c.tradeName} · histórico de compras`} onClose={onClose} wide icon={<History size={18} />}>
       <div className="grid g2 gd-4">
@@ -570,10 +581,10 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
         <Kpi label="Financeiro" tone="info" value={brl0(fin.openCents)} foot={fin.overdueCents ? `vencido ${brl0(fin.overdueCents)}` : "sem vencidos"} />
         <Kpi label="Freezers" tone="success" value={c.assets.length} foot={`${sellerById.get(c.sellerId)?.name} · ${PARAMS.commercialRoutes.find((r) => r.code === c.routeCode)?.name}`} />
       </div>
-      <Card title="Compras por mês">
+      <Card title="Compras por mês" sub="toque no mês para ver os pedidos">
         <div className="month-bars">
           {months.map((m) => (
-            <div key={m.label} className="month-bar" title={`${m.label}: ${brl0(m.v)}`}>
+            <div key={m.label} className={`month-bar click ${sel === m.key ? "sel" : ""} ${sel && sel !== m.key ? "dim" : ""}`} role="button" onClick={() => pick(m.key)} title={`${m.label}: ${brl0(m.v)}`}>
               <span className="num xs">{m.v ? brl0(m.v).replace("R$", "").trim() : "–"}</span>
               <i style={{ height: `${Math.max(2, (m.v / max) * 100)}%` }} className={m.label === "Atual" ? "now" : ""} />
               <span className="xs muted">{m.label}</span>
@@ -581,16 +592,17 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
           ))}
         </div>
       </Card>
-      <Card title={`Pedidos (${orders.length})`} className="mt" sub="toque no pedido para ver os itens da nota">
+      <Card id="hist-pedidos" title={selM ? `Pedidos de ${selM.label === "Atual" ? "este mês" : selM.label} (${shown.length})` : `Pedidos (${orders.length})`} className="mt" sub={selM ? `total ${brl0(shown.reduce((a, o) => a + o.totalCents, 0))}` : "toque no pedido para ver os itens da nota"}
+        link={sel ? "Ver todos" : undefined} onLink={() => setSel(null)}>
         <div className="only-mobile order-cards">
-          {orders.map((o) => <OrderBalloon key={o.id} o={o} hideCustomer onClick={() => setOrder(o)} />)}
+          {shown.map((o) => <OrderBalloon key={o.id} o={o} hideCustomer onClick={() => setOrder(o)} />)}
           {!orders.length && <div className="small muted">Nenhuma compra registrada · cliente ainda não comprou.</div>}
         </div>
         <div className="table-wrap only-desktop" style={{ maxHeight: 380, overflowY: "auto" }}>
           <table className="t">
             <thead><tr><th>Data</th><th>Pedido</th><th>Nota fiscal</th><th className="r">Valor</th><th className="r">Prazo</th><th className="r">Itens</th><th>Status</th></tr></thead>
             <tbody>
-              {orders.map((o) => (
+              {shown.map((o) => (
                 <tr key={o.id} className="click" onClick={() => setOrder(o)}>
                   <td>{o.createdAt ? fmtDateTime(o.createdAt) : fmtDate(o.date)}</td><td className="semi">{o.number}</td><td>{o.invoiceNumber ?? <span className="muted">sem NF</span>}</td>
                   <td className="r num semi">{brl(o.totalCents)}</td><td className="r">{termShort(o.paymentTermDays)}</td><td className="r">{o.items.length}</td>
@@ -606,6 +618,12 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
       {order && <OrderDetail o={order} onClose={() => setOrder(null)} />}
     </Sheet>
   );
+}
+
+function monthKey(back: number) {
+  const d = new Date(`${monthBounds(TODAY).first}T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() - back);
+  return d.toISOString().slice(0, 7);
 }
 
 function monthLabel(back: number) {

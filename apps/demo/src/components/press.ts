@@ -3,8 +3,8 @@
  * (a nova tela entra com animação de 0,2 s). Botões de câmera/galeria e campos ficam instantâneos.
  */
 const PRESSABLE = ".btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .theme-switch button, .bullet-row, .linkbtn, tr.click";
-const NO_DELAY = "[data-instant], .step-btn, input, select, textarea, label, a[href], [type=submit]";
-const DOWN = 160, UP = 160;
+const NO_DELAY = "[data-instant], .bottom-nav, .step-btn, input, select, textarea, label, a[href], [type=submit]";
+const DOWN = 210, UP = 210;
 let replaying = false;
 
 function onClick(e: MouseEvent) {

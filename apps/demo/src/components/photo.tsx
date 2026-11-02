@@ -25,10 +25,10 @@ export function PhotoCapture({ value, onChange, label }: { value: string | null;
       {value ? (
         <div className="photo-preview">
           <img src={value} alt="Comprovante" />
-          <button className="btn btn-ghost btn-sm" onClick={() => ref.current?.click()}><RefreshCw size={14} /> Tirar outra</button>
+          <button className="btn btn-ghost btn-sm" data-instant onClick={() => ref.current?.click()}><RefreshCw size={14} /> Tirar outra</button>
         </div>
       ) : (
-        <button className="upload photo-btn" onClick={() => ref.current?.click()}>
+        <button className="upload photo-btn" data-instant onClick={() => ref.current?.click()}>
           <span className="photo-ic"><Camera size={30} /></span>
           <b>{label}</b>
           <span className="xs muted">No celular abre a câmera · no computador escolha uma imagem</span>

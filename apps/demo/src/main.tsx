@@ -8,6 +8,7 @@ import "./glass-themes.css";
 import "./nav-ig.css";
 import "./cards-ig.css";
 import "./dark-gray.css";
+import { installPressEffect } from "./components/press";
 import App from "./App";
 import { CHECKINS } from "./data/mock";
 import { deleteVideo, daysUntilPurge, retryPendingUploads } from "./components/video";
@@ -68,3 +69,5 @@ window.addEventListener("online", () => { retryPendingUploads(); });
 
 // Chrome/Android: liga a distorção "bolha" do vidro da barra de baixo (o Safari não suporta)
 try { if (/Chrome|Chromium|Edg\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("can-refract"); } catch { /* ok */ }
+
+installPressEffect();

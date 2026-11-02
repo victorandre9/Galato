@@ -67,10 +67,10 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
                 <span className="green semi flex" style={{ gap: 6 }}><CheckCircle2 size={16} /> Vídeo pronto</span>
                 <span className="num">{fmtBytes(video.originalBytes)} → <b>{fmtBytes(video.bytes)}</b> · {Math.round(video.seconds)} s · {video.height}p</span>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => input.current?.click()}><RefreshCw size={14} /> Gravar outro</button>
+              <button className="btn btn-ghost btn-sm" data-instant onClick={() => input.current?.click()}><RefreshCw size={14} /> Gravar outro</button>
             </div>
           ) : (
-            <button className="upload photo-btn" onClick={() => input.current?.click()}>
+            <button className="upload photo-btn" data-instant onClick={() => input.current?.click()}>
               <span className="photo-ic"><Video size={30} /></span>
               <b>Gravar vídeo do freezer</b>
               <span className="xs muted">Até {VIDEO_LIMITS.maxSeconds} s · reduzido para no máximo 1 MB</span>

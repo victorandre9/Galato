@@ -602,3 +602,23 @@ html[data-theme="dark"] body :is(.chip:not(.on), .btn-ghost, .btn-soft, .icon-bt
 }
 html[data-theme="dark"] body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x)::before { border-color: transparent !important; }
 html[data-theme="dark"] body .side-item.active:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { box-shadow: 0 0 0 1px rgba(255, 255, 255, .10), inset 0 0 0 1.5px rgba(255, 255, 255, .12), 0 5px 12px rgba(0, 0, 0, .5) !important; }
+/* escuro: aros com cor sólida (não dependem do degradê do fundo) e sombra centralizada → círculo perfeito */
+html[data-theme="dark"] body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, .55),
+    0 0 0 4px rgba(255, 255, 255, .05),
+    inset 0 0 0 2px #45454C,
+    inset 0 0 0 3.5px #1D1D21,
+    0 0 14px rgba(0, 0, 0, .55) !important;
+}
+html[data-theme="dark"] body :is(.btn-primary, .btn-gold, .btn-danger, .chip.on, .step-btn.plus):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, .55),
+    0 0 0 4px rgba(255, 255, 255, .05),
+    inset 0 0 0 2px rgba(255, 255, 255, .28),
+    inset 0 0 0 3.5px rgba(0, 0, 0, .25),
+    0 0 14px rgba(0, 0, 0, .55) !important;
+}
+html[data-theme="dark"] body :is(.chip:not(.on), .btn-ghost, .btn-soft, .icon-btn, .step-btn.minus, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  background: radial-gradient(circle at 50% 50%, #34343A 0%, #2B2B30 70%, #26262B 100%) !important;
+}

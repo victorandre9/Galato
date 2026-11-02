@@ -360,3 +360,6 @@ html:not([data-theme="dark"]) body :is(.press-down, .press-up):is(*, .x.x.x.x.x.
 html:not([data-theme="dark"]) body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role, .ent-tile, .bn-item, .side-item, .row, .kpi, .bucket, .route-pick, .occ-type, .step-btn, .bullet-row):is(*, .x.x.x.x.x.x.x.x.x.x.x):active { filter: none !important; }
 /* menu principal flutuante: sem atraso e sem animação de toque */
 html body .bottom-nav .bn-item:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { transform: none !important; transition: background .1s !important; }
+/* troca de aba instantânea: sem animação de entrada da tela */
+html body .main > * { animation: none !important; }
+html body .main .card, html body .main .action-tile { animation: none !important; }

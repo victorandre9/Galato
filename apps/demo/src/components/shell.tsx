@@ -380,7 +380,7 @@ function NavLens() {
       place();
     };
     clone();
-    const mo = new MutationObserver(() => { clearTimeout(cloneT); cloneT = setTimeout(clone, 250); });
+    const mo = new MutationObserver(() => { clearTimeout(cloneT); cloneT = setTimeout(clone, 40); });
     mo.observe(main, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class", "style"] });
     root.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);

@@ -15,12 +15,15 @@ import {
   CUSTOMERS, ORDERS, PAYMENT_REQUESTS, DELIVERY_ROUTES, INCIDENTS, NONCONFORMITIES, EPI_REQUESTS, SELLERS,
   NOTIFICATIONS, TRANSFER_REQUESTS, TEMP_ACCESS, PROOFS, YESTERDAY_DELIVERIES, CHECKINS, FREEZER_OCCURRENCES,
 } from "./mock";
+import { customerById } from "./mock";
+import { LEADS } from "./leads";
 
 type Entity = { id: string };
 const REG: Record<string, Entity[]> = {
   customer: CUSTOMERS, order: ORDERS, payreq: PAYMENT_REQUESTS, route: DELIVERY_ROUTES, incident: INCIDENTS,
   nc: NONCONFORMITIES, epi: EPI_REQUESTS, seller: SELLERS, notif: NOTIFICATIONS, transfer: TRANSFER_REQUESTS,
   tempaccess: TEMP_ACCESS, proof: PROOFS, yday: YESTERDAY_DELIVERIES, checkin: CHECKINS, fzocc: FREEZER_OCCURRENCES,
+  lead: LEADS,
 };
 const COLLECTION = "overlay";
 const keyOf = (type: string, id: string) => `${type}~${id}`.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
@@ -113,6 +116,7 @@ function applyDoc(type: string, id: string, json: string | null, fromRemote = fa
   if (idx >= 0) replaceInPlace(list[idx] as unknown as Record<string, unknown>, data);
   else if (type === "route") list.push(data);
   else list.unshift(data);
+  if (type === "customer") customerById.set(id, (idx >= 0 ? list[idx] : data) as never);
   keyMeta.set(k, { type, id });
   known.set(k, body);
   return true;

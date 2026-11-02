@@ -20,6 +20,8 @@ import { CustomerSheet, OrderRow, fmtDateTime } from "./business";
 import { OccurrenceDetail } from "./freezer-occurrences";
 import { RouteDetail } from "../screens/Ops";
 import { SellerPanel, ClientList } from "../screens/Reports";
+import { LeadSheet, viewerFor } from "./leads";
+import { LEADS } from "../data/leads";
 
 const MANAGER_ROLES: Role[] = ["sales_manager", "sales_coordinator", "general_manager"];
 const isManager = (r: Role | null) => !!r && MANAGER_ROLES.includes(r);
@@ -108,6 +110,11 @@ export function LinkView({ link, onClose, onNavigate }: { link: NotifLink; onClo
       if (role === "finance") return <GoTab tab="queue" onClose={onClose} />;
       return <ProofsListSheet title={link.title} late={!!link.late} scope={scopeOf(role)} onClose={onClose} />;
     case "clients-route": return <RouteClientsSheet sellerId={link.sellerId} days={link.days} onClose={onClose} />;
+    case "lead": {
+      const l = LEADS.find((x) => x.id === link.id);
+      if (!l) return <InfoSheet title="Prospecção" rows={[["Situação", "Prospect não encontrado"]]} onClose={onClose} />;
+      return <LeadSheet lead={l} viewer={viewerFor(role)} onClose={onClose} />;
+    }
     case "tab": return <GoTab tab={link.tab} onClose={onClose} />;
   }
 }

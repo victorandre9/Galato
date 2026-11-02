@@ -23,6 +23,7 @@ import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
 import { AlertLine } from "../components/links";
 import { CustomerHistory } from "./Reports";
+import { FinanceCadastros, pendingCadastros } from "../components/leads";
 
 // =================================================================== TRANSPORTES
 export function TransportApp() {
@@ -307,7 +308,7 @@ export function FinanceApp() {
   useStore();
   const fq = financeQueue();
   const tabs = [
-    { id: "queue", label: "Pendências", icon: <Wallet size={20} />, count: fq.breached },
+    { id: "queue", label: "Pendências", icon: <Wallet size={20} />, count: fq.breached + pendingCadastros().length },
     { id: "history", label: "Histórico", icon: <History size={20} /> },
     { id: "more", label: "Perfil", icon: <MoreHorizontal size={20} /> },
   ];
@@ -335,6 +336,7 @@ function FinanceQueue() {
         <Kpi icon={<Clock size={17} />} tone="red" label={`Sem resposta > ${PARAMS.financialSla.responseHours}h`} value={fq.breached} onClick={() => { setFilter("late"); scrollToId("fila"); }} foot="alerta para gerente, coordenação e vendedor" />
         <Kpi tone="gold" label="PIX" value={fq.pix} foot="prioridade" onClick={() => { setFilter("PIX"); scrollToId("fila"); }} />
         <Kpi tone="info" label="Pedidos aguardando crédito" value={blocked.length} onClick={() => scrollToId("aguardando-credito")} />
+        <Kpi tone="gold" label="Cadastros novos" value={pendingCadastros().length} foot="clientes vindos da prospecção" onClick={() => scrollToId("cadastros-novos")} />
       </div>
       <div className="grid gd gd-21">
         <Card id="fila" title="Fila priorizada" sub="dia anterior → PIX → boleto">
@@ -360,6 +362,8 @@ function FinanceQueue() {
           ))}
           {!list.length && <Empty icon={<CheckCircle2 />} text="Fila zerada." />}
         </Card>
+        <div className="stack">
+        <FinanceCadastros />
         <Card id="aguardando-credito" title="Pedidos aguardando crédito">
           {blocked.slice(0, 8).map((o) => (
             <div key={o.id} className="row">
@@ -371,6 +375,7 @@ function FinanceQueue() {
             </div>
           ))}
         </Card>
+        </div>
       </div>
       {openOrder && <OrderOpen order={openOrder} canEdit={false} onClose={() => setOpenOrder(null)} />}
       {open && <AnalyzeSheet p={open} onClose={() => setOpen(null)} />}

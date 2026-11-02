@@ -427,3 +427,6 @@ html:not([data-theme="dark"]) body :is(.card, .ent-group, .order-row, .action-ti
     inset -18px 0 18px -12px rgba(255, 255, 255, .8),
     0 8px 26px rgba(0, 0, 0, .10) !important;
 }
+
+/* prospecção: ícone redondo na linha */
+.ic-round { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--gold-soft); color: var(--gold); }

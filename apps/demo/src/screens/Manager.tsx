@@ -10,7 +10,9 @@ import { notify } from "../data/notify";
 import { ReportsView, RankingSheet, SellerPanel, ClientList } from "./Reports";
 import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occurrences";
 import { FREEZER_OCCURRENCES } from "../data/mock";
-import { AlertOctagon } from "lucide-react";
+import { AlertOctagon, Filter } from "lucide-react";
+import { ManagerProspect } from "../components/leads";
+import { LEADS } from "../data/leads";
 import { RouteDetail, ChecklistSummary } from "./Ops";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
@@ -59,6 +61,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
     { id: "fzocc", label: "Ocorrências freezer", icon: <AlertOctagon size={20} />, count: FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length },
+    { id: "prospect", label: "Prospecção", icon: <Filter size={20} />, count: LEADS.filter((l) => scope.includes(l.sellerId) && l.stage === "cadastro").length },
     { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
   return (
@@ -73,6 +76,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
+      {tab === "prospect" && <ManagerProspect scope={scope} />}
       {tab === "more" && (
         <div className="stack">
           <div className="grid g2 only-mobile" style={{ marginBottom: 0 }}>

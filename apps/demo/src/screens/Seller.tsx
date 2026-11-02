@@ -8,6 +8,8 @@ import { bucketLabel, PAYMENT_REQUEST_STATUS } from "@galato/domain";
 import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, customerById, type Customer, type Order, TODAY } from "../data/mock";
 import { newestFirst } from "../data/orders";
 import { OrderOpen } from "../components/order-flow";
+import { SellerProspect } from "../components/leads";
+import { LEADS, OPEN_STAGES } from "../data/leads";
 import { SellerPanel } from "./Reports";
 import { ChevronRight, BarChart3 } from "lucide-react";
 import {
@@ -159,6 +161,21 @@ function StatusTile({ icon, label, n, tone, onClick }: { icon: React.ReactNode; 
 }
 
 function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
+  const [view, setView] = useState<"carteira" | "prospect">("carteira");
+  const head = (
+    <>
+      <h2 style={{ margin: "6px 0 12px" }}>Clientes</h2>
+      <div className="chips mb">
+        <Chip on={view === "carteira"} onClick={() => setView("carteira")}>Carteira</Chip>
+        <Chip on={view === "prospect"} onClick={() => setView("prospect")}>Prospecção ({LEADS.filter((l) => l.sellerId === ME.id && OPEN_STAGES.includes(l.stage)).length})</Chip>
+      </div>
+    </>
+  );
+  if (view === "prospect") return <>{head}<SellerProspect /></>;
+  return <>{head}<SellerCarteira onOpen={onOpen} /></>;
+}
+
+function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"mine" | "all">("mine");
   const [curve, setCurve] = useState<string | null>(null);
@@ -168,7 +185,6 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
   ).slice(0, 80);
   return (
     <>
-      <h2 style={{ margin: "6px 0 12px" }}>Clientes</h2>
       <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, código, CNPJ ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="chips mb">
         <Chip on={scope === "mine"} onClick={() => setScope("mine")}>Minha carteira</Chip>

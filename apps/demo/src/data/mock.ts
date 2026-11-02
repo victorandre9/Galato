@@ -464,7 +464,7 @@ export type NotifKind = "operacional" | "alerta" | "financeiro" | "comercial" | 
 export type NotifLink =
   | { t: "order"; id: string } | { t: "proof"; id: string } | { t: "customer"; id: string }
   | { t: "route"; id: string } | { t: "occ"; id: string } | { t: "seller"; id: string }
-  | { t: "nc"; id: string } | { t: "incident"; id: string } | { t: "epi"; id: string } | { t: "transfer"; id: string }
+  | { t: "lead"; id: string } | { t: "nc"; id: string } | { t: "incident"; id: string } | { t: "epi"; id: string } | { t: "transfer"; id: string }
   | { t: "orders"; title: string; statuses: string[] }
   | { t: "proofs"; title: string; late?: boolean }
   | { t: "clients-route"; sellerId: string; days: number }

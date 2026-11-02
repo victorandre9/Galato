@@ -378,3 +378,14 @@ html[data-theme="dark"] body .press-frame:is(*, .x.x.x.x.x.x.x.x.x.x.x.x)::after
 }
 /* claro: tudo junto (aro e fundo), sem mudar cor */
 html:not([data-theme="dark"]) body [data-pressing]:is(*, .x.x.x.x.x.x.x.x.x.x.x.x) { filter: none !important; }
+
+/* claro: botões redondos com aro completo em volta do círculo todo */
+html:not([data-theme="dark"]) body :is(.icon-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 1px rgba(30, 40, 60, .14),
+    inset 0 0 0 1.5px #fff,
+    inset 0 2px 1.5px rgba(255, 255, 255, 1),
+    inset 0 10px 10px -8px rgba(255, 255, 255, .6),
+    0 6px 14px rgba(0, 0, 0, .12) !important;
+}
+html:not([data-theme="dark"]) body :is(.icon-btn, .step-btn):is(*, .x.x.x.x.x.x.x.x.x.x)::before { border: 1px solid rgba(255, 255, 255, .95) !important; box-shadow: 0 0 0 .5px rgba(30, 40, 60, .08) !important; }

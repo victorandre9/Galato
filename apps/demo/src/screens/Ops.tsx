@@ -463,45 +463,71 @@ export function BillingApp() {
   );
 }
 
+/** Fatura um pedido (gera NF quando for com nota) e avisa vendedor e logística. */
+function invoiceOrder(o: Order) {
+  setOrderStatus(o, "invoiced", BILLING_USER.name, o.fiscalDoc === "sem_nf" ? "Faturado sem nota fiscal" : undefined);
+  if (o.status !== "invoiced") return;
+  if (o.fiscalDoc !== "sem_nf") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
+  o.billingError = undefined;
+  notify({ link: { t: "order", id: o.id }, kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
+}
+
+const TO_BILL = ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"];
+
 function BillingBoard() {
   useStore();
   const [openOrder, setOpenOrder] = useState<(typeof ORDERS)[number] | null>(null);
-  const cols: { id: string; title: string; statuses: string[]; next?: [string, string] }[] = [
-    { id: "todo", title: "Liberados pelo crédito · a faturar", statuses: ["credit_approved", "scheduled_for_billing", "sent_to_billing", "billing_in_progress", "billing_error"], next: ["invoiced", "Faturar"] },
-    { id: "done", title: "Faturados", statuses: ["invoiced"] },
-  ];
+  const [sel, setSel] = useState<Set<string>>(new Set());
   const orders = ORDERS.filter((o) => o.kind === "ORDER");
+  const todo = orders.filter((o) => TO_BILL.includes(o.status));
+  const done = orders.filter((o) => o.status === "invoiced");
+  const chosen = todo.filter((o) => sel.has(o.id));
+  const all = todo.length > 0 && chosen.length === todo.length;
+  const toggle = (id: string) => setSel((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const bill = (list: Order[]) => {
+    if (!list.length) return;
+    commit(() => list.forEach(invoiceOrder), list.length === 1 ? `${list[0]!.number} faturado` : `${list.length} pedidos faturados · vendedores e logística avisados`);
+    setSel(new Set());
+  };
+  const line = (o: Order, col: "todo" | "done") => (
+    <div key={o.id} className={`row ${col === "todo" && sel.has(o.id) ? "row-sel" : ""}`} style={{ alignItems: "flex-start" }}>
+      {col === "todo" && <input type="checkbox" className="chk" checked={sel.has(o.id)} onChange={() => toggle(o.id)} aria-label={`Selecionar ${o.number}`} />}
+      <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}>
+        <div className="title small">{o.number} · <CustomerName id={o.customerId} /></div>
+        <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}</div>
+        {o.billingError && <div className="xs red semi" style={{ whiteSpace: "normal" }}>{o.billingError}</div>}
+        {o.invoiceNumber && col === "done" && <div className="xs green semi">{o.invoiceNumber} · disponível para logística</div>}
+      </div>
+      {col === "todo" && <button className="btn btn-soft btn-sm" onClick={() => bill([o])}>Faturar</button>}
+    </div>
+  );
   return (
     <>
       <Greeting icon={<FileCheck2 size={22} />} title={`Olá, ${BILLING_USER.name.split(" ")[0]}!`} sub="Pedidos liberados pelo crédito → notas → logística" />
       <div className="grid g2 gd-4">
-        {cols.map((c) => <Kpi key={c.id} onClick={() => scrollToId(`col-${c.id}`)} label={c.id === "todo" ? "A faturar" : c.title} tone="gold" value={orders.filter((o) => c.statuses.includes(o.status)).length} />)}
+        <Kpi onClick={() => scrollToId("col-todo")} label="A faturar" tone="gold" value={todo.length} />
+        <Kpi onClick={() => scrollToId("col-done")} label="Faturados" tone="gold" value={done.length} />
       </div>
       <div className="grid gd" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-        {cols.map((col) => {
-          const list = orders.filter((o) => col.statuses.includes(o.status));
-          return (
-            <Card key={col.id} id={`col-${col.id}`} title={`${col.title} (${list.length})`}>
-              {list.slice(0, 10).map((o) => (
-                <div key={o.id} className="row" style={{ alignItems: "flex-start" }}>
-                  <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}>
-                    <div className="title small">{o.number} · <CustomerName id={o.customerId} /></div>
-                    <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}</div>
-                    {o.billingError && <div className="xs red semi" style={{ whiteSpace: "normal" }}>{o.billingError}</div>}
-                    {o.invoiceNumber && col.id === "done" && <div className="xs green semi">{o.invoiceNumber} · disponível para logística</div>}
-                  </div>
-                  {col.next && <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
-                    setOrderStatus(o, col.next![0], BILLING_USER.name, col.next![0] === "invoiced" && o.fiscalDoc === "sem_nf" ? "Faturado sem nota fiscal" : undefined);
-                    if (o.status === "invoiced") notify({ link: { t: "order", id: o.id }, kind: "comercial", title: "Pedido faturado", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} faturado. Nota disponível para a logística.`, to: [`seller:${o.sellerId}`, "transport_coordinator"] });
-                    if (o.status === "invoiced" && o.fiscalDoc !== "sem_nf") o.invoiceNumber = `NF ${126000 + Math.floor(Math.random() * 900)}`;
-                    if (o.status !== "billing_error") o.billingError = undefined;
-                  }, `${o.number}: ${ORDER_STATUS[col.next![0] as keyof typeof ORDER_STATUS].label}`)}>{col.next[1]}</button>}
-                </div>
-              ))}
-              {!list.length && <div className="small muted">Vazio.</div>}
-            </Card>
-          );
-        })}
+        <Card id="col-todo" title={`Liberados pelo crédito · a faturar (${todo.length})`}>
+          {todo.length > 0 && (
+            <div className="bill-bar">
+              <label className="bill-all">
+                <input type="checkbox" className="chk" checked={all} ref={(el) => { if (el) el.indeterminate = chosen.length > 0 && !all; }}
+                  onChange={() => setSel(all ? new Set() : new Set(todo.map((o) => o.id)))} />
+                <span>{all ? "Desmarcar todos" : "Selecionar todos"}</span>
+              </label>
+              <span className="xs muted">{chosen.length} de {todo.length} · {brl(chosen.reduce((a, o) => a + o.totalCents, 0))}</span>
+              <button className="btn btn-primary btn-sm" disabled={!chosen.length} onClick={() => bill(chosen)}><FileCheck2 size={15} /> Faturar{chosen.length ? ` (${chosen.length})` : ""}</button>
+            </div>
+          )}
+          {todo.map((o) => line(o, "todo"))}
+          {!todo.length && <div className="small muted">Nada a faturar agora.</div>}
+        </Card>
+        <Card id="col-done" title={`Faturados (${done.length})`}>
+          {done.slice(0, 10).map((o) => line(o, "done"))}
+          {!done.length && <div className="small muted">Vazio.</div>}
+        </Card>
       </div>
       {openOrder && <OrderOpen order={openOrder} canEdit={false} onClose={() => setOpenOrder(null)} />}
     </>

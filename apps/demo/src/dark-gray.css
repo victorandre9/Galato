@@ -550,3 +550,11 @@ html body .tap-hl:is(*, .x.x.x) { animation: tapHl .26s ease-out !important; }
 html[data-theme="dark"] body .tap-hl:is(*, .x.x.x) { animation-name: tapHlDark !important; }
 @keyframes tapHlDark { from { background-color: rgba(255, 255, 255, .10); } to { background-color: transparent; } }
 svg .tap-hl { animation: none !important; opacity: .8; }
+
+/* faturamento: seleção de pedidos para faturar em lote */
+.bill-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 4px 2px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+.bill-bar .btn { margin-left: auto; }
+.bill-all { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+input.chk { width: 22px; height: 22px; flex: none; margin: 2px 0 0; accent-color: #2F6FD6; cursor: pointer; }
+.row.row-sel { background: rgba(47, 111, 214, .07); border-radius: 12px; }
+html[data-theme="dark"] .row.row-sel { background: rgba(255, 255, 255, .06); }

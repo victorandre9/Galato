@@ -192,3 +192,14 @@ html body .bottom-nav.ig.ig.ig .bn-item.active svg { stroke-width: 2.6; }
 html body .bottom-nav.ig.ig.ig.grow .bn-item { height: 62px; }
 html body .bottom-nav.ig.ig.ig.shrink .bn-item { height: 52px; }
 html body .bottom-nav.ig.ig.ig.shrink .bn-item span { font-size: 10.5px; }
+
+/* cabeçalho: voltar + menu à esquerda, logo no centro, sino à direita (uma linha) */
+html body .app-header { display: grid !important; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important; align-items: center; column-gap: 8px; }
+.app-header .header-left { display: flex; align-items: center; gap: 8px; justify-self: start; min-width: 0; }
+html body .app-header .logo { justify-self: center; grid-column: 2; }
+html body .app-header .header-right { justify-self: end; grid-column: 3; }
+@media (min-width: 1024px) {
+  html body .app-header { grid-template-columns: auto minmax(0, 1fr) auto !important; }
+  .app-header .header-left:not(:has(.back-btn)) { display: none; }
+  html body .app-header .header-right { grid-column: auto; }
+}

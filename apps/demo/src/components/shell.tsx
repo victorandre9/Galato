@@ -102,8 +102,10 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
         </aside>
         <main className="main">
           <header className="app-header">
-            {hist.current.length > 0 && <button className="icon-btn back-btn" onClick={goBack} aria-label="Voltar" title="Voltar"><ChevronLeft size={21} /></button>}
-            <button className="icon-btn menu-btn" onClick={() => setState({ role: null })} aria-label="Trocar perfil"><Menu size={20} /></button>
+            <div className="header-left">
+              {hist.current.length > 0 && <button className="icon-btn back-btn" onClick={goBack} aria-label="Voltar" title="Voltar"><ChevronLeft size={21} /></button>}
+              <button className="icon-btn menu-btn" onClick={() => setState({ role: null })} aria-label="Trocar perfil"><Menu size={20} /></button>
+            </div>
             <img className="logo" src="./galato-logo.png" alt="Galato" />
             <div className="only-desktop flex">
               <span className="pill"><CalendarDays size={14} /> Hoje, {dayLabel(TODAY)}</span>

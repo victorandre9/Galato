@@ -6,6 +6,7 @@ import "./enterprise.css";
 import "./glass.css";
 import "./glass-themes.css";
 import "./nav-ig.css";
+import "./cards-ig.css";
 import App from "./App";
 import { CHECKINS } from "./data/mock";
 import { deleteVideo, daysUntilPurge, retryPendingUploads } from "./components/video";

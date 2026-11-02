@@ -117,3 +117,32 @@ html[data-theme="dark"]:not(.ent):not(.x-cinza) {
   --g-card-ring: rgba(255, 255, 255, .08);
 }
 html[data-theme="dark"] .pill { background: #1C1C1E !important; color: #C7C7CC !important; }
+
+/* botões cinza: dois tons bem marcados (escuro em cima → claro embaixo), como foi no bordô */
+html[data-theme="dark"]:not(.ent):not(.x-cinza):not(.y-cinza) {
+  --g-face: linear-gradient(180deg, #1C1C1F 0%, #242428 28%, #303035 55%, #424248 80%, #55555C 93%, #3C3C42 100%);
+  --g-rim: rgba(255, 255, 255, .11);
+  --g-ring: rgba(255, 255, 255, .06);
+}
+
+/* branco com metade da força: cards, botões, aros e barra */
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x) {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,0) 18px) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .05),
+    inset 0 1.5px 1px rgba(255, 255, 255, .07),
+    inset 10px 0 12px -10px rgba(255, 255, 255, .03),
+    inset -10px 0 12px -10px rgba(255, 255, 255, .03),
+    0 8px 24px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.btn, .icon-btn, .chip, .step-btn, .theme-switch, .bucket, .yd-stat, .product-row, .route-pick, .occ-type, .freezer-row, .stepper, .pill):is(*, .x.x.x.x.x) {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .06),
+    inset 0 1.5px 1px rgba(255, 255, 255, .09),
+    inset 0 10px 10px -8px rgba(255, 255, 255, .03),
+    0 6px 14px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile, .btn, .icon-btn, .chip, .step-btn, .theme-switch):is(*, .x.x.x.x.x)::before { border-color: rgba(255, 255, 255, .045) !important; }
+html[data-theme="dark"] body :is(.btn-primary, .btn-gold, .btn-danger, .chip.on, .step-btn.plus):is(*, .x.x.x.x.x)::before { border-color: rgba(255, 255, 255, .25) !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 1.5px 1px rgba(255, 255, 255, .09), 0 8px 26px rgba(0, 0, 0, .6) !important; }
+html[data-theme="dark"] body :is(.card.click, .order-row.click, .ent-role, .ent-tile, .action-tile):is(*, .x.x.x.x.x):hover { box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1.5px 1px rgba(255,255,255,.09), 0 10px 26px rgba(0,0,0,.7) !important; }

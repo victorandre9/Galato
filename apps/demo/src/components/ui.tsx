@@ -98,10 +98,13 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
         <defs>
           <filter id={`neon-${uid}`} x="-30%" y="-30%" width="160%" height="160%" colorInterpolationFilters="sRGB">
             <feGaussianBlur in="SourceAlpha" stdDeviation={stroke * 0.35} result="blur" />
-            <feFlood floodColor={c1} floodOpacity="0.9" />
+            <feFlood className="neon-a" floodColor={c1} floodOpacity="0.9" />
             <feComposite in2="blur" operator="in" result="glow" />
+            <feGaussianBlur in="SourceAlpha" stdDeviation={stroke * 0.9} result="blur2" />
+            <feFlood className="neon-b" floodColor={c1} floodOpacity="0" />
+            <feComposite in2="blur2" operator="in" result="glow2" />
             <feGaussianBlur in="SourceGraphic" stdDeviation={0.8} result="soft" />
-            <feMerge><feMergeNode in="glow" /><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
+            <feMerge><feMergeNode in="glow2" /><feMergeNode in="glow" /><feMergeNode in="glow" /><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
         </defs>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />

@@ -85,24 +85,37 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
   const v = Math.max(0, Math.min(100, value));
   const lvl = pctLevel(value);
   const [c1] = LEVEL_COLORS[lvl]!;
-    const len = c * (v / 100);
+  const len = c * (v / 100);
   const cx = size / 2;
+  // texto maior (ex.: 110%) diminui para caber certinho no meio do círculo
+  const text = label ?? pct(value);
+  const chars = typeof text === "string" || typeof text === "number" ? String(text).length : 3;
+  const fit = chars <= 3 ? 1 : chars === 4 ? 0.82 : 0.72;
   return (
     <div className={`ring-wrap ring-${lvl}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
         {v > 0 && <circle className="ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={c1} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={`${len} ${c}`} style={{ transition: "stroke-dasharray .8s ease" }} />}
-        {/* igual à barra: contorno branco fino nas duas bordas + linha de brilho clara perto do topo */}
-        {v > 0 && <g className="ring-shine" fill="none" stroke="#fff" strokeLinecap="round">
-          <circle cx={cx} cy={cx} r={r} strokeOpacity={1} strokeWidth={stroke * 0.15} strokeLinecap="butt" strokeDasharray={`${len} ${c}`} />
-          {/* início: bolinha branca com 20% da faixa (80% colorido em volta) */}
-          <circle cx={cx + r} cy={cx} r={stroke * 0.1} fill="#fff" stroke="none" />
-          {/* ponta: bola branca com 80% da faixa (20% de borda colorida); início: branco fino (20%) */}
-          <circle cx={cx + r * Math.cos(len / r)} cy={cx + r * Math.sin(len / r)} r={stroke * 0.3} fill="#fff" stroke="none" />
-        </g>}
+        {/* branco que engrossa junto com o índice: 20% da faixa no começo, cresce conforme o % (50% → metade), até no máximo 90% */}
+        {v > 0 && (() => {
+          const wf = (p: number) => Math.min(0.9, Math.max(0.2, p / 100));
+          const N = Math.max(2, Math.round(v / 1.5));
+          const seg = len / N;
+          const pt = (l: number) => [cx + r * Math.cos(l / r), cx + r * Math.sin(l / r)] as const;
+          const [ex, ey] = pt(len);
+          return (
+            <g className="ring-shine" fill="none" stroke="#fff">
+              {Array.from({ length: N }, (_, i) => (
+                <circle key={i} cx={cx} cy={cx} r={r} strokeWidth={stroke * wf(((i + 0.5) / N) * v)} strokeDasharray={`${seg + 0.4} ${c}`} strokeDashoffset={-i * seg} />
+              ))}
+              <circle cx={cx + r} cy={cx} r={stroke * wf(0) / 2} fill="#fff" stroke="none" />
+              <circle cx={ex} cy={ey} r={stroke * wf(v) / 2} fill="#fff" stroke="none" />
+            </g>
+          );
+        })()}
       </svg>
-      <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>
+      <div className="ring-label"><b className="num" style={{ display: "inline-block", transform: `scale(${fit})`, transformOrigin: "center" }}>{text}</b>{sub && <span>{sub}</span>}</div>
     </div>
   );
 }

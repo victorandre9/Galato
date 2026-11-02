@@ -583,3 +583,5 @@ html body .progress.neon.lv-green:is(*, .x.x.x.x.x.x) > span { --c1: #0E8F4F; --
 html body .progress.neon.lv-blue:is(*, .x.x.x.x.x.x) > span { --c1: #155FD6; --c2: #7CC2FF; }
 html body .progress.neon.lv-rel:is(*, .x.x.x.x.x.x) > span { --c1: #7F93A8; --c2: #C3D0DD; }
 html body .ring-wrap:is(*, .x.x.x.x.x.x) .ring-shine { opacity: 1 !important; }
+/* anel: neon no branco (brilho branco + halo da cor da faixa) */
+html body .ring-wrap:is(*, .x.x.x.x.x.x.x) .ring-shine { filter: drop-shadow(0 0 2px rgba(255, 255, 255, .95)) drop-shadow(0 0 5px var(--ring-glow)) drop-shadow(0 0 10px var(--ring-glow)) !important; }

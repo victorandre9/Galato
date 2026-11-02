@@ -13,7 +13,7 @@ import { LinkView } from "./links";
 import { dayLabel } from "../data/selectors";
 import { notificationsFor, viewerId } from "../data/notify";
 import { persistChanges, resetDemo } from "../data/sync";
-import { SyncIndicator, Sheet, Badge, ConfirmModal, Empty } from "./ui";
+import { SyncIndicator, Sheet, Badge, ConfirmModal, Empty, scrollPageTop } from "./ui";
 
 
 export function toggleFullscreen() {
@@ -47,14 +47,14 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
     lastTab.current = tab; bump((n) => n + 1);
   }, [tab]);
   const go = (t: string) => onTab(t);
-  const goBack = () => { const prev = hist.current.pop(); if (prev !== undefined) { goingBack.current = true; onTabRef.current(prev); window.scrollTo({ top: 0 }); } };
+  const goBack = () => { const prev = hist.current.pop(); if (prev !== undefined) { goingBack.current = true; onTabRef.current(prev); scrollPageTop(); } };
   useEffect(() => { registerTabs({ has: () => hist.current.length > 0, back: goBack }); return () => registerTabs(null); }, []);
   // troca de aba pedida por notificação/alerta
   const seenNav = useRef(s.navN);
   useEffect(() => {
     if (s.navN === seenNav.current) return;
     seenNav.current = s.navN;
-    if (s.navTab && tabs.some((t) => t.id === s.navTab)) { onTabRef.current(s.navTab); window.scrollTo({ top: 0 }); }
+    if (s.navTab && tabs.some((t) => t.id === s.navTab)) { onTabRef.current(s.navTab); scrollPageTop(); }
   }, [s.navN]);
   const mine = s.role ? notificationsFor(s.role) : [];
   const me = s.role ? viewerId(s.role) : "";
@@ -112,7 +112,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
       {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
       <nav className="bottom-nav">
         {tabs.slice(0, 5).map((t) => (
-          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); window.scrollTo({ top: 0 }); }}>
+          <button key={t.id} className={`bn-item ${tab === t.id ? "active" : ""}`} onClick={() => { go(t.id); scrollPageTop(); }}>
             {t.icon}<span>{t.label}</span>
           </button>
         ))}
@@ -285,7 +285,7 @@ export function ThemeSwitch() {
 /** Modo apresentação: barrinha discreta para passar de tela (como slides) e sair. */
 function PresentBar({ tabs, tab, onTab }: { tabs: Tab[]; tab: string; onTab: (t: string) => void }) {
   const i = Math.max(0, tabs.findIndex((t) => t.id === tab));
-  const go = (d: number) => { const n = tabs[(i + d + tabs.length) % tabs.length]; if (n) { onTab(n.id); window.scrollTo({ top: 0 }); } };
+  const go = (d: number) => { const n = tabs[(i + d + tabs.length) % tabs.length]; if (n) { onTab(n.id); scrollPageTop(); } };
   const goRef = useRef(go); goRef.current = go;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {

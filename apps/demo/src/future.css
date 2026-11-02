@@ -479,5 +479,10 @@ html.present .main { max-width: none !important; padding: calc(16px + env(safe-a
 .present-bar .icon-btn { width: 36px; height: 36px; }
 .present-label { font-size: 13px; font-weight: 600; padding: 0 6px; white-space: nowrap; }
 .present-label small { color: var(--muted); font-weight: 500; margin-left: 4px; }
-.present-bar.solo { left: auto; right: 14px; top: calc(12px + env(safe-area-inset-top)); bottom: auto; transform: none; }
+.present-bar.solo { left: auto; right: 14px; top: calc(22px + env(safe-area-inset-top, 20px)); bottom: auto; transform: none; }
 [data-theme="dark"] .present-bar { background: rgba(50, 8, 14, .85); }
+
+/* ---------- iPhone: o corpo não rola; a página rola dentro de #root (menu de baixo fica realmente fixo) ---------- */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+#root { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+.bottom-nav { transform: none !important; -webkit-transform: none !important; will-change: auto; }

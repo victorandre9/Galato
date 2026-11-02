@@ -127,5 +127,5 @@ export function requestTab(tab: string) { setState({ navTab: tab, navN: state.na
 export function setPresent(on: boolean) {
   setState({ present: on });
   try { document.documentElement.classList.toggle("present", on); } catch { /* ok */ }
-  window.scrollTo({ top: 0 });
+  (document.getElementById("root") ?? document.documentElement).scrollTo({ top: 0 });
 }

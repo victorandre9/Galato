@@ -105,21 +105,21 @@ export function Chip({ on, children, onClick }: { on?: boolean; children: ReactN
 
 let openSheets = 0;
 /** Trava a página de trás (inclusive no iPhone, que ignora overflow:hidden) e devolve a posição ao fechar. */
-let locks = 0, savedY = 0;
+let locks = 0;
+/** A página rola dentro de #root (o corpo fica parado: no iPhone o menu de baixo não balança). */
+export const pageScroller = () => (document.getElementById("root") ?? document.documentElement) as HTMLElement;
+export const scrollPageTop = () => { try { pageScroller().scrollTo({ top: 0 }); } catch { /* ok */ } };
 function lockScroll() {
   if (locks++ > 0) return;
-  savedY = window.scrollY;
-  const b = document.body.style;
-  b.position = "fixed"; b.top = `-${savedY}px`; b.left = "0"; b.right = "0"; b.width = "100%"; b.overflow = "hidden";
+  // com janela aberta, só a janela rola; a página de trás fica parada no mesmo ponto
+  pageScroller().style.overflow = "hidden";
   document.documentElement.classList.add("scroll-locked");
 }
 function unlockScroll() {
   if (--locks > 0) return;
   locks = 0;
-  const b = document.body.style;
-  b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = ""; b.overflow = "";
+  pageScroller().style.overflow = "";
   document.documentElement.classList.remove("scroll-locked");
-  window.scrollTo(0, savedY);
 }
 function useScrollLock() { useEffect(() => { lockScroll(); return unlockScroll; }, []); }
 /** Fecha pela tecla/gesto "voltar" do aparelho. */

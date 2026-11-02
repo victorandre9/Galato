@@ -5,7 +5,7 @@ import { setState, useStore } from "./data/store";
 import type { Role } from "./data/mock";
 import { TODAY } from "./data/mock";
 import { dayLabel } from "./data/selectors";
-import { Toasts } from "./components/ui";
+import { Toasts, scrollPageTop } from "./components/ui";
 import { SellerApp } from "./screens/Seller";
 import { ManagerApp } from "./screens/Manager";
 import { DriverApp } from "./screens/Driver";
@@ -69,7 +69,7 @@ const ENT_GROUP_ICON: Record<string, React.ReactNode> = { Comercial: <BarChart3 
 
 function LoginEnterprise() {
   const s = useStore();
-  const enter = (role: Role) => { setState({ role }); window.scrollTo({ top: 0 }); };
+  const enter = (role: Role) => { setState({ role }); scrollPageTop(); };
   return (
     <div className="login ent-login">
       <div className="ent-head">

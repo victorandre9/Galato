@@ -15,9 +15,8 @@ import { TransportApp, FinanceApp, BillingApp } from "./screens/Ops";
 const GROUPS: { title: string; roles: { role: Role; label: string; desc: string; icon: React.ReactNode; device: string }[] }[] = [
   { title: "Comercial", roles: [
     { role: "seller", label: "Vendedor externo", desc: "Quanto vendi, quanto falta, quem visitar", icon: <UserRound />, device: "Celular" },
-    { role: "sales_manager", label: "Gerente comercial", desc: "Equipe, metas, exceções", icon: <Users />, device: "Celular · desktop" },
-    { role: "sales_coordinator", label: "Coordenador comercial", desc: "Carteiras, transferências, cobertura", icon: <Briefcase />, device: "Desktop" },
-    { role: "general_manager", label: "Gerente geral", desc: "Visão executiva da operação", icon: <Crown />, device: "Desktop" },
+    { role: "sales_coordinator", label: "Supervisor comercial", desc: "Equipe, metas, carteiras e aprovações", icon: <Briefcase />, device: "Celular · desktop" },
+    { role: "general_manager", label: "Gerente geral", desc: "Tudo do supervisor + logística, relatórios e liberações", icon: <Crown />, device: "Celular · desktop" },
   ]},
   { title: "Administrativo", roles: [
     { role: "finance", label: "Financeiro / Crédito", desc: "Comprovantes, SLA, liberação", icon: <Wallet />, device: "Desktop" },
@@ -63,8 +62,8 @@ export default function App() {
 const ENT_DESC: Partial<Record<Role, string>> = {
   seller: "Vendas, metas, carteira e visitas",
   sales_manager: "Desempenho da equipe e acompanhamento de metas",
-  sales_coordinator: "Gestão de carteiras, territórios e transferências",
-  general_manager: "Visão consolidada da operação",
+  sales_coordinator: "Equipe, metas, carteiras e aprovações",
+  general_manager: "Comercial + logística, relatórios e liberações",
   finance: "Comprovantes, crédito e prazos",
   billing: "Pedidos liberados e notas fiscais",
   driver: "Rota, checklist e entregas",

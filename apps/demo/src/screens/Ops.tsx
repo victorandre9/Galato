@@ -225,7 +225,7 @@ function ImportSheet({ mode, onClose }: { mode: "system" | "manual"; onClose: ()
   );
 }
 
-function RoutesView() {
+export function RoutesView() {
   const [detail, setDetail] = useState<DeliveryRoute | null>(null);
   return (
     <>
@@ -237,7 +237,7 @@ function RoutesView() {
   );
 }
 
-function IssuesView() {
+export function IssuesView() {
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Ocorrências e não conformidades</h2>
@@ -273,7 +273,7 @@ function IssuesView() {
   );
 }
 
-function FleetView() {
+export function FleetView() {
   useStore();
   const log = logisticsOverview();
   const [open, setOpen] = useState<DeliveryRoute | null>(null);
@@ -414,7 +414,7 @@ function AnalyzeSheet({ p: view, onClose }: { p: PaymentRequest; onClose: () => 
               <button key={st} className={`btn btn-sm ${st === "confirmed" ? "btn-primary" : "btn-ghost"}`} onClick={() => {
                 commit(() => {
                   p.status = st; p.respondedAt = nowStamp();
-                  notify({ link: { t: "proof", id: p.id }, kind: "financeiro", priority: st === "confirmed" ? "normal" : "high", title: `Comprovante ${p.number}: ${label}`, text: `${c.tradeName} · ${p.method} · ${brl(p.amountCents)}.`, to: [`seller:${p.sellerId}`, "sales_manager"] });
+                  notify({ link: { t: "proof", id: p.id }, kind: "financeiro", priority: st === "confirmed" ? "normal" : "high", title: `Comprovante ${p.number}: ${label}`, text: `${c.tradeName} · ${p.method} · ${brl(p.amountCents)}.`, to: [`seller:${p.sellerId}`, "sales_coordinator", "general_manager"] });
                 }, `${label} · vendedor e gerente notificados`);
                 onClose();
               }}>{st === "confirmed" && <Check size={14} />} {label}</button>
@@ -509,7 +509,7 @@ function BillingBoard() {
 }
 
 // ------------------------------------------------------------------- EPI (coordenação)
-function EpiCard() {
+export function EpiCard() {
   useStore();
   const open = EPI_REQUESTS.filter((e) => !["delivered", "rejected"].includes(e.status)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const next: Record<string, [string, string][]> = {

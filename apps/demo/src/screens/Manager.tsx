@@ -13,7 +13,9 @@ import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
 import { ManagerProspect } from "../components/leads";
 import { LEADS } from "../data/leads";
-import { RouteDetail, ChecklistSummary } from "./Ops";
+import { RouteDetail, ChecklistSummary, RoutesView, IssuesView, FleetView, EpiCard } from "./Ops";
+import { ApprovalsView, approvalsCount } from "../components/approvals";
+import { ShieldCheck, Route } from "lucide-react";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
 import { AlertLine } from "../components/links";
@@ -38,7 +40,7 @@ import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
   general_manager: { label: "Gerente geral", name: "Paulo Henrique Lopes" },
-  sales_coordinator: { label: "Coordenador comercial", name: "Ricardo Nunes" },
+  sales_coordinator: { label: "Supervisor comercial", name: "Ricardo Nunes" },
   sales_manager: { label: "Gerente comercial", name: MANAGERS[0]!.name },
 };
 
@@ -56,12 +58,18 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "visits", label: "Visitas", icon: <MapPin size={20} /> },
     { id: "deliveries", label: "Entregas", icon: <Truck size={20} /> },
     { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
+    { id: "approvals", label: "Liberações", icon: <ShieldCheck size={20} />, count: approvalsCount(role, scope) },
     { id: "reports", label: "Relatórios", icon: <BarChart3 size={20} /> },
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
     { id: "fzocc", label: "Ocorrências freezer", icon: <AlertOctagon size={20} />, count: FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length },
     { id: "prospect", label: "Prospecção", icon: <Filter size={20} />, count: LEADS.filter((l) => scope.includes(l.sellerId) && l.stage === "cadastro").length },
+    ...(role === "general_manager" ? [
+      { id: "lroutes", label: "Logística · rotas", icon: <Route size={20} /> },
+      { id: "lissues", label: "Logística · ocorrências", icon: <AlertTriangle size={20} />, count: logisticsOverview().openIncidents.length + logisticsOverview().openNc.length },
+      { id: "lfleet", label: "Logística · frota e EPI", icon: <Truck size={20} /> },
+    ] : []),
     { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
   return (
@@ -77,6 +85,10 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
       {tab === "prospect" && <ManagerProspect scope={scope} />}
+      {tab === "approvals" && <ApprovalsView role={role} scope={scope} goTab={setTab} />}
+      {tab === "lroutes" && <RoutesView />}
+      {tab === "lissues" && <IssuesView />}
+      {tab === "lfleet" && <><FleetView /><div className="mt"><EpiCard /></div></>}
       {tab === "more" && (
         <div className="stack">
           <div className="grid g2 only-mobile" style={{ marginBottom: 0 }}>
@@ -121,7 +133,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
 
   return (
     <>
-      <Greeting icon={<Crown size={22} />} title={`Olá, ${info.name.split(" ")[0]}!`} sub={`${info.label} · ${role === "sales_manager" ? "sua equipe" : "visão executiva da operação"}`} />
+      <Greeting icon={<Crown size={22} />} title={`Olá, ${info.name.split(" ")[0]}!`} sub={`${info.label} · ${role === "general_manager" ? "comercial, logística e liberações" : "sua equipe, metas e aprovações"}`} />
 
       <div className="grid g2 gd-4">
         <Kpi icon={<Target size={17} />} label="Meta do dia" value={brl0(g.dailyGoalCents)} onClick={() => { setRankMode("day"); setRankOpen(true); }}>
@@ -641,7 +653,7 @@ function YesterdayCard({ scope }: { scope: string[] }) {
   );
 }
 
-function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => void }) {
+export function YesterdaySheet({ scope, onClose }: { scope: string[]; onClose: () => void }) {
   useStore();
   const y = yesterdaySummary(scope);
   const [visits, setVisits] = useState<string | "all" | null>(null);

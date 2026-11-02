@@ -143,7 +143,7 @@ export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewe
           <StageBadge s={l.stage} />
           {l.score && <span className="small">Potencial <Curve c={l.score} /></span>}
         </div>
-        {l.stage !== "perdido" && <div className="mt"><Progress value={((Math.max(0, idx) + 1) / 7) * 100} color={l.stage === "cliente" ? "green" : undefined} /></div>}
+        {l.stage !== "perdido" && <div className="mt"><Progress rel value={((Math.max(0, idx) + 1) / 7) * 100} color={l.stage === "cliente" ? "green" : undefined} /></div>}
         <div className="chips mt" style={{ flexWrap: "wrap" }}>
           {STAGES.filter((s) => s.id !== "perdido").map((s, i) => <span key={s.id} className={`xs ${i <= idx ? "bold" : "muted"}`}>{i + 1}. {s.label}{i < 6 ? " ›" : ""}</span>)}
         </div>
@@ -483,7 +483,7 @@ export function ManagerProspect({ scope }: { scope: string[] }) {
           {f.byStage.map((s) => (
             <div key={s.id} className="row click" onClick={() => setList({ title: s.label, items: f.all.filter((l) => l.stage === s.id) })}>
               <div style={{ width: 110 }} className="small semi">{s.label}</div>
-              <div className="grow"><Progress value={(s.n / max) * 100} color={s.id === "cliente" ? "green" : undefined} /></div>
+              <div className="grow"><Progress rel value={(s.n / max) * 100} color={s.id === "cliente" ? "green" : undefined} /></div>
               <div className="end"><b className="num">{s.n}</b></div>
             </div>
           ))}

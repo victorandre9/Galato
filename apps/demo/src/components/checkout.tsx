@@ -57,7 +57,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
           {busy !== null ? (
             <Card>
               <div className="semi mb">{busy >= 0.9 ? "Finalizando o vídeo…" : `Reduzindo o vídeo… ${Math.round(busy * 100)}%`}</div>
-              <Progress value={busy * 100} />
+              <Progress rel value={busy * 100} />
               <div className="xs muted mt">Fica pronto em poucos segundos. Não feche esta tela.</div>
             </Card>
           ) : video && url ? (

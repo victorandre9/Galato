@@ -11,14 +11,14 @@ import { ReportsView, RankingSheet, SellerPanel, ClientList } from "./Reports";
 import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occurrences";
 import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
-import { ManagerProspect } from "../components/leads";
+import { ManagerProspect, LeadListSheet } from "../components/leads";
 import { LEADS } from "../data/leads";
 import { RouteDetail, ChecklistSummary, RoutesView, IssuesView, FleetView, EpiCard } from "./Ops";
 import { ApprovalsView, approvalsCount } from "../components/approvals";
 import { ShieldCheck, Route } from "lucide-react";
 import { OrderOpen } from "../components/order-flow";
 import { ProofView } from "../components/details";
-import { AlertLine } from "../components/links";
+import { AlertLine, LinkView } from "../components/links";
 import { CheckinVideo } from "../components/checkout";
 import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
@@ -48,6 +48,7 @@ const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
 export function ManagerApp({ role }: { role: Role }) {
   const [tab, setTab] = useState("home");
   const [open, setOpen] = useState<Customer | null>(null);
+  const [pend, setPend] = useState<null | "finance" | "prospect">(null);
   useStore();
   const info = ROLE_INFO[role]!;
   // gerente comercial vê só a própria equipe; coordenação/gerente geral veem tudo
@@ -93,12 +94,14 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "more" && (
         <div className="stack">
           <div className="grid g2 only-mobile" style={{ marginBottom: 0 }}>
-            {tabs.slice(5).map((t) => <button key={t.id} className="action-tile" onClick={() => setTab(t.id)}>{!!("count" in t && t.count) && <span className="tile-count" aria-label={`${t.count} pendentes`}>{t.count! > 99 ? "99+" : t.count}</span>}<span className="ic">{t.icon}</span>{t.label}</button>)}
+            {tabs.slice(5).map((t) => <button key={t.id} className="action-tile" onClick={() => (("count" in t && t.count) && (t.id === "finance" || t.id === "prospect") ? setPend(t.id) : setTab(t.id))}>{!!("count" in t && t.count) && <span className="tile-count" aria-label={`${t.count} pendentes`}>{t.count! > 99 ? "99+" : t.count}</span>}<span className="ic">{t.icon}</span>{t.label}</button>)}
           </div>
           <ProfilePanel name={info.name} role={info.label} />
         </div>
       )}
       {open && <CustomerSheet c={open} onClose={() => setOpen(null)} />}
+      {pend === "finance" && <LinkView link={{ t: "proofs", title: "Comprovantes além do SLA", late: true }} onClose={() => setPend(null)} onNavigate={() => setPend(null)} />}
+      {pend === "prospect" && <LeadListSheet title="Cadastros novos no financeiro" items={LEADS.filter((l) => scope.includes(l.sellerId) && l.stage === "cadastro")} viewer="manager" onClose={() => setPend(null)} />}
     </Shell>
   );
 }

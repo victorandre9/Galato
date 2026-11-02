@@ -600,6 +600,6 @@ export function CustomerName({ id }: { id: string }) {
 }
 
 export function MiniBar({ value, max }: { value: number; max: number }) {
-  return <Progress thin value={max ? (value / max) * 100 : 0} />;
+  return <Progress rel thin value={max ? (value / max) * 100 : 0} />;
 }
 export { fmtDate };

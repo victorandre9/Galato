@@ -60,9 +60,14 @@ export function Kpi({ icon, label, value, foot, tone = "red", onClick, children 
   );
 }
 
-export function Progress({ value, color, thin }: { value: number; color?: "red" | "green"; thin?: boolean }) {
+/** Faixa de cor pelo percentual: até 40% vermelho · 41–70% amarelo · 71–100% verde · acima de 100% azul. */
+export const pctLevel = (v: number) => (v > 100 ? "blue" : v > 70 ? "green" : v > 40 ? "yellow" : "red");
+
+export function Progress({ value, thin, rel }: { value: number; color?: "red" | "green"; thin?: boolean; rel?: boolean }) {
+  // rel = barra só comparativa (não é % de meta): mantém a cor neutra
+  const lvl = rel ? "rel" : pctLevel(value);
   return (
-    <div className={`progress ${color ?? ""} ${thin ? "thin" : ""}`}>
+    <div className={`progress neon lv-${lvl} ${thin ? "thin" : ""}`}>
       <span style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
   );
@@ -74,7 +79,7 @@ export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: nu
   const v = Math.max(0, Math.min(100, value));
   const id = `rg${size}${stroke}`;
   return (
-    <div className="ring-wrap" style={{ width: size, height: size }}>
+    <div className={`ring-wrap ring-${pctLevel(value)}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
           <linearGradient id={id} x1="0" x2="1" y1="0" y2="1">

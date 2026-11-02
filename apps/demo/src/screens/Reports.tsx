@@ -322,7 +322,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
               <Curve c={c.c} />
               <div className="grow">
                 <div className="flex between small"><span>{c.n} clientes</span><b className="num">{brl0(c.value)}</b></div>
-                <div style={{ marginTop: 5 }}><Progress thin value={(c.value / curveMax) * 100} /></div>
+                <div style={{ marginTop: 5 }}><Progress rel thin value={(c.value / curveMax) * 100} /></div>
               </div>
             </div>
           ))}

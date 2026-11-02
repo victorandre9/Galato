@@ -515,3 +515,27 @@ html body .action-tile:is(*, .x.x.x) > .tile-count {
   box-shadow: 0 0 0 2px #fff, 0 3px 8px rgba(211, 47, 47, .35);
 }
 html[data-theme="dark"] body .action-tile:is(*, .x.x.x) > .tile-count { box-shadow: 0 0 0 2px #000, 0 3px 8px rgba(0, 0, 0, .5); }
+
+/* barras de % (meta, visitas, entregas): cor pela faixa + efeito neon translúcido (mesma altura) */
+html body .progress.neon:is(*, .x.x.x.x) { overflow: visible; position: relative; }
+html body .progress.neon:is(*, .x.x.x.x) > span {
+  --c1: #E5383B; --c2: #FF7A7C; --glow: rgba(229, 56, 59, .65);
+  position: relative; max-width: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c1) 78%, transparent), color-mix(in srgb, var(--c2) 88%, transparent)) !important;
+  box-shadow: 0 0 6px var(--glow), 0 0 14px color-mix(in srgb, var(--glow) 55%, transparent), inset 0 0 0 1px rgba(255, 255, 255, .35) !important;
+}
+html body .progress.neon:is(*, .x.x.x.x) > span::after {
+  content: ""; position: absolute; left: 3px; right: 3px; top: 1px; height: 40%;
+  border-radius: 99px; background: linear-gradient(180deg, rgba(255, 255, 255, .75), rgba(255, 255, 255, 0));
+}
+html body .progress.neon.lv-yellow:is(*, .x.x.x.x) > span { --c1: #F2B705; --c2: #FFD84D; --glow: rgba(242, 183, 5, .6); }
+html body .progress.neon.lv-green:is(*, .x.x.x.x) > span { --c1: #14A85F; --c2: #4BE38F; --glow: rgba(20, 168, 95, .6); }
+html body .progress.neon.lv-blue:is(*, .x.x.x.x) > span { --c1: #1E7BFF; --c2: #5FB2FF; --glow: rgba(30, 123, 255, .65); }
+html body .progress.neon.lv-rel:is(*, .x.x.x.x) > span { --c1: #8FA3B8; --c2: #B9C8D8; --glow: rgba(120, 140, 165, .35); }
+html[data-theme="dark"] body .progress.neon.lv-rel:is(*, .x.x.x.x) > span { --c1: #9A9AA2; --c2: #C4C4CC; --glow: rgba(200, 200, 210, .25); }
+/* anel (gráfico redondo) com a mesma faixa de cor */
+html body .ring-wrap.ring-red:is(*, .x.x) { --ring-a: #FF6B6D; --ring-b: #E5383B; }
+html body .ring-wrap.ring-yellow:is(*, .x.x) { --ring-a: #FFD84D; --ring-b: #F2B705; }
+html body .ring-wrap.ring-green:is(*, .x.x) { --ring-a: #4BE38F; --ring-b: #14A85F; }
+html body .ring-wrap.ring-blue:is(*, .x.x) { --ring-a: #5FB2FF; --ring-b: #1E7BFF; }
+html body .ring-wrap:is(.ring-red, .ring-yellow, .ring-green, .ring-blue) svg circle:last-of-type { filter: drop-shadow(0 0 4px var(--ring-b)); }

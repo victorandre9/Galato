@@ -24,6 +24,7 @@ import { OrderRow } from "../components/business";
 import { newestFirst } from "../data/orders";
 import { PROOFS, type Order } from "../data/mock";
 import { DELIVERY_STATUS } from "@galato/domain";
+import { EPI_REQUESTS } from "../data/mock";
 import { nowStamp, CHECKINS, PAYMENT_REQUESTS, NONCONFORMITIES, VEHICLES, type DeliveryRoute, type PaymentRequest } from "../data/mock";
 import {
   teamGoal, sellerGoal, salesRanking, visitsRanking, visitsTotal, logisticsOverview, financeQueue, assetsOverview,
@@ -60,7 +61,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
     { id: "approvals", label: "Liberações", icon: <ShieldCheck size={20} />, count: approvalsCount(role, scope) },
     { id: "reports", label: "Relatórios", icon: <BarChart3 size={20} /> },
-    { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} /> },
+    { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} />, count: CUSTOMERS.filter((c) => scope.includes(c.sellerId) && (!c.lastPurchaseDate || daysBetween(c.lastPurchaseDate, TODAY) >= 28)).length },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
     { id: "fzocc", label: "Ocorrências freezer", icon: <AlertOctagon size={20} />, count: FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length },
@@ -68,7 +69,7 @@ export function ManagerApp({ role }: { role: Role }) {
     ...(role === "general_manager" ? [
       { id: "lroutes", label: "Logística · rotas", icon: <Route size={20} /> },
       { id: "lissues", label: "Logística · ocorrências", icon: <AlertTriangle size={20} />, count: logisticsOverview().openIncidents.length + logisticsOverview().openNc.length },
-      { id: "lfleet", label: "Logística · frota e EPI", icon: <Truck size={20} /> },
+      { id: "lfleet", label: "Logística · frota e EPI", icon: <Truck size={20} />, count: EPI_REQUESTS.filter((e) => e.status === "requested").length },
     ] : []),
     { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
@@ -92,7 +93,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "more" && (
         <div className="stack">
           <div className="grid g2 only-mobile" style={{ marginBottom: 0 }}>
-            {tabs.slice(5).map((t) => <button key={t.id} className="action-tile" onClick={() => setTab(t.id)}><span className="ic">{t.icon}</span>{t.label}</button>)}
+            {tabs.slice(5).map((t) => <button key={t.id} className="action-tile" onClick={() => setTab(t.id)}>{!!("count" in t && t.count) && <span className="tile-count" aria-label={`${t.count} pendentes`}>{t.count! > 99 ? "99+" : t.count}</span>}<span className="ic">{t.icon}</span>{t.label}</button>)}
           </div>
           <ProfilePanel name={info.name} role={info.label} />
         </div>

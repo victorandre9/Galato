@@ -199,7 +199,7 @@ function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
           <ColsHead left="Cliente" right="Dias sem compra" />
           {list.map((c) => c.sellerId === ME.id
             ? <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} />
-            : <CustomerRowView key={c.id} c={c} other onClick={() => onOpen(c)} extra={<Badge tone="warning">Carteira: {sellerById.get(c.sellerId)?.name.split(" ")[0]}</Badge>} />)}
+            : <CustomerRowView key={c.id} c={c} other onClick={() => onOpen(c)} extra={<Badge tone="neutral">Carteira: {sellerById.get(c.sellerId)?.name.split(" ")[0]}</Badge>} />)}
         </div>
       </Card>
     </>

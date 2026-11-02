@@ -95,11 +95,11 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
           strokeDasharray={`${len} ${c}`} style={{ transition: "stroke-dasharray .8s ease" }} />}
         {/* igual à barra: contorno branco fino nas duas bordas + linha de brilho clara perto do topo */}
         {v > 0 && <g className="ring-shine" fill="none" stroke="#fff" strokeLinecap="round">
-          <circle cx={cx} cy={cx} r={r + stroke / 2 - 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
-          <circle cx={cx} cy={cx} r={r - stroke / 2 + 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
-          <circle cx={cx} cy={cx} r={r} strokeOpacity={1} strokeWidth={stroke * 0.2} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.5} />
+          <circle cx={cx} cy={cx} r={r} strokeOpacity={1} strokeWidth={stroke * 0.15} strokeLinecap="butt" strokeDasharray={`${len} ${c}`} />
+          {/* início: bolinha branca com 20% da faixa (80% colorido em volta) */}
+          <circle cx={cx + r} cy={cx} r={stroke * 0.1} fill="#fff" stroke="none" />
           {/* ponta: bola branca com 80% da faixa (20% de borda colorida); início: branco fino (20%) */}
-          <circle cx={cx + r * Math.cos(len / r)} cy={cx + r * Math.sin(len / r)} r={stroke * 0.4} fill="#fff" stroke="none" />
+          <circle cx={cx + r * Math.cos(len / r)} cy={cx + r * Math.sin(len / r)} r={stroke * 0.3} fill="#fff" stroke="none" />
         </g>}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>

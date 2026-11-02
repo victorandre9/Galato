@@ -97,7 +97,7 @@ export function Ring({ value, size = 120, stroke: strokeIn = 12, label, sub }: {
         {v > 0 && <g className="ring-shine" fill="none" stroke="#fff" strokeLinecap="round">
           <circle cx={cx} cy={cx} r={r + stroke / 2 - 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
           <circle cx={cx} cy={cx} r={r - stroke / 2 + 0.6} strokeOpacity={0.6} strokeWidth={1} strokeDasharray={`${Math.max(0, len - stroke * 0.5)} ${c}`} strokeDashoffset={-stroke * 0.25} />
-          <circle cx={cx} cy={cx} r={r + stroke * 0.04} strokeOpacity={1} strokeWidth={stroke * 0.26} strokeDasharray={`${Math.max(0, len - stroke)} ${c}`} strokeDashoffset={-stroke * 0.5} />
+          <circle cx={cx} cy={cx} r={r + stroke * 0.12} strokeOpacity={1} strokeWidth={stroke * 0.26} strokeDasharray={`${Math.max(0, len - stroke)} ${c}`} strokeDashoffset={-stroke * 0.5} />
         </g>}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>

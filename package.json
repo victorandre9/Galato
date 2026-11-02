@@ -21,6 +21,7 @@
     "@neondatabase/serverless": "^1.2.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
     "pg": "^8.23.1"
   }

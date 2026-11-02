@@ -651,3 +651,8 @@ html[data-theme="dark"] body :is(.action-tile .ic, .ic-round, .greeting .avatar,
 /* apresentação: menu lateral flutuante com fundo sólido (não mistura com a tela de trás) */
 html.present body .sidebar:is(*, .x.x.x) { background: #F3F5F8 !important; backdrop-filter: none !important; }
 html.present[data-theme="dark"] body .sidebar:is(*, .x.x.x) { background: #0E0E10 !important; box-shadow: 8px 0 30px rgba(0, 0, 0, .6) !important; }
+
+/* clientes de outra carteira: tom diferente na lista (faixa dourada à esquerda + fundo levemente amarelado) */
+html body .list .row.row-other:is(*, .x.x.x) { background: rgba(245, 168, 0, .08); box-shadow: inset 3px 0 0 rgba(217, 138, 0, .75); border-radius: 12px; padding-left: 10px; }
+html[data-theme="dark"] body .list .row.row-other:is(*, .x.x.x) { background: rgba(255, 190, 60, .07); box-shadow: inset 3px 0 0 rgba(255, 190, 60, .6); }
+html body .list .row.row-other:is(*, .x.x.x) .title { opacity: .85; }

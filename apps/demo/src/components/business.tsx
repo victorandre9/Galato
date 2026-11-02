@@ -50,10 +50,10 @@ export function creditBadge(c: Customer) {
   return <Badge tone="success">Em dia</Badge>;
 }
 
-export function CustomerRowView({ c, onClick, extra }: { c: Customer; onClick?: () => void; extra?: React.ReactNode }) {
+export function CustomerRowView({ c, onClick, extra, other }: { c: Customer; onClick?: () => void; extra?: React.ReactNode; other?: boolean }) {
   const r = customerRow(c);
   return (
-    <div className="row click" onClick={onClick}>
+    <div className={`row click ${other ? "row-other" : ""}`} onClick={onClick}>
       <Curve c={c.abcd} />
       <div className="grow">
         <div className="title">{c.tradeName}</div>

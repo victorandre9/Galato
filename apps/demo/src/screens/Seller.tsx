@@ -177,18 +177,21 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
 
 function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [q, setQ] = useState("");
-  const [scope, setScope] = useState<"mine" | "all">("mine");
+  const [scope, setScope] = useState<"mine" | "others" | "all">("mine");
   const [curve, setCurve] = useState<string | null>(null);
+  const inScope = (c: Customer) => scope === "all" || (scope === "mine" ? c.sellerId === ME.id : c.sellerId !== ME.id);
   const list = CUSTOMERS.filter((c) =>
-    (scope === "all" || c.sellerId === ME.id) && (!curve || c.abcd === curve) &&
-    (!q || `${c.tradeName} ${c.code} ${c.document} ${c.city}`.toLowerCase().includes(q.toLowerCase())),
-  ).slice(0, 80);
+    inScope(c) && (!curve || c.abcd === curve) &&
+    (!q || `${c.tradeName} ${c.code} ${c.document} ${c.city} ${sellerById.get(c.sellerId)?.name ?? ""}`.toLowerCase().includes(q.toLowerCase())),
+  ).sort((a, b) => (scope === "mine" ? 0 : a.tradeName.localeCompare(b.tradeName, "pt-BR"))).slice(0, 300);
+  const others = CUSTOMERS.filter((c) => c.sellerId !== ME.id).length;
   return (
     <>
-      <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, código, CNPJ ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+      <div className="search mb"><Search size={17} /><input className="input" placeholder="Nome, código, CNPJ, cidade ou vendedor" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="chips mb">
-        <Chip on={scope === "mine"} onClick={() => setScope("mine")}>Minha carteira</Chip>
-        <Chip on={scope === "all"} onClick={() => setScope("all")}>Todas as carteiras</Chip>
+        <Chip on={scope === "mine"} onClick={() => setScope("mine")}>Minha carteira ({CUSTOMERS.length - others})</Chip>
+        <Chip on={scope === "others"} onClick={() => setScope("others")}>Outras carteiras ({others})</Chip>
+        <Chip on={scope === "all"} onClick={() => setScope("all")}>Todas</Chip>
         {["A", "B", "C", "D"].map((x) => <Chip key={x} on={curve === x} onClick={() => setCurve(curve === x ? null : x)}>Curva {x}</Chip>)}
       </div>
       <Card>
@@ -196,7 +199,7 @@ function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
           <ColsHead left="Cliente" right="Dias sem compra" />
           {list.map((c) => c.sellerId === ME.id
             ? <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} />
-            : <CustomerRowView key={c.id} c={c} onClick={() => onOpen(c)} extra={<Badge tone="neutral">{sellerById.get(c.sellerId)?.name.split(" ")[0]}</Badge>} />)}
+            : <CustomerRowView key={c.id} c={c} other onClick={() => onOpen(c)} extra={<Badge tone="warning">Carteira: {sellerById.get(c.sellerId)?.name.split(" ")[0]}</Badge>} />)}
         </div>
       </Card>
     </>

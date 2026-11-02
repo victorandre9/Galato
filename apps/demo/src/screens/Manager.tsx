@@ -559,7 +559,7 @@ function PortfolioView() {
                 </div>
                 <div className="flex" style={{ gap: 6 }}>
                   <button className="icon-btn" aria-label="Recusar" onClick={() => decide(r, false)}><XIcon size={16} /></button>
-                  <button className="icon-btn" aria-label="Aprovar" style={{ background: "var(--success)", color: "#fff" }} onClick={() => decide(r, true)}><Check size={16} /></button>
+                  <button className="icon-btn ok" aria-label="Aprovar" onClick={() => decide(r, true)}><Check size={16} /></button>
                 </div>
               </div>
             );

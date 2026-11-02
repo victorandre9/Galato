@@ -148,3 +148,32 @@ html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .e
 html[data-theme="dark"] body :is(.btn-primary, .btn-gold, .btn-danger, .chip.on, .step-btn.plus):is(*, .x.x.x.x.x)::before { border-color: rgba(255, 255, 255, .25) !important; }
 html[data-theme="dark"] body .bottom-nav.ig.ig.ig { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 1.5px 1px rgba(255, 255, 255, .09), 0 8px 26px rgba(0, 0, 0, .6) !important; }
 html[data-theme="dark"] body :is(.card.click, .order-row.click, .ent-role, .ent-tile, .action-tile):is(*, .x.x.x.x.x):hover { box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1.5px 1px rgba(255,255,255,.09), 0 10px 26px rgba(0,0,0,.7) !important; }
+
+/* ===== consistência (varredura) ===== */
+/* botão redondo de aprovar: verde de vidro igual nos dois temas */
+html body .icon-btn.ok.ok.ok:is(*, .x.x.x.x.x) {
+  background: linear-gradient(180deg, #7FD3A0 0%, #16A34A 12%, #1DB257 45%, #4CC47C 80%, #8FDDAE 95%, #5CBF82 100%) !important;
+  color: #fff !important;
+}
+html body .icon-btn.ok.ok.ok svg { color: #fff !important; }
+
+/* tiles grandes (coordenador de transportes): iguais aos botões principal e dourado, nos dois temas */
+html.ent { --hero-acc: var(--gl-acc-body); --hero-gold: var(--gl-gold-body); }
+html:not(.ent) { --hero-acc: var(--g-acc-body); --hero-gold: var(--g-gold-body); }
+html body .hero-actions .action-tile.action-tile:not(.gold):is(*, .x.x.x.x.x) { background: var(--hero-acc) !important; color: #fff !important; }
+html body .hero-actions .action-tile.action-tile.gold:is(*, .x.x.x.x.x) { background: var(--hero-gold) !important; color: #4A2400 !important; }
+html body .hero-actions .action-tile.action-tile:is(*, .x.x.x.x.x) .ic { background: rgba(255,255,255,.22) !important; color: inherit !important; box-shadow: none !important; }
+html body .hero-actions .action-tile.action-tile:is(*, .x.x.x.x.x) svg { color: inherit !important; }
+/* tile dourado comum (Novo pedido, Solicitar EPI): texto igual aos outros tiles, ícone dourado */
+html body .action-tile.gold:not(.hero-actions *):is(*, .x.x.x.x.x) { color: var(--text) !important; }
+
+/* menu de baixo com tom próprio (não confundir com os cards), mantendo o vidro */
+html.ent .nav-lens::after, html:not([data-theme="dark"]) .nav-lens::after {
+  background: linear-gradient(rgba(40, 48, 62, .13), rgba(40, 48, 62, .13)), radial-gradient(130% 160% at 50% 50%, rgba(255,255,255,0) 45%, rgba(255,255,255,.45) 100%) !important;
+}
+html[data-theme="dark"] .nav-lens::after {
+  background: linear-gradient(rgba(255, 255, 255, .11), rgba(255, 255, 255, .11)), radial-gradient(130% 160% at 50% 50%, rgba(255,255,255,0) 50%, rgba(255,255,255,.08) 100%) !important;
+}
+/* sem a lente (computador/testes): mesmo tom no próprio menu */
+html.ent body .bottom-nav.ig.ig.ig, html:not([data-theme="dark"]) body .bottom-nav.ig.ig.ig { background-color: rgba(40, 48, 62, .10) !important; }
+html[data-theme="dark"] body .bottom-nav.ig.ig.ig { background-color: rgba(255, 255, 255, .09) !important; }

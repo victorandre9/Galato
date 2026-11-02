@@ -663,3 +663,5 @@ html body .list .row.row-other:is(*, .x.x.x.x) .badge { background: #D2D8E0 !imp
 html[data-theme="dark"] body .list .row.row-other:is(*, .x.x.x.x) .badge { background: rgba(200, 210, 225, .14) !important; color: #C9D1DC !important; }
 /* etiqueta da carteira sempre dentro da coluna */
 html body .list.cols > .row > .end .badge:is(*, .x.x) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
+/* outra carteira: sem a faixa mais escura no início */
+html body .list .row.row-other:is(*, .x.x.x.x.x) { box-shadow: none !important; }

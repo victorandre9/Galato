@@ -543,3 +543,10 @@ html body .ring-wrap:is(.ring-red, .ring-yellow, .ring-green, .ring-blue) svg ci
 /* balão vermelho de notificação sempre à frente do aro/efeito do botão (inclusive ao tocar) */
 html body :is(.notif-count, .tile-count, .count.badge):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { z-index: 10 !important; isolation: isolate; }
 html body .notif-count:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { position: absolute !important; }
+
+/* toque em item que não é botão (linha de cliente, tabela, gráfico): só um realce rápido, sem mexer */
+@keyframes tapHl { from { background-color: rgba(62, 106, 136, .14); } to { background-color: transparent; } }
+html body .tap-hl:is(*, .x.x.x) { animation: tapHl .26s ease-out !important; }
+html[data-theme="dark"] body .tap-hl:is(*, .x.x.x) { animation-name: tapHlDark !important; }
+@keyframes tapHlDark { from { background-color: rgba(255, 255, 255, .10); } to { background-color: transparent; } }
+svg .tap-hl { animation: none !important; opacity: .8; }

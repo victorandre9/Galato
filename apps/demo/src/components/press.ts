@@ -5,6 +5,9 @@
  */
 const SKIP = ".bottom-nav, input, select, textarea, label";
 const INSTANT = "[data-instant], .step-btn, a[href], [type=submit]";
+/** Só botões e cards "afundam" ao toque. Linhas de lista, clientes, tabelas e gráficos: só um realce, sem mexer. */
+const MOVE = "button, .btn, .icon-btn, .chip, .action-tile, .card, .kpi, .order-row, .step-btn, .theme-switch, .ent-role, .ent-tile, .side-item, .bucket, [role=radio]";
+const STILL = ".chart-wrap, .month-bars, svg, .row, tr, .list > *, .alert-line, .order-cards > *";
 export const PRESS_MS = 200; // ir (≈100 ms) + voltar (≈100 ms)
 let replaying = false;
 
@@ -43,6 +46,12 @@ function onClick(e: MouseEvent) {
   const el = clickableFrom(t);
   if (!el || (el as HTMLButtonElement).disabled) return;
   if (el.dataset.pressing) { e.preventDefault(); e.stopPropagation(); return; }
+  // itens que não são botão (linha de cliente, tabela, gráfico): só sente o toque, sem movimento e sem atraso
+  if (!el.matches(MOVE) || el.closest(STILL) === el || (el.closest(".chart-wrap, .month-bars") && !el.matches(".btn, .chip, .icon-btn"))) {
+    el.classList.remove("tap-hl"); void el.offsetWidth; el.classList.add("tap-hl");
+    setTimeout(() => el.classList.remove("tap-hl"), 260);
+    return;
+  }
   // instantâneos: anima, mas a ação acontece na hora
   if (el.matches(INSTANT) || el.closest(INSTANT)) { animate(el); return; }
   e.preventDefault(); e.stopPropagation();

@@ -83,13 +83,16 @@ export function Ring({ value, size = 120, stroke = 12, label, sub }: { value: nu
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
           <linearGradient id={id} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" style={{ stopColor: "var(--ring-a, #FFD35C)" }} />
-            <stop offset="100%" style={{ stopColor: "var(--ring-b, #F5A800)" }} />
+            <stop offset="0%" style={{ stopColor: "var(--ring-a, #FFD35C)", stopOpacity: 0.85 }} />
+            <stop offset="100%" style={{ stopColor: "var(--ring-b, #F5A800)", stopOpacity: 0.95 }} />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth={stroke}
+        <circle className="ring-arc" cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${id})`} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />
+        {/* brilho branco no meio do arco (mesmo visual da barra neon) */}
+        {v > 0 && <circle className="ring-shine" cx={size / 2} cy={size / 2} r={r + stroke * 0.12} fill="none" stroke="#fff" strokeWidth={Math.max(1.5, stroke * 0.28)}
+          strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .8s ease" }} />}
       </svg>
       <div className="ring-label"><b className="num">{label ?? pct(value)}</b>{sub && <span>{sub}</span>}</div>
     </div>

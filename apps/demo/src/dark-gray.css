@@ -538,7 +538,14 @@ html body .ring-wrap.ring-red:is(*, .x.x) { --ring-a: #FF6B6D; --ring-b: #E5383B
 html body .ring-wrap.ring-yellow:is(*, .x.x) { --ring-a: #FFD84D; --ring-b: #F2B705; }
 html body .ring-wrap.ring-green:is(*, .x.x) { --ring-a: #4BE38F; --ring-b: #14A85F; }
 html body .ring-wrap.ring-blue:is(*, .x.x) { --ring-a: #5FB2FF; --ring-b: #1E7BFF; }
-html body .ring-wrap:is(.ring-red, .ring-yellow, .ring-green, .ring-blue) svg circle:last-of-type { filter: drop-shadow(0 0 4px var(--ring-b)); }
+/* anel: sem sombra laranja; arco com brilho neon da própria cor + linha branca, igual à barra */
+html body .ring-wrap:is(*, .x.x.x) svg { filter: none !important; }
+html body .ring-wrap:is(*, .x.x.x) .ring-arc { filter: drop-shadow(0 0 4px var(--ring-glow)) drop-shadow(0 0 9px var(--ring-glow)); }
+html body .ring-wrap:is(*, .x.x.x) .ring-shine { opacity: .5; }
+html body .ring-wrap.ring-red:is(*, .x.x) { --ring-glow: rgba(229, 56, 59, .55); }
+html body .ring-wrap.ring-yellow:is(*, .x.x) { --ring-glow: rgba(242, 183, 5, .5); }
+html body .ring-wrap.ring-green:is(*, .x.x) { --ring-glow: rgba(20, 168, 95, .5); }
+html body .ring-wrap.ring-blue:is(*, .x.x) { --ring-glow: rgba(30, 123, 255, .55); }
 
 /* balão vermelho de notificação sempre à frente do aro/efeito do botão (inclusive ao tocar) */
 html body :is(.notif-count, .tile-count, .count.badge):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { z-index: 10 !important; isolation: isolate; }
@@ -558,3 +565,4 @@ svg .tap-hl { animation: none !important; opacity: .8; }
 input.chk { width: 22px; height: 22px; flex: none; margin: 2px 0 0; accent-color: #2F6FD6; cursor: pointer; }
 .row.row-sel { background: rgba(47, 111, 214, .07); border-radius: 12px; }
 html[data-theme="dark"] .row.row-sel { background: rgba(255, 255, 255, .06); }
+html body .ring-wrap:is(*, .x.x.x) svg { overflow: visible !important; }

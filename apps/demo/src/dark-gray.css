@@ -224,3 +224,13 @@ html[data-theme="dark"] body :is(.btn, .icon-btn, .chip, .step-btn):is(*, .x.x.x
   box-shadow: 0 0 0 3px rgba(0, 0, 0, .5), inset 0 3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.4) !important;
 }
 html[data-theme="dark"] body :is(.product-row.in-cart, .route-pick.on, .occ-type.on):is(*, .x.x.x.x.x.x) { background: linear-gradient(180deg, rgba(245,179,35,.14), rgba(245,179,35,.05)), #232326 !important; }
+
+/* modo noturno: faixa preta entre o aro de fora e o segundo aro dos cards */
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x) {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .07),
+    inset 0 0 0 3px #000,
+    inset 0 4px 3px -1px rgba(255, 255, 255, .05),
+    0 8px 24px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.card, .ent-group, .order-row, .action-tile, .ent-role, .ent-tile):is(*, .x.x.x.x.x.x)::before { border-color: rgba(255, 255, 255, .10) !important; }

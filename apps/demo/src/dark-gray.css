@@ -209,3 +209,18 @@ html[data-theme="dark"] body :is(.action-tile .ic, .kpi .kpi-ic, .ent-ic, .greet
   box-shadow: 0 0 0 3px rgba(0, 0, 0, .45), 0 0 0 4px rgba(255, 255, 255, .05), 0 6px 14px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .12) !important;
   outline: none !important; filter: none !important;
 }
+
+/* contorno preto translúcido em volta de TODOS os botões (tema escuro) */
+html[data-theme="dark"] body :is(.btn, .icon-btn, .chip, .step-btn, .theme-switch, .action-tile, .route-pick, .occ-type):is(*, .x.x.x.x.x.x) {
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, .45),
+    0 0 0 4px rgba(255, 255, 255, .05),
+    inset 0 0 0 1px rgba(255, 255, 255, .06),
+    inset 0 1.5px 1px rgba(255, 255, 255, .09),
+    inset 0 10px 10px -8px rgba(255, 255, 255, .03),
+    0 6px 14px rgba(0, 0, 0, .6) !important;
+}
+html[data-theme="dark"] body :is(.btn, .icon-btn, .chip, .step-btn):is(*, .x.x.x.x.x.x):active:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .5), inset 0 3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.4) !important;
+}
+html[data-theme="dark"] body :is(.product-row.in-cart, .route-pick.on, .occ-type.on):is(*, .x.x.x.x.x.x) { background: linear-gradient(180deg, rgba(245,179,35,.14), rgba(245,179,35,.05)), #232326 !important; }

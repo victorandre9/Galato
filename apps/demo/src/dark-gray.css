@@ -325,7 +325,7 @@ html body :is(.btn, .icon-btn, .chip, .action-tile, .card, .order-row, .ent-role
 @property --press-s { syntax: "<number>"; inherits: true; initial-value: 1; }
 html body :is(.btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .bullet-row):is(*, .x.x.x.x.x.x.x.x.x.x) {
   transform: scale(var(--press-s)) !important;
-  transition: --press-s .1s cubic-bezier(.4, 0, .6, 1), filter .1s cubic-bezier(.4, 0, .6, 1) !important;
+  transition: --press-s .16s cubic-bezier(.4, 0, .6, 1), filter .16s cubic-bezier(.4, 0, .6, 1) !important;
 }
 html body :is(.press-down):is(*, .x.x.x.x.x.x.x.x.x.x) { --press-s: .8; }
 html body :is(.press-down, .press-up):is(*, .x.x.x.x.x.x.x.x.x.x) { box-shadow: none !important; position: relative; }

@@ -4,7 +4,7 @@
  */
 const PRESSABLE = ".btn, .icon-btn, .chip, .action-tile, .card.click, .order-row.click, .ent-role, .ent-tile, .bn-item, .side-item, .row.click, .kpi.click, .bucket, .route-pick, .occ-type, .theme-switch button, .bullet-row, .linkbtn, tr.click";
 const NO_DELAY = "[data-instant], .bottom-nav, .step-btn, input, select, textarea, label, a[href], [type=submit]";
-const DOWN = 210, UP = 210;
+const DOWN = 50, UP = 50;
 let replaying = false;
 
 function onClick(e: MouseEvent) {

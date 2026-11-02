@@ -539,3 +539,7 @@ html body .ring-wrap.ring-yellow:is(*, .x.x) { --ring-a: #FFD84D; --ring-b: #F2B
 html body .ring-wrap.ring-green:is(*, .x.x) { --ring-a: #4BE38F; --ring-b: #14A85F; }
 html body .ring-wrap.ring-blue:is(*, .x.x) { --ring-a: #5FB2FF; --ring-b: #1E7BFF; }
 html body .ring-wrap:is(.ring-red, .ring-yellow, .ring-green, .ring-blue) svg circle:last-of-type { filter: drop-shadow(0 0 4px var(--ring-b)); }
+
+/* balão vermelho de notificação sempre à frente do aro/efeito do botão (inclusive ao tocar) */
+html body :is(.notif-count, .tile-count, .count.badge):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { z-index: 10 !important; isolation: isolate; }
+html body .notif-count:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x) { position: absolute !important; }

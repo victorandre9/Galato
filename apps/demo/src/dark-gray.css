@@ -622,3 +622,17 @@ html[data-theme="dark"] body :is(.btn-primary, .btn-gold, .btn-danger, .chip.on,
 html[data-theme="dark"] body :is(.chip:not(.on), .btn-ghost, .btn-soft, .icon-btn, .step-btn.minus, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
   background: radial-gradient(circle at 50% 50%, #34343A 0%, #2B2B30 70%, #26262B 100%) !important;
 }
+/* escuro: ícones redondos (KPI, blocos) e caixinhas de "dias sem compra" com aro uniforme e sombra centralizada */
+html[data-theme="dark"] body :is(.kpi-ic, .action-tile .ic, .ic-round, .greeting .ic):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 0 4px rgba(255, 255, 255, .05), inset 0 0 0 1.5px rgba(255, 255, 255, .14), 0 0 12px rgba(0, 0, 0, .5) !important;
+}
+html[data-theme="dark"] body .bucket:is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .08), 0 0 14px rgba(0, 0, 0, .5) !important;
+}
+/* escuro: por dentro do segundo aro, degradê de cinza escuro (cima) para cinza claro (baixo); aros continuam sólidos e iguais */
+html[data-theme="dark"] body :is(.chip:not(.on), .btn-ghost, .btn-soft, .icon-btn, .step-btn.minus, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x) {
+  background: linear-gradient(180deg, #1C1C20 0%, #26262B 30%, #34343A 62%, #4A4A52 100%) !important;
+}
+/* escuro: faixa entre o 1º e o 2º aro sempre cinza claro sólido (a borda também, para o degradê não aparecer ali) */
+html[data-theme="dark"] body :is(.chip, .btn, .icon-btn, .step-btn, .theme-switch):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x) { border-color: #45454C !important; }
+html[data-theme="dark"] body :is(.btn-primary, .btn-gold, .btn-danger, .chip.on, .step-btn.plus):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x) { border-color: rgba(255, 255, 255, .28) !important; }

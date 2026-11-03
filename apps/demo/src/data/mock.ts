@@ -161,6 +161,8 @@ export interface Customer {
   address: string; district: string; city: string; state: string; cep: string; region: string;
   sellerId: string; routeCode: string; buyerName: string; phone: string; whatsapp: string;
   monthlyHistoryCents: number[]; avgMonthlyCents: number; abcd: AbcdClass;
+  /** motivo da queda de compras apontado na reunião mensal */
+  dropNote?: { reason: string; note?: string; at: string; by: string };
   lastPurchaseDate: IsoDate | null; lastPurchaseCents: number; assets: Asset[];
   receivables: Receivable[]; manualCreditBlock: boolean; notes: string;
   /** cadastro da 1ª visita (rota + freezers conferidos) */

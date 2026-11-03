@@ -13,6 +13,7 @@ import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
 import { ManagerProspect, LeadListSheet } from "../components/leads";
 import { UsersView } from "../components/users";
+import { ResultsView } from "../components/results";
 import { UsersRound } from "lucide-react";
 import { matchRecord } from "../data/search";
 import { LEADS } from "../data/leads";
@@ -63,6 +64,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "visits", label: "Visitas", icon: <MapPin size={20} /> },
     { id: "deliveries", label: "Entregas", icon: <Truck size={20} /> },
     { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
+    ...(role === "general_manager" ? [{ id: "results", label: "Resultados do mês", icon: <Trophy size={20} /> }] : []),
     { id: "approvals", label: "Liberações", icon: <ShieldCheck size={20} />, count: approvalsCount(role, scope) },
     { id: "reports", label: "Relatórios", icon: <BarChart3 size={20} /> },
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} />, count: CUSTOMERS.filter((c) => scope.includes(c.sellerId) && (!c.lastPurchaseDate || daysBetween(c.lastPurchaseDate, TODAY) >= 28)).length },
@@ -91,6 +93,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
       {tab === "users" && role === "general_manager" && <UsersView />}
+      {tab === "results" && role === "general_manager" && <ResultsView scope={scope} />}
       {tab === "prospect" && <ManagerProspect scope={scope} />}
       {tab === "approvals" && <ApprovalsView role={role} scope={scope} goTab={setTab} />}
       {tab === "lroutes" && <RoutesView />}

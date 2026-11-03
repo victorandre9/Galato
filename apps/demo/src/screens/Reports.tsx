@@ -59,12 +59,12 @@ function sellerMonthVisits(sellerId: string) {
 
 /** Sazonalidade fictícia de sorvete: verão alto, inverno baixo (jan..dez). */
 const SEASON = [1.25, 1.2, 1.1, 0.95, 0.8, 0.65, 0.62, 0.7, 0.9, 1.0, 1.1, 1.25];
-type MonthPoint = { key: string; label: string; sales: number; goal: number; partial: boolean };
+export type MonthPoint = { key: string; label: string; sales: number; goal: number; partial: boolean };
 
 /** Meses (jan=0) em que a equipe não bateu a meta no histórico fictício: inverno. */
 const TEAM_MISSED_MONTHS = [5, 7];
 
-function sellerYear(sellerId: string): MonthPoint[] {
+export function sellerYear(sellerId: string): MonthPoint[] {
   const s = SELLERS.find((x) => x.id === sellerId)!;
   const [y, m] = TODAY.split("-").map(Number) as [number, number];
   const base = s.monthlyGoalCents / SEASON[m - 1]!;

@@ -691,9 +691,18 @@ html[data-theme="dark"] .user-photo .up-cam { background: #2C2C31; color: #E6E6E
 }
 /* monitores grandes/wide: aumenta tudo um pouco para não ficar miúdo (como em outros sistemas) */
 :root { --z: 1; }
-@media (min-width: 1900px) { :root { zoom: 1.12; --z: 1.12; } }
-@media (min-width: 2400px) { :root { zoom: 1.25; --z: 1.25; } }
-@media (min-width: 3200px) { :root { zoom: 1.45; --z: 1.45; } }
+/* o aumento depende da largura E da altura da janela (monitor wide é largo mas baixo) */
+@media (min-width: 1900px) and (min-height: 880px) { :root { zoom: 1.1; --z: 1.1; } }
+@media (min-width: 2400px) and (min-height: 1150px) { :root { zoom: 1.25; --z: 1.25; } }
+@media (min-width: 3200px) and (min-height: 1400px) { :root { zoom: 1.45; --z: 1.45; } }
+/* menu lateral nunca corta: se não couber, rola; rodapé (usuário, tema, trocar) sempre visível */
+@media (min-width: 1024px) {
+  html body .sidebar:is(*, .x.x.x) { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  html body .sidebar:is(*, .x.x.x) > .card:last-child { position: sticky; bottom: 0; flex: none; }
+}
+@media (min-width: 1024px) and (max-height: 820px) {
+  html body .sidebar .side-item:is(*, .x.x.x) { padding-top: 6px !important; padding-bottom: 6px !important; }
+}
 /* com o aumento, alturas de "tela inteira" precisam ser divididas pelo zoom */
 @media (min-width: 1024px) {
   html body .sidebar:is(*, .x.x) { height: calc(100vh / var(--z)) !important; }
@@ -701,3 +710,49 @@ html[data-theme="dark"] .user-photo .up-cam { background: #2C2C31; color: #E6E6E
   html body .sheet:is(*, .x.x.x) { max-height: calc((100vh - 24px) / var(--z)) !important; }
   html body .overlay:is(*, .x.x) { height: calc(100vh / var(--z)); }
 }
+
+/* resultados do mês: pódio 2º · 1º · 3º */
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px; margin-top: 6px; }
+.podium-col { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; cursor: pointer; min-width: 0; }
+.podium-medal { color: #A9B4C2; } .podium-col.p1 .podium-medal { color: #E2A100; } .podium-col.p3 .podium-medal { color: #B87333; }
+.podium-name { font-weight: 700; font-size: 14px; }
+.podium-val { font-weight: 800; font-size: 15px; white-space: nowrap; }
+.podium-col.p1 .podium-val { font-size: 18px; }
+.podium-bar { width: 100%; border-radius: 12px 12px 4px 4px; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(180deg, #B9C4D0, #8E9BAA); height: 46px; }
+.podium-col.p1 .podium-bar { height: 70px; background: linear-gradient(180deg, #FFD45C, #E2A100); }
+.podium-col.p3 .podium-bar { height: 34px; background: linear-gradient(180deg, #E0A57A, #B87333); }
+/* resultados: botões das telas 1·2·3 e setas de variação */
+.results-screens { display: flex; gap: 8px; flex-wrap: wrap; }
+.results-screens .rs-n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: rgba(255, 255, 255, .25); font-size: 12px; font-weight: 800; }
+.results-screens .btn-ghost .rs-n { background: rgba(30, 40, 60, .08); }
+.delta { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.delta small { font-weight: 600; opacity: .85; }
+.delta.up { color: #12924F; } .delta.down { color: #D32F2F; }
+html[data-theme="dark"] .delta.up { color: #4BE38F; } html[data-theme="dark"] .delta.down { color: #FF7A7C; }
+
+/* tela "Meta do mês" (apresentação) */
+.goal-hero { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; margin: 12px 0 16px; }
+@media (max-width: 760px) { .goal-hero { grid-template-columns: 1fr; } }
+.goal-hero > div { border-radius: 26px; padding: 22px 24px; display: flex; flex-direction: column; gap: 8px; }
+.goal-prev { background: var(--surface, #fff); box-shadow: 0 0 0 1.5px rgba(255,255,255,.98), inset 0 0 0 4.5px #fff, 0 8px 22px rgba(20,30,50,.08); }
+.goal-main { color: #fff; background: radial-gradient(120% 140% at 0% 0%, #4C86B5 0%, #2C5C86 45%, #173A5C 100%); box-shadow: 0 14px 40px rgba(23, 58, 92, .35); }
+.gh-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .8; display: flex; align-items: center; gap: 6px; }
+.gh-num { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.gh-big { font-size: clamp(44px, 6vw, 76px); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.gh-sub { font-size: 14px; opacity: .9; }
+.gh-msg { font-size: 18px; font-weight: 600; font-style: italic; opacity: .95; margin-top: 4px; }
+.goal-input { font-size: 40px !important; font-weight: 800; height: auto !important; padding: 10px 16px !important; }
+.goal-sellers { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.goal-seller { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 14px 10px; border-radius: 20px; background: rgba(30, 40, 60, .035); }
+.gs-name { font-weight: 800; font-size: 16px; } .gs-region { font-size: 12px; color: var(--muted); min-height: 30px; }
+.gs-goal { font-size: 20px; font-weight: 800; } .gs-last { font-size: 11.5px; color: var(--muted); }
+.goal-seller .input { text-align: center; font-weight: 700; }
+.prizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.prize { border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(30, 40, 60, .035); }
+.prize.p1 { background: linear-gradient(160deg, rgba(255, 212, 92, .35), rgba(226, 161, 0, .18)); }
+.prize.off { opacity: .55; }
+.prize-place { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: #B88400; }
+.prize.p2 .prize-place { color: #7D8896; } .prize.p3 .prize-place { color: #B87333; }
+.prize-name { font-size: 20px; font-weight: 800; }
+html[data-theme="dark"] .goal-prev { background: #1C1C20; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+html[data-theme="dark"] .goal-seller, html[data-theme="dark"] .prize { background: rgba(255, 255, 255, .04); }

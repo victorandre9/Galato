@@ -5,6 +5,7 @@
  */
 import { useSyncExternalStore } from "react";
 import type { Role } from "./mock";
+import { applyCurrentPlan } from "./monthplan";
 import { persistChanges, setSyncOnline, startSync, type DbMode } from "./sync";
 
 /** light = Empresarial (novo, padrão) · classic = visual anterior claro · dark = escuro */
@@ -101,7 +102,7 @@ export function setOnline(online: boolean) {
 
 /** Atualização vinda de outro aparelho / outra pessoa. */
 startSync({
-  onRemoteChange: () => setState({ version: state.version + 1 }),
+  onRemoteChange: () => { applyCurrentPlan(); setState({ version: state.version + 1 }); },
   onModeChange: (m) => {
     setState({ dbMode: m });
     if (m === "readonly") toast("Somente leitura: você não tem permissão de gravar no banco compartilhado. O que fizer fica salvo só neste aparelho.", "warning", 8000);

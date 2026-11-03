@@ -17,13 +17,15 @@ import {
 } from "./mock";
 import { customerById } from "./mock";
 import { LEADS } from "./leads";
+import { PHOTOS } from "./photos";
+import { USERS } from "./users";
 
 type Entity = { id: string };
 const REG: Record<string, Entity[]> = {
   customer: CUSTOMERS, order: ORDERS, payreq: PAYMENT_REQUESTS, route: DELIVERY_ROUTES, incident: INCIDENTS,
   nc: NONCONFORMITIES, epi: EPI_REQUESTS, seller: SELLERS, notif: NOTIFICATIONS, transfer: TRANSFER_REQUESTS,
   tempaccess: TEMP_ACCESS, proof: PROOFS, yday: YESTERDAY_DELIVERIES, checkin: CHECKINS, fzocc: FREEZER_OCCURRENCES,
-  lead: LEADS,
+  lead: LEADS, photo: PHOTOS, user: USERS,
 };
 const COLLECTION = "overlay";
 const keyOf = (type: string, id: string) => `${type}~${id}`.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");

@@ -12,6 +12,8 @@ import { ManagerFreezerOccurrences, OCC_STATUS } from "../components/freezer-occ
 import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
 import { ManagerProspect, LeadListSheet } from "../components/leads";
+import { UsersView } from "../components/users";
+import { UsersRound } from "lucide-react";
 import { matchRecord } from "../data/search";
 import { LEADS } from "../data/leads";
 import { RouteDetail, ChecklistSummary, RoutesView, IssuesView, FleetView, EpiCard } from "./Ops";
@@ -73,6 +75,7 @@ export function ManagerApp({ role }: { role: Role }) {
       { id: "lissues", label: "Logística · ocorrências", icon: <AlertTriangle size={20} />, count: logisticsOverview().openIncidents.length + logisticsOverview().openNc.length },
       { id: "lfleet", label: "Logística · frota e EPI", icon: <Truck size={20} />, count: EPI_REQUESTS.filter((e) => e.status === "requested").length },
     ] : []),
+    ...(role === "general_manager" ? [{ id: "users", label: "Usuários", icon: <UsersRound size={20} /> }] : []),
     { id: "portfolio", label: "Carteiras", icon: <Briefcase size={20} />, count: TRANSFER_REQUESTS.filter((r) => r.status === "pending").length },
   ];
   return (
@@ -87,6 +90,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
+      {tab === "users" && role === "general_manager" && <UsersView />}
       {tab === "prospect" && <ManagerProspect scope={scope} />}
       {tab === "approvals" && <ApprovalsView role={role} scope={scope} goTab={setTab} />}
       {tab === "lroutes" && <RoutesView />}

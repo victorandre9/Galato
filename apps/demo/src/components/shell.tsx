@@ -1,4 +1,5 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
+import { UserPhoto } from "./userphoto";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Palette, Bell, ChevronLeft, ChevronRight, X, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
@@ -102,8 +103,10 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
           ))}
           <div className="spacer" />
           <div className="card" style={{ padding: 12 }}>
-            <div className="semi small">{userName}</div>
-            <div className="xs muted">{roleLabel}</div>
+            <div className="flex" style={{ gap: 10, alignItems: "center" }}>
+              <UserPhoto name={userName} size={40} editable />
+              <div style={{ minWidth: 0 }}><div className="semi small">{userName}</div><div className="xs muted">{roleLabel}</div></div>
+            </div>
             <div className="flex mt" style={{ gap: 6 }}>
               <button className="btn btn-ghost btn-sm" onClick={() => toggleDark(s.theme)}>
                 {s.theme !== "dark" ? <Moon size={15} /> : <Sun size={15} />} {s.theme !== "dark" ? "Escuro" : "Claro"}
@@ -150,10 +153,10 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
   );
 }
 
-export function Greeting({ icon, title, sub }: { icon: ReactNode; title: string; sub: string }) {
+export function Greeting({ title, sub }: { icon?: ReactNode; title: string; sub: string; name?: string }) {
   return (
     <div className="greeting">
-      <span className="avatar">{icon}</span>
+      <UserPhoto name={title.replace(/^Olá,\s*/, "").replace(/!$/, "")} size={48} editable />
       <div>
         <h1>{title}</h1>
         <p>{sub}</p>
@@ -168,10 +171,8 @@ export function ProfilePanel({ name, role, extra }: { name: string; role: string
   return (
     <div className="stack">
       <div className="card flex" style={{ gap: 14 }}>
-        <span className="avatar" style={{ width: 56, height: 56, borderRadius: 18, display: "grid", placeItems: "center", background: "var(--brand-soft)", color: "var(--brand)", fontWeight: 700, fontSize: 20 }}>
-          {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-        </span>
-        <div><div className="bold">{name}</div><div className="small muted">{role}</div></div>
+        <UserPhoto name={name} size={72} editable />
+        <div><div className="bold">{name}</div><div className="small muted">{role}</div><div className="xs muted mt">Toque na foto para trocar</div></div>
       </div>
       {extra}
       <div className="card">

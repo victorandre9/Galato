@@ -678,3 +678,26 @@ html body .list .row.row-other:is(*, .x.x.x.x.x) { box-shadow: none !important; 
 .user-photo .up-cam { position: absolute; right: -5px; bottom: -5px; width: 42%; height: 42%; min-width: 18px; min-height: 18px; max-width: 26px; max-height: 26px; border-radius: 30%; display: grid; place-items: center; background: #fff; color: #3E4A5A; box-shadow: 0 0 0 1px rgba(30, 40, 60, .16), 0 2px 6px rgba(0, 0, 0, .18); }
 html[data-theme="dark"] .user-photo { background: linear-gradient(180deg, #2A2A30, #3C3C44); color: #D9DCE2; box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 0 4px rgba(255, 255, 255, .05), inset 0 0 0 2px #45454C; }
 html[data-theme="dark"] .user-photo .up-cam { background: #2C2C31; color: #E6E6EA; box-shadow: 0 0 0 2px #000; }
+
+/* computador: conteúdo ocupa toda a largura da tela (notebook, monitor comum, wide e ultrawide) */
+@media (min-width: 1024px) {
+  html body .main:is(*, .x.x) { max-width: none !important; margin: 0 !important; padding-left: clamp(24px, 2.2vw, 56px) !important; padding-right: clamp(24px, 2.2vw, 56px) !important; }
+  html body .shell.narrow .main:is(*, .x.x) { max-width: none !important; }
+}
+/* telas muito largas: mais colunas nos blocos de indicadores */
+@media (min-width: 2000px) {
+  html body .grid.gd-4:is(*, .x.x) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  html body .grid.gd-21:is(*, .x.x) { grid-template-columns: 2fr 1fr; }
+}
+/* monitores grandes/wide: aumenta tudo um pouco para não ficar miúdo (como em outros sistemas) */
+:root { --z: 1; }
+@media (min-width: 1900px) { :root { zoom: 1.12; --z: 1.12; } }
+@media (min-width: 2400px) { :root { zoom: 1.25; --z: 1.25; } }
+@media (min-width: 3200px) { :root { zoom: 1.45; --z: 1.45; } }
+/* com o aumento, alturas de "tela inteira" precisam ser divididas pelo zoom */
+@media (min-width: 1024px) {
+  html body .sidebar:is(*, .x.x) { height: calc(100vh / var(--z)) !important; }
+  html body .shell:is(*, .x.x) { min-height: calc(100vh / var(--z)); }
+  html body .sheet:is(*, .x.x.x) { max-height: calc((100vh - 24px) / var(--z)) !important; }
+  html body .overlay:is(*, .x.x) { height: calc(100vh / var(--z)); }
+}

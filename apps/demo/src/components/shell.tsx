@@ -36,6 +36,14 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
   const [notifOpen, setNotifOpen] = useState(false);
   // apresentação: menu lateral escondido; aparece ao encostar o mouse na borda esquerda e recua ao sair dele
   const [peek, setPeek] = useState(false);
+  // rodinha do mouse em cima do menu lateral rola só o menu (nunca a página do meio)
+  const sideRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = sideRef.current; if (!el) return;
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); e.stopPropagation(); el.scrollTop += e.deltaY; };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
   useEffect(() => {
     if (!s.present) { setPeek(false); return; }
     const onMove = (e: MouseEvent) => {
@@ -90,7 +98,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
     <>
       {!s.online && <div className="offline-bar">Sem conexão · você continua trabalhando, tudo é salvo no aparelho e sincroniza sozinho</div>}
       <div className={`shell ${narrow ? "narrow" : ""}`}>
-        <aside className={`sidebar ${peek ? "peek" : ""}`} onMouseLeave={() => setPeek(false)} onClick={(e) => { if (s.present && (e.target as HTMLElement).closest(".side-item")) setPeek(false); }}>
+        <aside ref={sideRef} className={`sidebar ${peek ? "peek" : ""}`} onMouseLeave={() => setPeek(false)} onClick={(e) => { if (s.present && (e.target as HTMLElement).closest(".side-item")) setPeek(false); }}>
           <div className="brand">
             <img src="./galato-logo.png" alt="Galato Sorvetes" />
             <div><b>Galato</b><span>Plataforma integrada</span></div>

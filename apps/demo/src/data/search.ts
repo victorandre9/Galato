@@ -14,7 +14,7 @@ export function customerText(c?: Customer | null) {
   return `${c.tradeName} ${c.legalName} ${c.code} ${c.document} ${c.district} ${c.address} ${c.city} ${c.buyerName} ${sellerName(c.sellerId)}`;
 }
 
-function hit(text: string, digitsSrc: string, q: string) {
+export function hit(text: string, digitsSrc: string, q: string) {
   if (!q.trim()) return true;
   const digits = q.replace(/\D/g, "");
   if (digits.length >= 4 && digitsSrc.replace(/\D/g, "").includes(digits)) return true;

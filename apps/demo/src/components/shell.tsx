@@ -1,5 +1,6 @@
 /** AppShell: sidebar no desktop, bottom navigation no mobile. */
 import { UserPhoto } from "./userphoto";
+import { LupaFlutuante } from "./lupa/lupa-flutuante";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { registerTabs, armBack } from "./back";
 import { Palette, Bell, ChevronLeft, ChevronRight, X, Menu, Moon, Sun, CalendarDays, LogOut, Maximize, RotateCcw, Database, BellOff } from "lucide-react";
@@ -148,6 +149,8 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
         </main>
         {notifOpen && <NotificationCenter onClose={() => setNotifOpen(false)} />}
       </div>
+      {/* lupa flutuante: fora do <main>, por cima de tudo, em todos os perfis */}
+      <LupaFlutuante tabs={tabs} onTab={(t) => { go(t); scrollPageTop(); }} />
       {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
       <nav className={`bottom-nav ig ${navSize}`}>
         <NavLens />

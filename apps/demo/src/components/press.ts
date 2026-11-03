@@ -3,7 +3,7 @@
  * a ação acontece logo depois. Câmera/galeria, quantidade e campos: animam sem atraso.
  * Menu de baixo: sem efeito e sem atraso.
  */
-const SKIP = ".bottom-nav, input, select, textarea, label";
+const SKIP = ".bottom-nav, input, select, textarea, label, .lupa-orbe, .lupa-painel";
 const INSTANT = "[data-instant], .step-btn, a[href], [type=submit]";
 /** Só botões e cards "afundam" ao toque. Linhas de lista, clientes, tabelas e gráficos: só um realce, sem mexer. */
 const MOVE = "button, .btn, .icon-btn, .chip, .action-tile, .card, .kpi, .order-row, .step-btn, .theme-switch, .ent-role, .ent-tile, .side-item, .bucket, [role=radio]";

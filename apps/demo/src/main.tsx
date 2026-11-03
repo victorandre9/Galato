@@ -8,6 +8,7 @@ import "./glass-themes.css";
 import "./nav-ig.css";
 import "./cards-ig.css";
 import "./dark-gray.css";
+import "./lupa.css";
 import { installPressEffect } from "./components/press";
 import App from "./App";
 import { CHECKINS } from "./data/mock";

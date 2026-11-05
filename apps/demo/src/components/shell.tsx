@@ -111,12 +111,12 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
             </button>
           ))}
           <div className="spacer" />
-          <div className="card" style={{ padding: 12 }}>
+          <div className="card side-user">
             <div className="flex" style={{ gap: 10, alignItems: "center" }}>
-              <UserPhoto name={userName} size={40} editable />
+              <UserPhoto name={userName} size={38} editable />
               <div style={{ minWidth: 0 }}><div className="semi small">{userName}</div><div className="xs muted">{roleLabel}</div></div>
             </div>
-            <div className="flex mt" style={{ gap: 6 }}>
+            <div className="side-user-btns">
               <button className="btn btn-ghost btn-sm" onClick={() => toggleDark(s.theme)}>
                 {s.theme !== "dark" ? <Moon size={15} /> : <Sun size={15} />} {s.theme !== "dark" ? "Escuro" : "Claro"}
               </button>
@@ -151,7 +151,8 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
       </div>
       {/* lupa flutuante: fora do <main>, por cima de tudo, em todos os perfis */}
       <LupaFlutuante tabs={tabs} onTab={(t) => { go(t); scrollPageTop(); }} />
-      {s.present && <PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} />}
+      {s.present && <div className="only-desktop"><PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} /></div>}
+      {s.present && <div className="present-bar solo only-mobile"><button className="icon-btn" onClick={() => toggleFullscreen()} aria-label="Sair da tela cheia"><X size={18} /></button></div>}
       <nav className={`bottom-nav ig ${navSize}`}>
         <NavLens />
         {tabs.slice(0, 5).map((t) => (

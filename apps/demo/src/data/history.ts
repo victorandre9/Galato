@@ -21,6 +21,7 @@ export interface HistOrder {
   createdAt?: string;
   log?: { at: string; by: string; text: string }[];
   fiscalDoc?: "com_nf" | "sem_nf";
+  kind?: string;
 }
 
 function itemsFor(seed: string, amount: number): OrderItem[] {
@@ -56,7 +57,7 @@ function businessDaysBetween(from: IsoDate, to: IsoDate): IsoDate[] {
 export const liveToHist = (o: Order): HistOrder => ({
   id: o.id, number: o.number, invoiceNumber: o.invoiceNumber ?? null, customerId: o.customerId, sellerId: o.sellerId,
   date: o.createdAt.slice(0, 10), status: o.status, totalCents: o.totalCents, paymentTermDays: o.paymentTermDays, items: o.items, live: true,
-  createdAt: o.createdAt, log: o.log, fiscalDoc: o.fiscalDoc,
+  createdAt: o.createdAt, log: o.log, fiscalDoc: o.fiscalDoc, kind: o.kind,
 });
 
 const cache = new Map<string, HistOrder[]>();

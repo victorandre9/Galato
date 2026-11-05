@@ -756,3 +756,55 @@ html[data-theme="dark"] .delta.up { color: #4BE38F; } html[data-theme="dark"] .d
 .prize-name { font-size: 20px; font-weight: 800; }
 html[data-theme="dark"] .goal-prev { background: #1C1C20; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
 html[data-theme="dark"] .goal-seller, html[data-theme="dark"] .prize { background: rgba(255, 255, 255, .04); }
+
+/* menu lateral: cartão do usuário compacto, botões menores e centralizados, tudo dentro do cartão */
+html body .sidebar .side-user:is(*, .x.x.x.x) { padding: 12px 10px !important; margin: 10px 2px 4px !important; box-sizing: border-box; width: auto; overflow: visible; }
+.side-user-btns { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+html body .side-user-btns .btn:is(*, .x.x.x.x) { padding: 6px 10px !important; font-size: 12px !important; min-height: 0 !important; height: 32px; gap: 5px; flex: 1 1 0; justify-content: center; max-width: 110px; }
+html body .side-user-btns .btn svg { width: 14px; height: 14px; }
+html body .sidebar:is(*, .x.x.x) { padding-bottom: 14px !important; }
+
+/* tela cheia no celular: o menu de baixo continua igual (sem passar telas 1, 2, 3…) */
+@media (max-width: 1023px) {
+  html.present body .bottom-nav:is(*, .x.x.x) { display: flex !important; }
+  html.present body .main:is(*, .x.x.x) { padding-bottom: 120px !important; }
+}
+
+/* gráficos: rótulos de mês por extenso, % e valores à vista, dias futuros do mês */
+.chart .axis-month { font-size: 9.5px; }
+.chart .bar-pct { font-size: 10.5px; font-weight: 800; fill: var(--text); }
+.chart .bar-pct.hit { fill: #12924F; } .chart .bar-pct.miss { fill: #C8102E; }
+html[data-theme="dark"] .chart .bar-pct.hit { fill: #4BE38F; } html[data-theme="dark"] .chart .bar-pct.miss { fill: #FF7A7C; }
+.chart .bar-future { fill: rgba(30, 40, 60, .12); } html[data-theme="dark"] .chart .bar-future { fill: rgba(255, 255, 255, .1); }
+.chart .axis-future { opacity: .45; }
+/* compras por mês do cliente: valor em R$ em cima, nº de pedidos dentro da barra, mês por extenso embaixo */
+.month-bars { gap: 6px !important; }
+.month-bar .mb-val { font-size: 11px; font-weight: 800; white-space: nowrap; }
+.month-bar i { position: relative; min-height: 4px; display: flex !important; align-items: center; justify-content: center; }
+.month-bar .mb-count { color: #fff; font-size: 13px; font-weight: 800; line-height: 1; display: flex; flex-direction: column; align-items: center; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.month-bar .mb-count small { font-size: 8.5px; font-weight: 700; opacity: .95; }
+.month-bar .mb-label { font-size: 11px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.month-bar i:has(.mb-count) { min-height: 30px; }
+
+/* histórico de visitas */
+.visit-end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.visit-order { font-size: 11px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.visit-video { font-size: 10.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 3px; }
+.demo-video { border-radius: 16px; overflow: hidden; background: #000; }
+.demo-video__svg { width: 100%; display: block; }
+.demo-video__pan { animation: demoPan 6s ease-in-out infinite alternate; transform-origin: 160px 100px; }
+@keyframes demoPan { from { transform: scale(1) translateX(-14px); } to { transform: scale(1.18) translateX(14px); } }
+.demo-video__rec { animation: demoRec 1s steps(2, start) infinite; }
+@keyframes demoRec { to { opacity: 0; } }
+
+/* moto do vendedor */
+.moto-types { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 520px) { .moto-types { grid-template-columns: repeat(3, 1fr); } }
+.moto-photo { position: relative; border-radius: 16px; overflow: hidden; cursor: pointer; }
+.moto-photo img { width: 100%; max-height: 320px; object-fit: contain; display: block; background: #0001; }
+.moto-photo span { position: absolute; right: 10px; bottom: 10px; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+/* tela cheia no celular: botão de sair à esquerda e conteúdo começando abaixo dos botões flutuantes */
+@media (max-width: 1023px) {
+  html.present body .present-bar.solo:is(*, .x.x.x) { right: auto; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 18px); }
+  html.present body .main:is(*, .x.x.x) { padding-top: calc(env(safe-area-inset-top, 0px) + 82px) !important; }
+}

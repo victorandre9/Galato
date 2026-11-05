@@ -9,6 +9,7 @@ import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, custo
 import { newestFirst } from "../data/orders";
 import { OrderOpen } from "../components/order-flow";
 import { SellerProspect } from "../components/leads";
+import { MyMotoCard } from "../components/moto";
 import { LEADS, OPEN_STAGES } from "../data/leads";
 import { SellerPanel } from "./Reports";
 import { ChevronRight, BarChart3 } from "lucide-react";
@@ -40,7 +41,7 @@ export function SellerApp() {
       {tab === "customers" && <SellerCustomers onOpen={setOpen} />}
       {tab === "orders" && <SellerOrders />}
       {tab === "route" && <SellerRoute onOpen={setOpen} />}
-      {tab === "more" && <ProfilePanel name={ME.name} role={`Vendedor externo · ${ME.region}`} extra={<MyPerfButton />} />}
+      {tab === "more" && <ProfilePanel name={ME.name} role={`Vendedor externo · ${ME.region}`} extra={<><MyPerfButton /><MyMotoCard /></>} />}
       {open && <CustomerSheet c={open} viewerSellerId={ME.id} onClose={() => setOpen(null)} />}
     </Shell>
   );

@@ -190,7 +190,7 @@ export function inactiveTotals(sellerIds?: string[]) {
 }
 
 export const dayLabel = (d: IsoDate) =>
-  new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+  new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "long", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 
 // ---------------------------------------------------------------- dia anterior
 import { YESTERDAY, YESTERDAY_SELLERS, YESTERDAY_DELIVERIES, YESTERDAY_ROUTES } from "./mock";

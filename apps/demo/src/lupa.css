@@ -599,3 +599,8 @@ html.present .lupa-orbe--lugar { top: auto; bottom: 90px; left: auto; right: 24p
 .lupa-topo input, .lupa-topo input:focus, .lupa-topo input:focus-visible { outline: none !important; box-shadow: none !important; border: 0 !important; background: transparent !important; padding: 4px 0 !important; height: auto !important; }
 @media (max-width: 639px) { .lupa-rodape .lupa-atalho { display: none; } }
 @media (max-width: 1023px) { .lupa-orbe--lugar { right: 20px; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
+/* posição inicial: computador no meio do topo; celular no topo, à direita, ao lado do sino */
+@media (max-width: 1023px) {
+  .lupa-orbe--lugar { right: 70px; left: auto; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 14px); transform: none; }
+  html.present .lupa-orbe--lugar { right: 70px; top: calc(env(safe-area-inset-top, 0px) + 14px); bottom: auto; }
+}

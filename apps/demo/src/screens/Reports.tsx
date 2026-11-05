@@ -3,7 +3,8 @@ import { orderStatusText } from "../data/orders";
 import { useMemo, useState } from "react";
 import { BarChart3, Users, MapPin, Target, PieChart } from "lucide-react";
 import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainment, daysBetween, inactivityBucket, bucketLabel, ORDER_STATUS, type IsoDate } from "@galato/domain";
-import { FileText, UserX, History } from "lucide-react";
+import { FileText, UserX, History, Share2, Download } from "lucide-react";
+import { toast } from "../data/store";
 import { VisitHistoryCard } from "../components/visits";
 import { matchCustomer } from "../data/search";
 import { SearchBox } from "../components/ui";
@@ -30,12 +31,20 @@ function businessDaysSoFar(): IsoDate[] {
 }
 
 /** Venda diária por vendedor: distribui o realizado do mês pelos dias úteis já passados. */
+/** Todos os dias úteis do mês (o gráfico já nasce com o mês inteiro e vai sendo preenchido). */
+function businessDaysOfMonth(): IsoDate[] {
+  const out: IsoDate[] = [];
+  const { first, last } = monthBounds(TODAY);
+  for (let d = first; d <= last; d = addDays(d, 1)) if (isBusinessDay(d, cal)) out.push(d);
+  return out;
+}
+
 function sellerDaily(sellerId: string) {
   // cada barra = soma dos pedidos daquele dia (o toque na barra mostra exatamente esses pedidos)
-  const days = businessDaysSoFar();
+  const days = businessDaysOfMonth();
   const orders = sellerMonthOrders(sellerId);
   const daily = sellerGoal(sellerId).dailyGoalCents;
-  return days.map((d) => ({ date: d, sales: orders.filter((o) => o.date === d).reduce((a, o) => a + o.totalCents, 0), goal: daily }));
+  return days.map((d) => ({ date: d, sales: orders.filter((o) => o.date === d).reduce((a, o) => a + o.totalCents, 0), goal: daily, future: d > TODAY }));
 }
 
 function teamDaily(ids: string[]) {
@@ -44,6 +53,7 @@ function teamDaily(ids: string[]) {
     date: per[0]![i]!.date,
     sales: per.reduce((a, p) => a + p[i]!.sales, 0),
     goal: per.reduce((a, p) => a + p[i]!.goal, 0),
+    future: per[0]![i]!.future,
   }));
 }
 
@@ -79,7 +89,7 @@ export function sellerYear(sellerId: string): MonthPoint[] {
     const goal = back === 0 ? s.monthlyGoalCents : Math.round((base * SEASON[mi]!) / 100_000) * 100_000;
     const teamFactor = TEAM_MISSED_MONTHS.includes(mi) ? 0.91 : 1.07;
     const sales = back === 0 ? s.monthAchievedCents : Math.round(goal * teamFactor * rel * (0.95 + hash(sellerId + key) * 0.1));
-    out.push({ key, label: d.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", "") + (mi === 0 ? `/${String(d.getUTCFullYear()).slice(2)}` : ""), sales, goal, partial: back === 0 });
+    out.push({ key, label: d.toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" }) + (mi === 0 ? `/${String(d.getUTCFullYear()).slice(2)}` : ""), sales, goal, partial: back === 0 });
   }
   return out;
 }
@@ -90,7 +100,7 @@ function teamYear(ids: string[]): MonthPoint[] {
 
 function YearChart({ data }: { data: MonthPoint[] }) {
   const [hover, setHover] = useState<number | null>(null);
-  const W = 720, H = 230, padL = 56, padR = 12, padT = 14, padB = 30;
+  const W = 720, H = 240, padL = 56, padR = 12, padT = 24, padB = 30;
   const max = Math.max(...data.map((d) => Math.max(d.sales, d.goal))) * 1.1 || 1;
   const step = (W - padL - padR) / data.length;
   const bw = Math.min(34, step - 10);
@@ -114,7 +124,9 @@ function YearChart({ data }: { data: MonthPoint[] }) {
               <path d={`M${x},${H - padB} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${H - padB} Z`}
                 className={`bar ${d.sales >= d.goal ? "bar-hit" : ""} ${d.partial ? "bar-partial" : ""} ${hover === i ? "bar-hover" : ""}`} />
               <line x1={x - 4} x2={x + bw + 4} y1={y(d.goal)} y2={y(d.goal)} className="goal-tick" />
-              <text x={x + bw / 2} y={H - padB + 16} className="axis-label" textAnchor="middle">{d.label}</text>
+              {/* % da meta sempre visível em cima da barra (sem precisar passar o mouse) */}
+              <text x={x + bw / 2} y={Math.min(top, y(d.goal)) - 5} className={`bar-pct ${d.sales >= d.goal ? "hit" : "miss"}`} textAnchor="middle">{pct((d.sales / Math.max(1, d.goal)) * 100)}</text>
+              <text x={x + bw / 2} y={H - padB + 16} className="axis-label axis-month" textAnchor="middle">{d.label}</text>
             </g>
           );
         })}
@@ -149,7 +161,7 @@ function YearSummary({ data }: { data: MonthPoint[] }) {
 }
 
 // ---------------------------------------------------------------- gráficos
-function DailyChart({ data, height = 220, orders, hideCustomer }: { data: { date: IsoDate; sales: number; goal: number }[]; height?: number; orders?: HistOrder[]; hideCustomer?: boolean }) {
+function DailyChart({ data, height = 220, orders, hideCustomer }: { data: { date: IsoDate; sales: number; goal: number; future?: boolean }[]; height?: number; orders?: HistOrder[]; hideCustomer?: boolean }) {
   const [hover, setHover] = useState<number | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const [openO, setOpenO] = useState<HistOrder | null>(null);
@@ -175,14 +187,18 @@ function DailyChart({ data, height = 220, orders, hideCustomer }: { data: { date
           const x = padL + i * step + (step - bw) / 2;
           const top = y(d.sales);
           const hit = d.sales >= d.goal;
+          if (d.future) return (
+            <g key={d.date}>
+              <rect x={x} y={H - padB - 3} width={bw} height={3} rx={1.5} className="bar-future" />
+              <text x={x + bw / 2} y={H - padB + 16} className="axis-label axis-future" textAnchor="middle">{d.date.slice(8)}</text>
+            </g>
+          );
           return (
             <g key={d.date} onMouseEnter={() => setHover(i)} onClick={() => pick(i)} style={orders ? { cursor: "pointer" } : undefined} opacity={sel !== null && sel !== i ? 0.4 : 1}>
               <rect x={padL + i * step} y={padT} width={step} height={H - padT - padB} fill="transparent" />
-              <path d={`M${x},${H - padB} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${H - padB} Z`}
-                className={`bar ${hit ? "bar-hit" : ""} ${hover === i ? "bar-hover" : ""}`} />
-              {(i % Math.ceil(data.length / 11) === 0 || i === data.length - 1) && (
-                <text x={x + bw / 2} y={H - padB + 16} className="axis-label" textAnchor="middle">{d.date.slice(8)}</text>
-              )}
+              {d.sales > 0 && <path d={`M${x},${H - padB} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${H - padB} Z`}
+                className={`bar ${hit ? "bar-hit" : ""} ${hover === i ? "bar-hover" : ""}`} />}
+              <text x={x + bw / 2} y={H - padB + 16} className="axis-label" textAnchor="middle">{d.date.slice(8)}</text>
             </g>
           );
         })}
@@ -286,7 +302,7 @@ export function ReportsView({ scope }: { scope: string[] }) {
           <div className="progress-row"><Progress value={g.monthAttainmentPct} /><b className="num xs">{pct(g.monthAttainmentPct)}</b></div>
         </Kpi>
         <Kpi icon={<MapPin size={17} />} tone="info" label="Visitas no mês" onClick={() => scrollToId("rel-visitas")} value={<>{vt.done} <small>/ {vt.planned}</small></>} foot={`conversão em pedido ${pct((vt.withOrder / Math.max(1, vt.done)) * 100)}`} />
-        <Kpi icon={<Users size={17} />} tone="success" label="Ticket médio" onClick={() => scrollToId("rel-diario")} value={brl0(ticket)} foot={`${daysHit} de ${daily.length} dias com meta batida`} />
+        <Kpi icon={<Users size={17} />} tone="success" label="Ticket médio" onClick={() => scrollToId("rel-diario")} value={brl0(ticket)} foot={`${daysHit} de ${daily.filter((d) => !d.future).length} dias com meta batida`} />
       </div>
 
       <Card id="rel-diario" title="Vendas por dia útil x meta diária" icon={<BarChart3 size={17} />} sub="equipe · toque no dia para ver os pedidos">
@@ -542,6 +558,7 @@ export function OrderDetail({ o, onClose, onCustomer, actions }: { o: HistOrder;
         {onCustomer && <button className="btn btn-soft btn-sm btn-block mt" onClick={() => onCustomer(c.id)}><History size={14} /> Ver histórico de compras do cliente</button>}
       </Card>
       {o.status !== "cancelled" ? <OrderSteps status={o.status} /> : <div className="mt"><Badge tone="neutral">Pedido cancelado</Badge></div>}
+      <PdfButtons o={o} />
       {actions}
       {o.log && o.log.length > 0 && (
         <Card title="Linha do tempo" className="mt" sub="hora de cada etapa">
@@ -586,7 +603,8 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
   const days = c.lastPurchaseDate ? daysBetween(c.lastPurchaseDate, TODAY) : null;
   const fin = financial(c);
   const months = [...c.monthlyHistoryCents.map((v, i) => ({ label: monthLabel(c.monthlyHistoryCents.length - i), key: monthKey(c.monthlyHistoryCents.length - i), v })),
-    { label: "Atual", key: TODAY.slice(0, 7), v: orders.filter((o) => o.date >= monthBounds(TODAY).first).reduce((a, o) => a + o.totalCents, 0) }];
+    { label: "Atual", key: TODAY.slice(0, 7), v: orders.filter((o) => o.date >= monthBounds(TODAY).first).reduce((a, o) => a + o.totalCents, 0) }]
+    .map((m) => ({ ...m, n: orders.filter((o) => o.date.startsWith(m.key)).length }));
   const max = Math.max(...months.map((m) => m.v)) || 1;
   const [sel, setSel] = useState<string | null>(null);
   const selM = months.find((m) => m.key === sel);
@@ -604,9 +622,11 @@ export function CustomerHistory({ id, onClose }: { id: string; onClose: () => vo
         <div className="month-bars">
           {months.map((m) => (
             <div key={m.label} className={`month-bar click ${sel === m.key ? "sel" : ""} ${sel && sel !== m.key ? "dim" : ""}`} role="button" onClick={() => pick(m.key)} title={`${m.label}: ${brl0(m.v)}`}>
-              <span className="num xs">{m.v ? brl0(m.v).replace("R$", "").trim() : "–"}</span>
-              <i style={{ height: `${Math.max(2, (m.v / max) * 100)}%` }} className={m.label === "Atual" ? "now" : ""} />
-              <span className="xs muted">{m.label}</span>
+              <span className="num mb-val">{m.v ? brl0(m.v) : "–"}</span>
+              <i style={{ height: `${Math.max(2, (m.v / max) * 100)}%` }} className={m.label === "Atual" ? "now" : ""}>
+                {m.n > 0 && <b className="mb-count">{m.n}<small>{m.n === 1 ? "pedido" : "pedidos"}</small></b>}
+              </i>
+              <span className="mb-label">{m.label === "Atual" ? "mês atual" : m.label}</span>
             </div>
           ))}
         </div>
@@ -649,7 +669,7 @@ function monthKey(back: number) {
 function monthLabel(back: number) {
   const d = new Date(`${monthBounds(TODAY).first}T12:00:00Z`);
   d.setUTCMonth(d.getUTCMonth() - back);
-  return d.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", "");
+  return d.toLocaleDateString("pt-BR", { month: "long", timeZone: "UTC" });
 }
 
 /** Ranking completo com linha de total (abre ao clicar no ranking). */
@@ -733,6 +753,26 @@ function OrderSteps({ status }: { status: string }) {
           <span className="dot" /><span className="xs">{s.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Compartilhar / baixar o PDF do pedido (logo e moldura da Galato). */
+export function PdfButtons({ o }: { o: HistOrder & { kind?: string } }) {
+  const [busy, setBusy] = useState(false);
+  const go = async (modo: "share" | "download") => {
+    setBusy(true);
+    try {
+      const { compartilharPdf } = await import("../utils/pedido-pdf");
+      const r = await compartilharPdf(o, modo);
+      if (r === "downloaded") toast("PDF do pedido baixado", "success");
+    } catch { toast("Não foi possível gerar o PDF", "danger"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="grid g2 mt" style={{ marginBottom: 0 }}>
+      <button className="btn btn-gold" disabled={busy} data-instant="" onClick={() => go("share")}><Share2 size={16} /> {busy ? "Gerando…" : "Compartilhar PDF"}</button>
+      <button className="btn btn-ghost" disabled={busy} data-instant="" onClick={() => go("download")}><Download size={16} /> Baixar PDF</button>
     </div>
   );
 }

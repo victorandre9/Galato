@@ -11,6 +11,10 @@ export interface VisitEntry {
   sellerId: string; sellerName: string; contact?: string;
   status: "visitado" | "nao_visitado" | "em_andamento";
   result: string; orderNumber?: string; note?: string; live: boolean; checkinId?: string; hasVideo?: boolean;
+  /** pedidos que saíram desta visita (id do histórico de pedidos) */
+  orderIds?: string[]; orderNumbers?: string[];
+  /** vídeo do freezer da demonstração (visitas fictícias de clientes com freezer) */
+  demoVideo?: boolean; extra?: boolean;
 }
 
 function hash(s: string) {
@@ -28,42 +32,53 @@ export function visitHistory(customerId: string): VisitEntry[] {
   const c = CUSTOMERS.find((x) => x.id === customerId);
   if (!c) return [];
   const sellerName = (id: string) => SELLERS.find((s) => s.id === id)?.name ?? "Vendedor";
-  // visitas registradas no app
-  const live: VisitEntry[] = CHECKINS.filter((k) => k.customerId === customerId).map((k) => ({
-    id: k.id, date: k.date, inAt: k.inAt, outAt: k.outAt, sellerId: k.sellerId, sellerName: sellerName(k.sellerId),
-    minutes: k.outAt ? Math.max(1, Math.round((Date.parse(k.outAt) - Date.parse(k.inAt)) / 60000)) : undefined,
-    contact: k.contact, status: k.outAt ? "visitado" : "em_andamento", result: k.result ?? (k.outAt ? "Visita registrada" : "Visita em andamento"),
-    note: k.note, live: true, checkinId: k.id, hasVideo: !!k.video,
-  }));
-  let synth = cache.get(customerId);
+  const orders = customerOrders(customerId);
+  const ordersOn = (d: string) => orders.filter((o) => o.date === d);
+  // visitas registradas no app (check-in/checkout), já ligadas ao pedido do mesmo dia
+  const live: VisitEntry[] = CHECKINS.filter((k) => k.customerId === customerId).map((k) => {
+    const os = ordersOn(k.date);
+    return {
+      id: k.id, date: k.date, inAt: k.inAt, outAt: k.outAt, sellerId: k.sellerId, sellerName: sellerName(k.sellerId),
+      minutes: k.outAt ? Math.max(1, Math.round((Date.parse(k.outAt) - Date.parse(k.inAt)) / 60000)) : undefined,
+      contact: k.contact, status: k.outAt ? "visitado" as const : "em_andamento" as const,
+      result: os.length ? `Tirou pedido · ${os.map((o) => o.number).join(", ")}` : k.result ?? (k.outAt ? "Visita registrada" : "Visita em andamento"),
+      note: k.note, live: true, checkinId: k.id, hasVideo: !!k.video,
+      ...(os.length ? { orderIds: os.map((o) => o.id), orderNumbers: os.map((o) => o.number), orderNumber: os[0]!.number } : {}),
+    };
+  });
+  const cacheKey = `${customerId}:${orders.length}`;
+  let synth = cache.get(cacheKey);
   if (!synth) {
     synth = [];
     const route = PARAMS.commercialRoutes.find((r) => r.code === c.routeCode);
-    const orders = customerOrders(customerId);
-    if (route) {
-      // as últimas 10 semanas, no dia da rota do cliente (sem contar hoje)
-      for (let d = addDays(TODAY, -1), n = 0; n < 10 && d > addDays(TODAY, -75); d = addDays(d, -1)) {
-        const wd = new Date(`${d}T12:00:00Z`).getUTCDay();
-        if (wd !== route.weekday) continue;
-        n++;
-        const key = `${customerId}${d}`;
-        const missedYesterday = d === YESTERDAY && YESTERDAY_SELLERS.some((y) => y.missedCustomerIds.includes(customerId));
-        const missed = missedYesterday || (d !== YESTERDAY && hash(key + "m") < 0.08);
-        const order = orders.find((o) => o.date === d) ?? orders.find((o) => o.date > addDays(d, -1) && o.date <= addDays(d, 1));
-        const h = 8 + Math.floor(hash(key + "h") * 9), m = Math.floor(hash(key + "i") * 60), dur = 8 + Math.floor(hash(key + "d") * 30);
-        const inAt = stamp(d, h, m);
-        synth.push({
-          id: `v-${key}`, date: d, sellerId: c.sellerId, sellerName: sellerName(c.sellerId), live: false,
-          ...(missed ? { status: "nao_visitado" as const, result: "Não visitado · cliente da rota ficou sem visita" } : {
-            status: "visitado" as const, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur,
-            contact: hash(key + "c") < 0.7 ? `${c.buyerName} ${ROLES[Math.floor(hash(key + "r") * ROLES.length)]}` : `Funcionário no balcão`,
-            result: order ? `Tirou pedido · ${order.number}` : `Sem pedido · ${NO_ORDER[Math.floor(hash(key + "n") * NO_ORDER.length)]}`,
-            ...(order ? { orderNumber: order.number } : {}),
-          }),
-        });
-      }
+    const since = addDays(TODAY, -75);
+    // dias de visita: o dia da rota nas últimas 10 semanas + todo dia em que saiu pedido (toda venda nasce de uma visita)
+    const dates = new Set<string>();
+    if (route) for (let d = addDays(TODAY, -1), n = 0; n < 10 && d > since; d = addDays(d, -1)) {
+      if (new Date(`${d}T12:00:00Z`).getUTCDay() !== route.weekday) continue;
+      n++; dates.add(d);
     }
-    cache.set(customerId, synth);
+    for (const o of orders) if (o.date > since && o.date <= TODAY) dates.add(o.date);
+    for (const d of dates) {
+      const key = `${customerId}${d}`;
+      const os = ordersOn(d);
+      const onRoute = !!route && new Date(`${d}T12:00:00Z`).getUTCDay() === route.weekday;
+      const missedYesterday = d === YESTERDAY && YESTERDAY_SELLERS.some((y) => y.missedCustomerIds.includes(customerId));
+      const missed = !os.length && (missedYesterday || (d !== YESTERDAY && hash(key + "m") < 0.08));
+      const h = 8 + Math.floor(hash(key + "h") * 9), m = Math.floor(hash(key + "i") * 60), dur = 8 + Math.floor(hash(key + "d") * 30);
+      const inAt = stamp(d, h, m);
+      synth.push({
+        id: `v-${key}`, date: d, sellerId: c.sellerId, sellerName: sellerName(c.sellerId), live: false, extra: !onRoute,
+        ...(missed ? { status: "nao_visitado" as const, result: "Não visitado · cliente da rota ficou sem visita" } : {
+          status: "visitado" as const, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur,
+          contact: hash(key + "c") < 0.7 ? `${c.buyerName} ${ROLES[Math.floor(hash(key + "r") * ROLES.length)]}` : `Funcionário no balcão`,
+          result: os.length ? `Tirou pedido · ${os.map((o) => o.number).join(", ")}` : `Sem pedido · ${NO_ORDER[Math.floor(hash(key + "n") * NO_ORDER.length)]}`,
+          demoVideo: c.assets.length > 0,
+          ...(os.length ? { orderIds: os.map((o) => o.id), orderNumbers: os.map((o) => o.number), orderNumber: os[0]!.number } : {}),
+        }),
+      });
+    }
+    cache.set(cacheKey, synth);
   }
   const liveDates = new Set(live.map((v) => v.date));
   return [...live, ...synth.filter((v) => !liveDates.has(v.date))].sort((a, b) => (b.inAt ?? b.date).localeCompare(a.inAt ?? a.date));

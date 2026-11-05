@@ -17,7 +17,8 @@ import { notify, MANAGERS_KEYS } from "../data/notify";
 import { VisitHistoryCard } from "./visits";
 import { matchCustomer } from "../data/search";
 import { customerOrders, type HistOrder } from "../data/history";
-import { OrderDetail } from "../screens/Reports";
+import { OrderDetail, PdfButtons } from "../screens/Reports";
+import { liveToHist } from "../data/history";
 import { statusLabel } from "../data/selectors";
 import { TRANSFER_REQUESTS, SELLERS, TODAY_ROUTE, CHECKINS, FREEZER_OCCURRENCES, type FreezerOccurrence } from "../data/mock";
 import { PhotoCapture } from "./photo";
@@ -431,6 +432,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
   const add = (id: string) => setItems((xs) => (xs.some((x) => x.productId === id) ? xs.map((x) => (x.productId === id ? { ...x, qty: x.qty + 1 } : x)) : [...xs, { productId: id, qty: 1 }]));
   const title = editing ? `Editar ${editing.number}` : fromQuote ? `Transformar ${fromQuote.number} em pedido` : kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
 
+  const [saved, setSaved] = useState<Order | null>(null);
   function save(status: string, message: string) {
     if (editing) {
       commit(() => {
@@ -454,6 +456,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
       (onDone ?? onClose)();
       return;
     }
+    let created: Order | null = null;
     commit(() => {
       const o: Order = {
         id: `n${Date.now()}`, number: kind === "ORDER" ? `PV-${58500 + ORDERS.length}` : `ORC-${3200 + ORDERS.length}`, kind,
@@ -465,6 +468,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
       o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : `${fromQuote ? `Orçamento ${fromQuote.number} transformado em pedido · ` : "Pedido emitido · "}${status === "blocked" ? "bloqueado pelo crédito" : "enviado ao crédito"}` }];
       if (kind === "QUOTE" || kind === "SIMPLE_QUOTE") o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: "Orçamento criado" }];
       ORDERS.unshift(o);
+      created = o;
       if (fromQuote && kind === "ORDER" && status !== "draft") {
         fromQuote.status = "converted";
         logOrder(fromQuote, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Transformado no pedido ${o.number}`);
@@ -481,8 +485,22 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         });
       }
     }, message);
+    if (created && status !== "draft") { setSaved(created); return; }
     (onDone ?? onClose)();
   }
+
+  if (saved) return (
+    <Sheet title={saved.kind === "ORDER" ? "Pedido enviado" : "Orçamento salvo"} onClose={() => (onDone ?? onClose)()}>
+      <div className="card" style={{ textAlign: "center" }}>
+        <div className="bold" style={{ fontSize: 20 }}>{saved.number}</div>
+        <div className="small muted">{c.tradeName} · {brl(saved.totalCents)}</div>
+        <div className="small mt">{saved.kind === "ORDER" ? (saved.status === "blocked" ? "Bloqueado: aguardando liberação do crédito." : "Enviado para o crédito.") : "Orçamento pronto para enviar ao cliente."}</div>
+      </div>
+      <p className="small muted mt">Compartilhe o PDF com o cliente (WhatsApp, e-mail) ou baixe para guardar.</p>
+      <PdfButtons o={liveToHist(saved)} />
+      <button className="btn btn-primary btn-block mt" onClick={() => (onDone ?? onClose)()}>Concluir</button>
+    </Sheet>
+  );
 
   return (
     <Sheet title={`${title} · ${c.tradeName}`} onClose={onClose} wide icon={<ShoppingCart size={18} />}>

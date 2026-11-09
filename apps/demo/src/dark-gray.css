@@ -829,3 +829,13 @@ html[data-theme="dark"] .dv-now { background: rgba(255, 255, 255, .05); }
 .faltando li b { font-weight: 700; }
 html[data-theme="dark"] .faltando { background: rgba(255, 190, 60, .1); border-color: rgba(255, 190, 60, .3); }
 html[data-theme="dark"] .faltando__t { color: #FFC94D; }
+
+/* nitidez: sem camadas de transformação paradas (deixam o texto embaçado em monitor grande/zoom),
+   menu lateral escondido de verdade na tela cheia e suavização de fonte */
+html, body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+html body .main :is(.btn, .icon-btn, .chip, .card, .row, .action-tile, .order-row, .bucket, .bullet-row):not([data-pressing]):is(*, .x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x) { transform: none !important; will-change: auto !important; }
+html.present body .sidebar:not(.peek):is(*, .x.x.x) { visibility: hidden; box-shadow: none !important; transition: transform .28s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .28s; }
+html.present body .sidebar.peek:is(*, .x.x.x) { visibility: visible; transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+html.present body .present-bar:is(*, .x.x.x) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* zoom de monitor grande em degraus que mantêm o texto alinhado ao pixel */
+@media (min-width: 1900px) and (min-height: 880px) { :root { zoom: 1.125; --z: 1.125; } }

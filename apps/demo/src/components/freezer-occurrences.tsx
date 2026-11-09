@@ -14,7 +14,7 @@ import {
 } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit, useStore } from "../data/store";
-import { Badge, Card, Chip, Sheet, Stepper, brl, SearchBox } from "./ui";
+import { Badge, Card, Chip, Sheet, Stepper, brl, SearchBox, Faltando } from "./ui";
 import { PhotoCapture } from "./photo";
 
 export const OCC_TYPES: Record<FreezerOccType, { label: string; short: string; hint: string; icon: ReactElement }> = {
@@ -181,6 +181,19 @@ export function FreezerOccurrenceSheet({ c, onClose }: { c: Customer; onClose: (
         </>
       )}
 
+      <Faltando itens={[
+        !kind && ["Tipo da ocorrência", "perda, defeito ou outros produtos seguem caminhos diferentes"],
+        !!kind && !pat && ["Freezer (patrimônio)", "a ocorrência fica ligada ao freezer do cliente"],
+        kind === "perda" && !lossReason && ["Motivo da perda", "a gestão decide a bonificação pelo motivo"],
+        kind === "perda" && !lost.length && ["Produtos perdidos e quantidades", "calcula o valor da bonificação"],
+        kind === "defeito" && nearWall === null && ["Freezer perto da parede?", "ajuda a saber se a instalação causou o defeito"],
+        kind === "defeito" && directOutlet === null && ["Ligado direto na tomada?", "extensão é causa comum de defeito"],
+        kind === "defeito" && fault === null && ["De quem foi a culpa", "define se o conserto é cobrado do cliente"],
+        kind === "defeito" && defect.trim().length < 3 && ["Qual o defeito", "o técnico precisa saber o que levar"],
+        kind === "defeito" && needsJustif && justif.trim().length < 10 && ["Justificativa (mínimo 10 letras)", "a instalação estava correta mas a culpa foi marcada como do cliente"],
+        kind === "outros_produtos" && !photo && ["Foto dos produtos no freezer", "é a prova para a gestão agir com o cliente"],
+        kind === "outros_produtos" && desc.trim().length < 5 && ["Descrição dos produtos", "diz quais marcas/produtos estão ocupando o freezer"],
+      ]} />
       <button className="btn btn-primary btn-lg mt" disabled={!valid} onClick={submit}>
         {!kind ? "Escolha o tipo" : !pat ? "Escolha o freezer" : kind === "defeito" ? "Enviar e solicitar técnico" : "Enviar para a gestão"}
       </button>

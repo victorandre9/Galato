@@ -5,7 +5,7 @@ import { commit, toast, useStore } from "../data/store";
 import { nowStamp, SELLERS, CURRENT_SELLER } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { MOTO_ITEMS, MOTO_CHECKLISTS, MOTO_EXPENSES, MOTO_PLATES, EXPENSE_LABEL, type MotoChecklist, type MotoExpense, type ExpenseType, type MotoItemState } from "../data/moto";
-import { Card, Sheet, Badge, Chip, Kpi, brl, Empty } from "./ui";
+import { Card, Sheet, Badge, Chip, Kpi, brl, Empty, Faltando } from "./ui";
 
 const fmtDT = (iso: string) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
 const ICON: Record<ExpenseType, React.ReactNode> = { oleo: <Droplets size={16} />, combustivel: <Fuel size={16} />, outras: <Receipt size={16} /> };
@@ -89,7 +89,11 @@ function ChecklistForm({ sellerId, lastKm, onClose }: { sellerId: string; lastKm
         }, problems.length ? "Checklist salvo · gestão avisada do problema" : "Checklist salvo · moto ok");
         onClose();
       }}>Salvar checklist</button>
-      {!done && <p className="xs muted mt">Marque todos os itens para salvar.</p>}
+      <Faltando itens={[
+        !done && [`${MOTO_ITEMS.filter((it) => !items[it]).length} item(ns) do checklist`, "marque OK ou Problema em todos para garantir que a moto está segura"],
+        !okKm && ["Km atual", "controla a troca de óleo e a manutenção"],
+        problems.length > 0 && note.trim().length < 3 && ["Descrição do problema", "a gestão precisa saber o que consertar"],
+      ]} />
     </Sheet>
   );
 }
@@ -124,7 +128,12 @@ function ExpenseForm({ sellerId, onClose }: { sellerId: string; onClose: () => v
         }, `Despesa de ${brl(cents)} enviada para a gestão`);
         onClose();
       }}>Enviar despesa</button>
-      {!photo && <p className="xs muted mt">A foto do comprovante é obrigatória.</p>}
+      <Faltando itens={[
+        !type && ["Tipo da despesa", "separa óleo, combustível e outras despesas no relatório"],
+        type === "outras" && desc.trim().length <= 2 && ["Descrição", "em “outras despesas” a gestão precisa saber o que foi pago"],
+        !(cents > 0) && ["Valor", "é o que será reembolsado"],
+        !photo && ["Foto do comprovante / nota", "sem comprovante a despesa não pode ser aprovada"],
+      ]} />
     </Sheet>
   );
 }

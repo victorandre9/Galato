@@ -31,7 +31,7 @@ import { ProofView, BoletoView, AssetView } from "./details";
 import { Video } from "lucide-react";
 import type { Checkin, PaymentRequest, Receivable, Asset } from "../data/mock";
 import { AlertOctagon } from "lucide-react";
-import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper, ColsHead, SearchBox } from "./ui";
+import { Badge, Card, Curve, Sheet, brl, Chip, Progress, Stepper, ColsHead, SearchBox, Faltando } from "./ui";
 
 /** Prazos de pagamento oferecidos no pedido (0 = à vista/PIX). */
 export const PAYMENT_TERM_OPTIONS = [0, 7, 14, 21];
@@ -346,7 +346,8 @@ function EditableContact({ c }: { c: Customer }) {
         </select>
       </div>
       <p className="xs muted mb">Razão social, CNPJ e endereço fiscal não são editáveis pelo vendedor. Toda alteração gera log.</p>
-      <button className="btn btn-soft btn-block btn-sm" onClick={() => commit(() => { c.whatsapp = phone; c.buyerName = buyer; c.routeCode = route; }, "Dados atualizados · alteração registrada no log")}>Salvar alterações</button>
+      <Faltando itens={[phone.replace(/\D/g, "").length < 10 && ["WhatsApp (com DDD)", "é o contato para pedidos, cobranças e o PDF do pedido"], buyer.trim().length < 2 && ["Comprador", "o vendedor e o financeiro precisam saber com quem falar"]]} />
+      <button className="btn btn-soft btn-block btn-sm" disabled={phone.replace(/\D/g, "").length < 10 || buyer.trim().length < 2} onClick={() => commit(() => { c.whatsapp = phone; c.buyerName = buyer; c.routeCode = route; }, "Dados atualizados · alteração registrada no log")}>Salvar alterações</button>
     </>
   );
 }
@@ -361,6 +362,7 @@ function ReasonForm({ title, placeholder, cta, onSubmit, onCancel }: { title: st
         <button className="btn btn-ghost" onClick={onCancel}>Voltar</button>
         <button className="btn btn-primary" disabled={text.trim().length < 5} onClick={() => onSubmit(text.trim())}>{cta}</button>
       </div>
+      <Faltando itens={[text.trim().length < 5 && ["Justificativa (mínimo 5 letras)", "o gestor precisa entender o motivo para aprovar"]]} />
     </Card>
   );
 }
@@ -394,6 +396,7 @@ export function PaymentProofSheet({ c, onClose }: { c: Customer; onClose: () => 
           <dt>SLA financeiro</dt><dd>{PARAMS.financialSla.responseHours}h</dd>
         </dl>
       </Card>
+      <Faltando itens={[!photo && ["Foto do comprovante de pagamento", "o financeiro confere o pagamento pela foto"]]} />
       <button className="btn btn-primary btn-block mt" disabled={!photo} onClick={() => {
         commit(() => {
           PAYMENT_REQUESTS.unshift({
@@ -592,6 +595,11 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
                 {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
               </button>
               {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
+              <Faltando itens={[
+                !items.length && ["Produtos", "o pedido precisa de pelo menos um item"],
+                items.length > 0 && !stock.canIssue && [`${stock.blockingCount} item(ns) sem estoque`, "diminua a quantidade ou retire o item: não dá para faturar sem estoque"],
+                !fiscal && ["Com ou sem nota fiscal", "o faturamento precisa saber se emite NF"],
+              ]} />
             </>
           ) : kind === "QUOTE" ? (
             <div className="grid g2" style={{ marginBottom: 0 }}>
@@ -601,6 +609,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
           ) : (
             <button className="btn btn-primary btn-block" disabled={!items.length} onClick={() => { toast("Orçamento simples gerado em PDF · registrado só no histórico", "info"); onClose(); }}>Gerar PDF rápido</button>
           )}
+          {kind !== "ORDER" && <Faltando itens={[!items.length && ["Produtos", "adicione pelo menos um produto ao orçamento"]]} />}
         </div>
       </div>
     </Sheet>

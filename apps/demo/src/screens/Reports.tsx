@@ -6,6 +6,7 @@ import { addDays, businessDaysBetween, isBusinessDay, monthBounds, rankByAttainm
 import { FileText, UserX, History, Share2, Download } from "lucide-react";
 import { toast } from "../data/store";
 import { VisitHistoryCard } from "../components/visits";
+import { SellerDaySheet } from "../components/seller-day";
 import { matchCustomer } from "../data/search";
 import { SearchBox } from "../components/ui";
 import { sellerMonthOrders, customerOrders, customersWithoutPurchaseThisMonth, type HistOrder } from "../data/history";
@@ -389,6 +390,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
   const [order, setOrder] = useState<HistOrder | null>(null);
   const [cust, setCust] = useState<string | null>(null);
   const [buyersOpen, setBuyersOpen] = useState(false);
+  const [dayOpen, setDayOpen] = useState(false);
   const buckets = PARAMS.inactivity.dashboardBuckets;
   const shown = noPurchase.filter((x) => bucket === null || inactivityBucket(x.days, buckets) === bucket);
   const ordersTotal = orders.reduce((a, o) => a + o.totalCents, 0);
@@ -404,6 +406,9 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
             ? `${brl0(g.requiredPerRemainingDayCents)}/dia × ${g.remainingBusinessDays} dia${g.remainingBusinessDays === 1 ? "" : "s"} út${g.remainingBusinessDays === 1 ? "il" : "eis"} = ${brl0(g.requiredPerRemainingDayCents * g.remainingBusinessDays)}`
             : "sem dias úteis restantes no mês"} />
         <Kpi label="Visitas / conversão" tone="success" value={`${v.done}/${v.planned}`} foot={`${pct(v.conversion)} viraram pedido · toque p/ ver clientes`} onClick={() => setBuyersOpen(true)} />
+      </div>
+      <button className="btn btn-primary btn-block mb" onClick={() => setDayOpen(true)}><MapPin size={16} /> Visitas do dia em tempo real (check-in, checkout e histórico)</button>
+      <div style={{ display: "none" }}>
       </div>
       <Card id={`sp-daily-${id}`} title="Vendas por dia útil x meta diária · mês atual"><DailyChart data={daily} height={190} orders={orders} /></Card>
       <Card id={`sp-year-${id}`} title="Vendas x meta · últimos 12 meses" className="mt" sub="evolução e sazonalidade">
@@ -441,6 +446,7 @@ export function SellerPanel({ id, onClose }: { id: string; onClose: () => void }
         <ClientList items={shown} onOpen={setCust} />
       </Card>
       {order && <OrderDetail o={order} onClose={() => setOrder(null)} onCustomer={(cid) => { setOrder(null); setCust(cid); }} />}
+      {dayOpen && <SellerDaySheet sellerId={id} onClose={() => setDayOpen(false)} />}
       {buyersOpen && <BuyersSheet sellerId={id} onClose={() => setBuyersOpen(false)} onOpen={setCust} />}
       {cust && <CustomerHistory id={cust} onClose={() => setCust(null)} />}
     </Sheet>

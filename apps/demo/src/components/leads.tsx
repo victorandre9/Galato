@@ -15,7 +15,7 @@ import {
 } from "../data/leads";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit, useStore } from "../data/store";
-import { Card, Kpi, Sheet, Badge, Chip, Curve, Empty, Progress, Stepper, ColsHead, SearchBox, brl, brl0, pct } from "./ui";
+import { Card, Kpi, Sheet, Badge, Chip, Curve, Empty, Progress, Stepper, ColsHead, SearchBox, Faltando, brl, brl0, pct } from "./ui";
 import { CustomerSheet, fmtDateTime } from "./business";
 import { matchLead } from "../data/search";
 
@@ -100,7 +100,11 @@ export function LeadForm({ onClose, onSaved, sellerId = CURRENT_SELLER.id }: { o
       <Field label="Tipo de negócio"><OneChips options={BUSINESS_TYPES} value={type} onChange={setType} /></Field>
       <Field label="Observação (opcional)"><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
       <button className="btn btn-primary btn-block" disabled={!ok} onClick={save}><UserPlus size={16} /> Salvar pré-cadastro</button>
-      {!ok && <p className="xs muted mt">Preencha nome, telefone e tipo de negócio.</p>}
+      <Faltando itens={[
+        name.trim().length <= 2 && ["Nome do estabelecimento", "identifica o cliente nas buscas e em todo o funil"],
+        phone.replace(/\D/g, "").length < 10 && ["Telefone / WhatsApp (com DDD)", "é por ele que o 1º contato é feito"],
+        !type && ["Tipo de negócio", "define o mix e o potencial do cliente"],
+      ]} />
     </Sheet>
   );
 }
@@ -242,6 +246,7 @@ function ContactForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => v
         }, "Contato registrado no histórico");
         onClose();
       }}>Salvar contato</button>
+      <Faltando itens={[!res && ["Como foi?", "registra o resultado do contato no histórico do prospect"]]} />
     </Sheet>
   );
 }
@@ -275,6 +280,13 @@ function QualiForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => voi
         }, `Qualificado · potencial ${score}`);
         onClose();
       }}>Salvar qualificação</button>
+      <Faltando itens={[
+        !brand && ["Marca que vende hoje", "mostra contra quem estamos disputando o cliente"],
+        !fz && ["Freezer", "define se precisa de freezer em comodato"],
+        monthly === null && ["Compra estimada por mês", "calcula o potencial (curva A, B, C ou D)"],
+        !freq && ["Frequência de compra", "planeja a rota e o estoque"],
+        !mix.length && ["Mix que vende", "orienta a proposta de produtos"],
+      ]} />
     </Sheet>
   );
 }
@@ -299,6 +311,7 @@ function ProposalForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
         }, "Proposta registrada");
         onClose();
       }}>Salvar proposta</button>
+      <Faltando itens={[!cents && ["Compra mensal prevista", "é a base da proposta e do limite de crédito"], term === null && ["Prazo de pagamento", "o financeiro precisa saber o prazo combinado"]]} />
     </Sheet>
   );
 }
@@ -309,6 +322,7 @@ function NoteForm({ l, title, label, placeholder, cta, onSave, onClose, danger }
     <Sheet title={`${title} · ${l.name}`} onClose={onClose}>
       <Field label={label}><textarea className="input" rows={3} value={t} onChange={(e) => setT(e.target.value)} placeholder={placeholder} /></Field>
       <button className={`btn ${danger ? "btn-danger" : "btn-primary"} btn-block`} disabled={t.trim().length < 3} onClick={() => { commit(() => onSave(t.trim()), `${title} · registrado`); onClose(); }}>{cta}</button>
+      <Faltando itens={[t.trim().length < 3 && [label, "fica registrado no histórico e é enviado para quem precisa agir"]]} />
     </Sheet>
   );
 }
@@ -357,6 +371,12 @@ function CadastroForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
         }, "Cadastro enviado ao financeiro");
         onClose();
       }}><Send size={16} /> Enviar ao financeiro</button>
+      <Faltando itens={[
+        digits.length !== 14 && ["CNPJ (14 números)", "o financeiro consulta o CNPJ para aprovar o crédito"],
+        !legal.trim() && ["Razão social", "sai na nota fiscal"],
+        !ie.trim() && ["Inscrição estadual", "obrigatória para emitir nota fiscal"],
+        !addr.trim() && ["Endereço de entrega", "a logística precisa para montar a rota"],
+      ]} />
     </Sheet>
   );
 }
@@ -372,6 +392,7 @@ function LostForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => void
         commit(() => { l.stage = "perdido"; l.lostReason = r!; l.retryAt = retry; delete l.nextAt; log(l, by, `Perdido · ${r}`); }, `${l.name} marcado como perdido`);
         onClose();
       }}>Marcar como perdido</button>
+      <Faltando itens={[!r && ["Motivo", "o gerente usa os motivos de perda na reunião mensal"]]} />
     </Sheet>
   );
 }
@@ -403,6 +424,7 @@ function LeadQuote({ l, by, onClose }: { l: Lead; by: string; onClose: () => voi
           onClose();
         }}>Salvar</button>
       </div>
+      <Faltando itens={[!total && ["Produtos", "adicione pelo menos um produto para montar o orçamento"]]} />
     </Sheet>
   );
 }
@@ -423,6 +445,7 @@ function ApproveForm({ l, onClose, onDone }: { l: Lead; onClose: () => void; onD
         }, `${l.name} aprovado · cliente criado`);
         onDone();
       }}>Aprovar e criar cliente</button>
+      <Faltando itens={[!limit && ["Limite de crédito inicial", "define quanto o cliente pode comprar a prazo"]]} />
     </Sheet>
   );
 }

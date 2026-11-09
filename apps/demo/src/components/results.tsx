@@ -11,7 +11,7 @@ import { useStore, setPresent, commit } from "../data/store";
 import { nowStamp, GENERAL_MANAGER } from "../data/mock";
 import { MONTH_PLANS, planFor, applyCurrentPlan, type MonthPlan } from "../data/monthplan";
 import { Gift, Pencil, Save, X as XIcon, Sparkles } from "lucide-react";
-import { Card, Kpi, Sheet, Chip, Progress, Badge, brl0, pct } from "./ui";
+import { Card, Kpi, Sheet, Chip, Progress, Badge, brl0, pct, Faltando } from "./ui";
 import { sellerYear, SellerPanel, CustomerHistory } from "../screens/Reports";
 import { UserPhoto } from "./userphoto";
 
@@ -362,6 +362,7 @@ function DropSheet({ id, months, onClose, onHistory }: { id: string; months: str
         <button className="btn btn-ghost" onClick={onHistory}>Histórico completo</button>
         <button className="btn btn-primary" disabled={!reason} onClick={() => { commit(() => { c.dropNote = { reason: reason!, note: note.trim() || undefined, at: nowStamp(), by: GENERAL_MANAGER.name }; }, "Motivo registrado"); onClose(); }}>Salvar motivo</button>
       </div>
+      <Faltando itens={[!reason && ["O que o vendedor apontou", "o motivo da queda orienta o plano de ação com o cliente"]]} />
     </Sheet>
   );
 }

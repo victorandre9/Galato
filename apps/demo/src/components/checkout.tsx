@@ -4,11 +4,12 @@ import { Video, LogOut, RefreshCw, CheckCircle2, AlertTriangle, Snowflake } from
 import { nowStamp, type Checkin, type Customer } from "../data/mock";
 import { commit, toast } from "../data/store";
 import { isServerDb } from "../data/sync";
-import { Card, Sheet, Progress, Chip } from "./ui";
+import { Card, Sheet, Progress, Chip, Faltando } from "./ui";
 import { compressToLimit, saveVideo, uploadVideo, loadVideo, fmtBytes, daysUntilPurge, VIDEO_LIMITS, type CompressedVideo } from "./video";
 
 export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: Checkin; onClose: () => void }) {
-  const required = c.assets.length > 0;
+  // vídeo sempre obrigatório para finalizar a visita (com freezer: o freezer; sem freezer: o ponto de venda)
+  const required = true;
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [video, setVideo] = useState<CompressedVideo | null>(null);
@@ -61,7 +62,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
         <>
           <div className="card mb" style={{ background: "var(--gold-soft)" }}>
             <div className="semi flex" style={{ gap: 8 }}><Snowflake size={16} /> Vídeo do freezer obrigatório</div>
-            <div className="small t2">Grave um vídeo curto (até 10 segundos) mostrando {c.assets.length > 1 ? `os ${c.assets.length} freezers` : "o freezer"} por dentro e por fora. O app reduz para no máximo 1 MB.</div>
+            <div className="small t2">Grave um vídeo curto (até 10 segundos) mostrando {c.assets.length > 1 ? `os ${c.assets.length} freezers por dentro e por fora` : c.assets.length ? "o freezer por dentro e por fora" : "o ponto de venda / espaço de sorvete do cliente"}. O app reduz para no máximo 1 MB.</div>
           </div>
           <input ref={input} id="checkout-video" type="file" accept="video/*" capture="environment" hidden
             onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
@@ -92,6 +93,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
       ) : (
         <div className="small muted mb">Cliente sem freezer Galato cadastrado: vídeo não é necessário.</div>
       )}
+      <Faltando titulo="Para finalizar a visita, falta:" itens={[required && !video && busy === null && ["Vídeo do freezer", "sem o vídeo a visita não pode ser finalizada: é a prova do estado do freezer e da exposição dos produtos"]]} />
       <button className="btn btn-primary btn-lg mt" disabled={(required && !video) || busy !== null || saving} onClick={finish}>
         {required && !video ? "Grave o vídeo para finalizar" : saving ? "Enviando vídeo…" : "Finalizar checkout"}
       </button>

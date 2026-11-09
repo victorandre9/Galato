@@ -9,7 +9,7 @@ import {
 } from "../data/mock";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { commit } from "../data/store";
-import { Badge, Card, Chip, Sheet, brl } from "./ui";
+import { Badge, Card, Chip, Sheet, brl, Faltando } from "./ui";
 import { PatrimonyHistory } from "./freezer-occurrences";
 
 export type AssetMove = { at: string; by: string; action: "incluido" | "editado" | "retirado" | "confirmado"; patrimony: string; detail: string };
@@ -137,6 +137,10 @@ function FreezerList({ c, drafts, setDrafts, removed, setRemoved }: {
             setDrafts(exists ? drafts.map((d) => (d.id === editing.id ? editing : d)) : [...drafts, editing]);
             setEditing(null);
           }}>Salvar freezer</button>
+          <Faltando itens={[
+            !validPat && ["Patrimônio (6 números da plaqueta)", "identifica o freezer da Galato no cliente"],
+            editing.liters < 50 && ["Capacidade (litros)", "o patrimônio precisa da capacidade para o controle de ativos"],
+          ]} />
         </Sheet>
       )}
 
@@ -253,6 +257,10 @@ export function FirstVisitSheet({ c, onClose, onDone }: { c: Customer; onClose: 
         {drafts.length === 0 && <Chip on={noFreezer} onClick={() => { setNoFreezer(true); setFreezersOk(true); }}>Cliente não tem freezer Galato</Chip>}
       </div>
 
+      <Faltando itens={[
+        !route && ["Rota do cliente", "define em que dia da semana ele é visitado e entregue"],
+        !(freezersOk || (noFreezer && drafts.length === 0)) && ["Conferência dos freezers", "marque “lista conferida” ou “cliente não tem freezer” para registrar os patrimônios"],
+      ]} />
       <button className="btn btn-primary btn-lg mt" disabled={!ready} onClick={() => {
         commit(() => {
           const oldRoute = c.routeCode;

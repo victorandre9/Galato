@@ -13,6 +13,7 @@ import { FREEZER_OCCURRENCES } from "../data/mock";
 import { AlertOctagon, Filter } from "lucide-react";
 import { ManagerProspect, LeadListSheet } from "../components/leads";
 import { UsersView } from "../components/users";
+import { SellerDaySheet, NowInFieldCard } from "../components/seller-day";
 import { MotosView } from "../components/moto";
 import { MOTO_EXPENSES } from "../data/moto";
 import { Bike } from "lucide-react";
@@ -43,7 +44,7 @@ import { History, CheckCircle2, XCircle, CalendarClock, ChevronRight, Package } 
 import { filterCustomers } from "@galato/domain";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId, Curve, SearchBox } from "../components/ui";
+import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingList, scrollToId, Curve, SearchBox, Faltando } from "../components/ui";
 import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
@@ -338,9 +339,11 @@ function SalesView({ scope }: { scope: string[] }) {
 function VisitsTable({ scope }: { scope: string[] }) {
   const rows = visitsRanking().filter((r) => scope.includes(r.id));
   const [open, setOpen] = useState<string | null>(null);
+  const [panel, setPanel] = useState<string | null>(null);
   return (
     <div className="table-wrap">
-      {open && <SellerPanel id={open} onClose={() => setOpen(null)} />}
+      {open && <SellerDaySheet sellerId={open} onClose={() => setOpen(null)} onPanel={() => { setPanel(open); setOpen(null); }} />}
+      {panel && <SellerPanel id={panel} onClose={() => setPanel(null)} />}
       <table className="t">
         <thead><tr><th>#</th><th>Vendedor</th><th className="r">Planejadas</th><th className="r">Realizadas</th><th>%</th><th className="r">Pendentes</th></tr></thead>
         <tbody>
@@ -360,9 +363,12 @@ function VisitsTable({ scope }: { scope: string[] }) {
 
 function VisitsView({ scope }: { scope: string[] }) {
   const vt = visitsTotal();
+  const [day, setDay] = useState<string | null>(null);
   return (
     <>
       <h2 style={{ margin: "6px 0 12px" }}>Visitas do dia</h2>
+      <NowInFieldCard scope={scope} onSeller={setDay} />
+      {day && <SellerDaySheet sellerId={day} onClose={() => setDay(null)} />}
       <div className="grid g3">
         <Kpi label="Planejadas" value={vt.planned} onClick={() => scrollToId("visitas-ranking")} />
         <Kpi label="Realizadas" tone="success" value={vt.done} foot="check-in = visita" onClick={() => scrollToId("visitas-checkins")} />
@@ -612,6 +618,7 @@ function PortfolioView() {
           </div>
           <div className="field"><label>Motivo</label><select id="ta-reason" className="input" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}><option>Férias</option><option>Afastamento</option><option>Cobertura temporária</option></select></div>
           <p className="xs muted mb">Acesso removido automaticamente no fim do período. Preparado para integração futura com RH.</p>
+          <Faltando itens={[!form.to && ["Data de fim", "o acesso temporário encerra sozinho nessa data"], !!form.to && form.to < form.from && ["Fim depois do início", "a data de fim não pode ser antes da de início"]]} />
           <button className="btn btn-primary btn-block" disabled={!form.to || form.to < form.from} onClick={() => commit(() => {
             TEMP_ACCESS.unshift({ id: `ta${Date.now()}`, holderSellerId: form.titular, substituteSellerId: form.sub, from: form.from, to: form.to, reason: form.reason, createdAt: nowStamp() });
             notify({ link: { t: "tab", tab: "customers" }, kind: "comercial", title: "Acesso temporário liberado", text: `Você cobre a carteira de ${sellerById.get(form.titular)?.name} de ${fmtDate(form.from)} a ${fmtDate(form.to)} (${form.reason}).`, to: [`seller:${form.sub}`] });

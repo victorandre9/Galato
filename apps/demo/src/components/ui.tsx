@@ -198,9 +198,9 @@ export function Sheet({ title, onClose, children, wide, icon }: { title: ReactNo
   );
 }
 
-export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, danger, children, disabled }: {
+export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, danger, children, disabled, extra }: {
   title: string; text: ReactNode; confirmLabel: string; onConfirm: () => void; onClose: () => void;
-  danger?: boolean; children?: ReactNode; disabled?: boolean;
+  danger?: boolean; children?: ReactNode; disabled?: boolean; extra?: ReactNode;
 }) {
   useBackClose(onClose);
   useScrollLock();
@@ -210,6 +210,7 @@ export function ConfirmModal({ title, text, confirmLabel, onConfirm, onClose, da
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>{title}</h2>
         <div className="t2 small" style={{ marginBottom: 16 }}>{text}</div>
         {children}
+        {extra}
         <div className="grid g2" style={{ marginTop: 8, marginBottom: 0 }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
           <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} disabled={disabled} onClick={onConfirm}>{confirmLabel}</button>
@@ -315,6 +316,21 @@ export function SearchBox({ value, onChange, placeholder = "Buscar por nome, CNP
       <Search size={17} />
       <input className="input" type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
       {value && <button className="search-clear" aria-label="Limpar busca" onClick={() => onChange("")}><X size={15} /></button>}
+    </div>
+  );
+}
+
+/**
+ * Aviso padrão de campos obrigatórios: lista o que falta preencher e por quê.
+ * Use logo abaixo do botão de enviar: `<Faltando itens={[!nome && ["Nome", "identifica o cliente"]]} />`
+ */
+export function Faltando({ itens, titulo = "Para continuar, falta preencher:" }: { itens: (false | null | undefined | "" | 0 | [string, string])[]; titulo?: string }) {
+  const f = itens.filter(Boolean) as [string, string][];
+  if (!f.length) return null;
+  return (
+    <div className="faltando" role="status" aria-live="polite">
+      <div className="faltando__t"><AlertTriangle size={15} /> {titulo}</div>
+      <ul>{f.map(([campo, porque]) => <li key={campo}><b>{campo}</b> — {porque}</li>)}</ul>
     </div>
   );
 }

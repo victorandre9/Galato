@@ -808,3 +808,24 @@ html[data-theme="dark"] .chart .bar-pct.hit { fill: #4BE38F; } html[data-theme="
   html.present body .present-bar.solo:is(*, .x.x.x) { right: auto; left: 14px; top: calc(env(safe-area-inset-top, 0px) + 18px); }
   html.present body .main:is(*, .x.x.x) { padding-top: calc(env(safe-area-inset-top, 0px) + 82px) !important; }
 }
+
+/* visitas do dia do vendedor */
+.dv-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.dv-date { flex: 1; min-width: 200px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.dv-date b { text-transform: none; } .dv-date b::first-letter { text-transform: uppercase; }
+.dv-row .dv-ic { margin-top: 2px; }
+.dv-visitado .dv-ic { color: #12924F; } .dv-em_andamento .dv-ic { color: #D99A00; } .dv-pendente .dv-ic { color: var(--muted); } .dv-nao_visitado .dv-ic { color: #D32F2F; }
+.dv-end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.dv-now { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 14px 16px; border-radius: 18px; background: rgba(30, 40, 60, .05); }
+.dv-now.on { background: linear-gradient(135deg, rgba(255, 212, 92, .35), rgba(245, 168, 0, .18)); }
+.dv-pulse { width: 14px; height: 14px; border-radius: 50%; background: #F5A800; box-shadow: 0 0 0 0 rgba(245, 168, 0, .6); animation: dvPulse 1.6s infinite; flex: none; }
+@keyframes dvPulse { 70% { box-shadow: 0 0 0 12px rgba(245, 168, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 168, 0, 0); } }
+html[data-theme="dark"] .dv-now { background: rgba(255, 255, 255, .05); }
+
+/* aviso de campos obrigatórios */
+.faltando { margin-top: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(245, 168, 0, .12); border: 1px solid rgba(217, 138, 0, .35); font-size: 13px; color: var(--text); }
+.faltando__t { display: flex; align-items: center; gap: 6px; font-weight: 800; color: #9A6400; margin-bottom: 4px; }
+.faltando ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.faltando li b { font-weight: 700; }
+html[data-theme="dark"] .faltando { background: rgba(255, 190, 60, .1); border-color: rgba(255, 190, 60, .3); }
+html[data-theme="dark"] .faltando__t { color: #FFC94D; }

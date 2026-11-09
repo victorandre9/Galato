@@ -54,7 +54,7 @@ function VisitRow({ v, onClick }: { v: VisitEntry; onClick: () => void }) {
   );
 }
 
-function VisitSheet({ v, customerId, onClose }: { v: VisitEntry; customerId: string; onClose: () => void }) {
+export function VisitSheet({ v, customerId, onClose }: { v: VisitEntry; customerId: string; onClose: () => void }) {
   const c = customerById.get(customerId)!;
   const [order, setOrder] = useState<HistOrder | null>(null);
   const [video, setVideo] = useState(false);
@@ -93,7 +93,7 @@ function VisitSheet({ v, customerId, onClose }: { v: VisitEntry; customerId: str
       {v.status !== "nao_visitado" && (
         (checkin?.video || v.demoVideo)
           ? <button className="btn btn-primary btn-block mt" onClick={() => setVideo(true)}><Video size={16} /> Ver vídeo do freezer</button>
-          : <div className="small muted mt"><Snowflake size={13} style={{ verticalAlign: -2 }} /> {c.assets.length ? "Sem vídeo do freezer nesta visita." : "Cliente sem freezer Galato: não há vídeo."}</div>
+          : <div className="small muted mt"><Snowflake size={13} style={{ verticalAlign: -2 }} /> {v.status === "em_andamento" ? "O vídeo do freezer é gravado no checkout (obrigatório para finalizar a visita)." : "Vídeo do freezer apagado automaticamente 60 dias após a visita. A visita continua no histórico."}</div>
       )}
     </Sheet>
   );

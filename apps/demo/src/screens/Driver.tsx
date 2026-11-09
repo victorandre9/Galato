@@ -15,7 +15,7 @@ import { setOrderStatus } from "../data/orders";
 import { routeProgress, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Sheet, ConfirmModal, Badge, Progress, Ring, Chip, pct, Stepper } from "../components/ui";
+import { Card, Sheet, ConfirmModal, Badge, Progress, Ring, Chip, pct, Stepper, Faltando } from "../components/ui";
 import { fmtDate } from "../components/business";
 import { InfoSheet } from "../components/details";
 
@@ -127,6 +127,7 @@ function DriverHome() {
       )}
       {confirmFinish && (
         <ConfirmModal title="Finalizar o dia?" confirmLabel="Finalizar" danger disabled={!resolved} onClose={() => setConfirmFinish(false)}
+          extra={<Faltando titulo="Para finalizar o dia, falta:" itens={[!resolved && [`${route.deliveries.filter((d) => d.status !== "delivered" && d.status !== "not_delivered").length} entrega(s) sem baixa`, "cada entrega precisa ser confirmada (com foto) ou marcada como não entregue com o motivo"]]} />}
           onConfirm={() => {
             commit(() => {
               route.finishedAt = nowStamp();
@@ -223,6 +224,7 @@ function DeliverySheet({ d, onClose, onIncident }: { d: Delivery; onClose: () =>
           <PhotoCapture value={photo} onChange={setPhoto} label="Fotografar comprovante assinado" />
           <div className="xs muted mt">Registrado junto: data, horário, motorista, cliente, nota e entrega.</div>
           <button className="btn btn-primary btn-block mt" disabled={!photo} onClick={confirmDelivery}><CheckCircle2 size={18} /> Confirmar entrega</button>
+          <Faltando itens={[!photo && ["Foto do comprovante assinado", "é a prova de entrega para o financeiro e o vendedor"]]} />
           <button className="btn btn-ghost btn-block mt" onClick={() => setStep("detail")}>Voltar</button>
         </>
       )}
@@ -231,6 +233,7 @@ function DeliverySheet({ d, onClose, onIncident }: { d: Delivery; onClose: () =>
         <Card>
           <div className="semi mb">Motivo da não entrega (obrigatório)</div>
           <div className="chips">{PARAMS.catalogs.nonDeliveryReasons.map((r) => <Chip key={r} on={reason === r} onClick={() => setReason(r)}>{r}</Chip>)}</div>
+          <Faltando itens={[!reason && ["Motivo da não entrega", "o vendedor e a coordenação precisam saber para reprogramar"]]} />
           <div className="grid g2 mt" style={{ marginBottom: 0 }}>
             <button className="btn btn-ghost" onClick={() => setStep("detail")}>Voltar</button>
             <button className="btn btn-danger" disabled={!reason} onClick={() => {
@@ -268,6 +271,7 @@ function ChecklistSheet({ onClose }: { onClose: () => void }) {
         </div>
       ))}
       {ncs.length > 0 && <div className="small mt" style={{ padding: 10, borderRadius: 12, background: "var(--warning-soft)" }}>{ncs.length} problema(s) vão gerar <b>não conformidade</b> para a coordenação (foto {PARAMS.catalogs.nonconformityPhotoRequired ? "obrigatória" : "opcional"}).</div>}
+      <Faltando itens={[!all && [`${CHECKLIST_ITEMS.filter((i) => !state[i]).length} item(ns) do checklist`, "o veículo só sai para a rota com todos os itens conferidos"]]} />
       <button className="btn btn-primary btn-block mt" disabled={!all} onClick={() => {
         commit(() => {
           ncs.forEach((item, k) => NONCONFORMITIES.unshift({ id: `nc${Date.now()}${k}`, item, description: "Registrado no checklist do motorista.", vehicleId: vehicle, driverId: ME.id, severity: "medium", status: "open", createdAt: nowStamp(), responsible: "Coord. transportes" }));
@@ -295,6 +299,7 @@ function IncidentSheet({ onClose, forDelivery }: { onClose: () => void; forDeliv
       <div className="field"><label>Descrição</label><textarea id="incident-desc" className="input" rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
       <PhotoCapture value={photo} onChange={setPhoto} label="Adicionar foto (opcional)" />
       <p className="xs muted mt">Horário, motorista, veículo e rota são registrados automaticamente.</p>
+      <Faltando itens={[!type && ["Tipo da ocorrência", "a coordenação trata cada tipo de um jeito"], desc.trim().length < 5 && ["Descrição (mínimo 5 letras)", "explica o que aconteceu para a coordenação agir"]]} />
       <button className="btn btn-primary btn-block mt" disabled={!type || desc.trim().length < 5} onClick={() => {
         commit(() => {
           INCIDENTS.unshift({ id: `i${Date.now()}`, type: type!, description: desc, routeId: route.id, driverId: ME.id, customerId: cust || undefined, createdAt: nowStamp(), status: "open" });
@@ -326,6 +331,7 @@ function EpiSheet({ onClose }: { onClose: () => void }) {
         <div className="field"><label>Quantidade</label><Stepper value={qty} min={1} max={20} onChange={setQty} label="Quantidade de EPI" /></div>
         <div className="field"><label>Motivo</label><input id="epi-reason" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Desgaste, perda…" /></div>
       </div>
+      <Faltando itens={[!type && ["Tipo de EPI", "a coordenação precisa saber o que separar"], !reason.trim() && ["Motivo", "justifica a troca do EPI"]]} />
       <button className="btn btn-gold btn-block" disabled={!type || !reason.trim()} onClick={() => {
         commit(() => {
           EPI_REQUESTS.unshift({ id: `e${Date.now()}`, type: type!, qty, reason, status: "requested", createdAt: nowStamp(), driverId: ME.id });

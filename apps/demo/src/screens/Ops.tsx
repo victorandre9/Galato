@@ -16,7 +16,7 @@ import { EPI_STATUS } from "@galato/domain";
 import { logisticsOverview, routeProgress, financeQueue, financial, dayLabel } from "../data/selectors";
 import { commit, useStore } from "../data/store";
 import { Shell, Greeting, ProfilePanel } from "../components/shell";
-import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle, scrollToId, SearchBox } from "../components/ui";
+import { Card, Kpi, Sheet, Badge, Progress, Chip, brl, pct, Empty, SectionTitle, scrollToId, SearchBox, Faltando } from "../components/ui";
 import { DeliveryListSheet } from "./Manager";
 import { fmtDate, fmtDateTime, CustomerName } from "../components/business";
 import { OrderOpen } from "../components/order-flow";
@@ -207,7 +207,8 @@ function ImportSheet({ mode, onClose }: { mode: "system" | "manual"; onClose: ()
               </div>
             ))}
             <div className="xs muted mt">Notas com cliente não encontrado ficam fora até serem associadas.</div>
-            <button className="btn btn-primary btn-block mt" onClick={() => {
+            <Faltando itens={[name.trim().length < 3 && ["Nome da rota", "motorista e coordenação identificam a rota pelo nome"]]} />
+            <button className="btn btn-primary btn-block mt" disabled={name.trim().length < 3} onClick={() => {
               commit(() => {
                 const n = DELIVERY_ROUTES.length + 1;
                 DELIVERY_ROUTES.push({

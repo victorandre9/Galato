@@ -277,6 +277,13 @@ for (let i = 0; i < 14; i++) {
 export const customerById = new Map(CUSTOMERS.map((c) => [c.id, c]));
 export const sellerById = new Map(SELLERS.map((s) => [s.id, s]));
 export const TODAY_ROUTE = routeForDate(TODAY, PARAMS.commercialRoutes);
+// visitas de hoje = clientes da carteira na rota do dia (mesma conta da tela de visitas do vendedor)
+for (const s of SELLERS) {
+  const seed = sellerSeeds.find((x) => x.id === s.id)!;
+  const planned = CUSTOMERS.filter((c) => c.sellerId === s.id && c.routeCode === TODAY_ROUTE?.code).length;
+  s.visitsPlannedToday = planned;
+  s.visitsDoneToday = Math.min(planned, Math.round(planned * (seed.visits[1] / seed.visits[0])));
+}
 
 // ---------------------------------------------------------------- pedidos / orçamentos
 export interface OrderItem { productId: string; qty: number; unitPriceCents: number }

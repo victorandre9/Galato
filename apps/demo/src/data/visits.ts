@@ -73,7 +73,7 @@ export function visitHistory(customerId: string): VisitEntry[] {
           status: "visitado" as const, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur,
           contact: hash(key + "c") < 0.7 ? `${c.buyerName} ${ROLES[Math.floor(hash(key + "r") * ROLES.length)]}` : `Funcionário no balcão`,
           result: os.length ? `Tirou pedido · ${os.map((o) => o.number).join(", ")}` : `Sem pedido · ${NO_ORDER[Math.floor(hash(key + "n") * NO_ORDER.length)]}`,
-          demoVideo: c.assets.length > 0,
+          demoVideo: d >= addDays(TODAY, -60),
           ...(os.length ? { orderIds: os.map((o) => o.id), orderNumbers: os.map((o) => o.number), orderNumber: os[0]!.number } : {}),
         }),
       });

@@ -4,7 +4,7 @@ import { UserPlus, Pencil, Trash2, Crown, ShieldCheck } from "lucide-react";
 import { commit, useStore } from "../data/store";
 import { USERS, USER_LIMIT, USER_ROLE_LABEL, photoKeyOf, applyUserName, type AppUser, type UserRole } from "../data/users";
 import { matchRecord } from "../data/search";
-import { Card, Sheet, Badge, Progress, ConfirmModal, SearchBox, Chip } from "./ui";
+import { Card, Sheet, Badge, Progress, ConfirmModal, SearchBox, Chip, Faltando } from "./ui";
 import { UserPhoto } from "./userphoto";
 
 const ROLES: UserRole[] = ["sales_coordinator", "seller", "finance", "billing", "transport_coordinator", "driver"];
@@ -84,6 +84,7 @@ function UserForm({ user, onClose }: { user: AppUser | null; onClose: () => void
         }, user ? "Usuário atualizado" : `${name.trim()} cadastrado · convite de acesso enviado por e-mail`);
         onClose();
       }}>{user ? "Salvar alterações" : "Cadastrar usuário"}</button>
+      <Faltando itens={[name.trim().length <= 2 && ["Nome completo", "aparece em todas as telas e relatórios"], !/.+@.+\..+/.test(email) && ["E-mail válido", "é o login do usuário e por onde ele recebe o convite"]]} />
     </Sheet>
   );
 }

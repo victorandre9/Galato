@@ -839,3 +839,10 @@ html.present body .sidebar.peek:is(*, .x.x.x) { visibility: visible; transition:
 html.present body .present-bar:is(*, .x.x.x) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* zoom de monitor grande em degraus que mantêm o texto alinhado ao pixel */
 @media (min-width: 1900px) and (min-height: 880px) { :root { zoom: 1.125; --z: 1.125; } }
+
+/* tela "tremendo" em algumas páginas do computador: quando o conteúdo tinha quase a altura da tela,
+   a barra de rolagem aparecia e sumia sem parar (mudava a largura → mudava a altura). Espaço da barra fixo. */
+@media (min-width: 1024px) {
+  html body #root:is(*, .x.x) { overflow-y: scroll; scrollbar-gutter: stable; }
+  html body .shell:is(*, .x.x.x) { min-height: 0 !important; }
+}

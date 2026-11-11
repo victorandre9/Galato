@@ -571,7 +571,7 @@ html[data-theme="dark"] { --lupa-fundo-painel: #141416; }
 .lupa-orbe--lugar { right: 14px; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .lupa-orbe--lugar { right: auto; bottom: auto; left: calc(50% + 130px); top: 9px; transform: translateX(-50%); } }
 .lupa-orbe--escondida { opacity: 0; pointer-events: none; }
-html.present .lupa-orbe--lugar { top: auto; bottom: 90px; left: auto; right: 24px; transform: none; }
+/* tela cheia: a lupa fica no mesmo lugar do topo */
 .lupa-fundo { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: 10vh 12px 12px; }
 @media (min-width: 640px) { .lupa-fundo { padding: 12vh 24px 24px; } }
 .lupa-painel { width: 100%; max-width: 640px; overflow: hidden; border-radius: 20px; color: var(--text); }

@@ -128,7 +128,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
           <header className="app-header">
             <div className="header-left">
               {hist.current.length > 0 && <button className="icon-btn back-btn" onClick={goBack} aria-label="Voltar" title="Voltar"><ChevronLeft size={21} /></button>}
-              <button className="icon-btn menu-btn" onClick={() => setState({ role: null })} aria-label="Trocar perfil"><Menu size={20} /></button>
+              <button className="icon-btn menu-btn" onClick={() => (s.present && window.matchMedia("(min-width: 1024px)").matches ? setPeek((v) => !v) : setState({ role: null }))} aria-label={s.present ? "Menu" : "Trocar perfil"}><Menu size={20} /></button>
             </div>
             <img className="logo" src="./galato-logo.png" alt="Galato" />
             <div className="only-desktop flex">
@@ -139,7 +139,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
               <button className="icon-btn only-desktop" onClick={() => toggleDark(s.theme)} aria-label="Tema">
                 {s.theme !== "dark" ? <Moon size={18} /> : <Sun size={18} />}
               </button>
-              <button className="icon-btn only-desktop" onClick={toggleFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize size={18} /></button>
+              <button className={`icon-btn ${s.present ? "" : "only-desktop"}`} onClick={toggleFullscreen} aria-label={s.present ? "Sair da tela cheia" : "Tela cheia"} title={s.present ? "Sair da tela cheia" : "Tela cheia"}>{s.present ? <X size={18} /> : <Maximize size={18} />}</button>
               <button className="icon-btn" aria-label="Notificações" onClick={() => setNotifOpen(true)}>
                 <Bell size={19} />{unread > 0 && <span className="notif-count">{unread > 9 ? "9+" : unread}</span>}
               </button>
@@ -152,7 +152,7 @@ export function Shell({ tabs, tab, onTab, roleLabel, userName, narrow, children 
       {/* lupa flutuante: fora do <main>, por cima de tudo, em todos os perfis */}
       <LupaFlutuante tabs={tabs} onTab={(t) => { go(t); scrollPageTop(); }} />
       {s.present && <div className="only-desktop"><PresentBar tabs={tabs.filter((t) => t.id !== "more")} tab={tab} onTab={onTab} /></div>}
-      {s.present && <div className="present-bar solo only-mobile"><button className="icon-btn" onClick={() => toggleFullscreen()} aria-label="Sair da tela cheia"><X size={18} /></button></div>}
+      {s.present && peek && <div className="present-scrim" onClick={() => setPeek(false)} />}
       <nav className={`bottom-nav ig ${navSize}`}>
         <NavLens />
         {tabs.slice(0, 5).map((t) => (

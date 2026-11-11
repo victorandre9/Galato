@@ -846,3 +846,15 @@ html.present body .present-bar:is(*, .x.x.x) { backdrop-filter: none !important;
   html body #root:is(*, .x.x) { overflow-y: scroll; scrollbar-gutter: stable; }
   html body .shell:is(*, .x.x.x) { min-height: 0 !important; }
 }
+
+/* tela cheia: barra de cima (voltar, menu, logo, notificações) visível em todas as telas;
+   no computador/tablet o botão de menu abre o menu lateral (também pelo toque) */
+html.present body .app-header:is(*, .x.x.x) { display: grid !important; }
+html.present body .main:is(*, .x.x.x.x) { padding-top: 0 !important; }
+@media (max-width: 1023px) { html.present body .main:is(*, .x.x.x.x) { padding-top: 0 !important; } }
+.present-scrim { position: fixed; inset: 0; z-index: 59; background: rgba(0, 0, 0, .25); }
+@media (min-width: 1024px) { html.present body .app-header .menu-btn:is(*, .x.x.x) { display: inline-grid !important; } }
+@media (min-width: 1024px) {
+  html.present body .app-header .header-left:is(*, .x.x.x) { display: flex !important; }
+  html.present body .app-header:is(*, .x.x.x) { grid-template-columns: auto 1fr auto !important; }
+}

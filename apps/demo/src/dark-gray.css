@@ -858,3 +858,11 @@ html.present body .main:is(*, .x.x.x.x) { padding-top: 0 !important; }
   html.present body .app-header .header-left:is(*, .x.x.x) { display: flex !important; }
   html.present body .app-header:is(*, .x.x.x) { grid-template-columns: auto 1fr auto !important; }
 }
+
+/* vendedor: visita com check-in ativo sempre no topo, com destaque amarelo */
+.active-visit { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: 4px 0 14px; border-radius: 20px; background: linear-gradient(135deg, rgba(255, 212, 92, .45), rgba(245, 168, 0, .22)); box-shadow: 0 0 0 2px #F5A800, 0 6px 18px rgba(245, 168, 0, .3); cursor: pointer; }
+.active-visit .xs { color: #8A5A00; letter-spacing: .04em; }
+html[data-theme="dark"] .active-visit { background: linear-gradient(135deg, rgba(255, 190, 60, .22), rgba(245, 168, 0, .08)); }
+html[data-theme="dark"] .active-visit .xs { color: #FFC94D; }
+html body .list .row.row-active-visit:is(*, .x.x.x) { background: rgba(255, 212, 92, .28); box-shadow: inset 0 0 0 2px #F5A800 !important; border-radius: 14px; padding-left: 10px; padding-right: 10px; }
+html[data-theme="dark"] body .list .row.row-active-visit:is(*, .x.x.x) { background: rgba(255, 190, 60, .12); }

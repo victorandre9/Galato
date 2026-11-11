@@ -1,10 +1,11 @@
 /** Perfil VENDEDOR — mobile-first. Responde: quanto vendi, quanto falta, onde agir agora. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Home, Users, ClipboardList, MapPinned, MoreHorizontal, ShoppingCart, Coins, Target, CalendarClock, Search,
   FileText, Hourglass, FileCheck2, Truck, Receipt, UserRound, Zap, ArrowUp, ArrowDown, CheckCircle2,
 } from "lucide-react";
 import { bucketLabel, PAYMENT_REQUEST_STATUS } from "@galato/domain";
+import { CHECKINS } from "../data/mock";
 import { PARAMS, CUSTOMERS, TODAY_ROUTE, CURRENT_SELLER as ME, sellerById, customerById, type Customer, type Order, TODAY } from "../data/mock";
 import { newestFirst } from "../data/orders";
 import { OrderOpen } from "../components/order-flow";
@@ -84,6 +85,7 @@ function SellerHome({ onOpen, goTab }: { onOpen: (c: Customer) => void; goTab: (
         <div className="small red semi flex mt" style={{ gap: 2, justifyContent: "flex-end" }}>Meu desempenho <ChevronRight size={14} /></div>
       </Card>
 
+      <ActiveVisitBanner onOpen={onOpen} />
       <Card className="mb" onClick={() => goTab("route")}>
         <div className="flex between"><span className="semi flex" style={{ gap: 8 }}><MapPinned size={17} className="red" /> Visitas de hoje</span>
           <b className="num">{ME.visitsDoneToday} <span className="muted small">/ {ME.visitsPlannedToday}</span></b></div>
@@ -175,7 +177,7 @@ function SellerCustomers({ onOpen }: { onOpen: (c: Customer) => void }) {
     </>
   );
   if (view === "prospect") return <>{head}<SellerProspect /></>;
-  return <>{head}<SellerCarteira onOpen={onOpen} /></>;
+  return <><ActiveVisitBanner onOpen={onOpen} />{head}<SellerCarteira onOpen={onOpen} /></>;
 }
 
 function SellerCarteira({ onOpen }: { onOpen: (c: Customer) => void }) {
@@ -265,15 +267,44 @@ function SellerOrders() {
 }
 
 
+/** Visita com check-in aberto agora (do próprio vendedor). */
+function activeCheckin() {
+  return CHECKINS.find((k) => k.sellerId === ME.id && k.date === TODAY && !k.outAt);
+}
+
+/** Destaque amarelo no topo: o cliente com check-in aberto, para voltar direto nele. */
+function ActiveVisitBanner({ onOpen }: { onOpen: (c: Customer) => void }) {
+  useStore();
+  const [, tick] = useState(0);
+  useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30_000); return () => clearInterval(t); }, []);
+  const k = activeCheckin();
+  const c = k ? customerById.get(k.customerId) : undefined;
+  if (!k || !c) return null;
+  const min = Math.max(0, Math.round((Date.now() - Date.parse(k.inAt)) / 60000));
+  return (
+    <div className="active-visit click" role="button" onClick={() => onOpen(c)}>
+      <span className="dv-pulse" />
+      <div className="grow" style={{ minWidth: 0 }}>
+        <div className="xs semi">VISITA EM ANDAMENTO · CHECK-IN ATIVO</div>
+        <div className="bold">{c.tradeName}</div>
+        <div className="small">desde {new Date(k.inAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })} · há {min} min · {c.district}</div>
+      </div>
+      <span className="btn btn-sm btn-gold">Abrir · checkout</span>
+    </div>
+  );
+}
+
 function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
   const [day, setDay] = useState(TODAY_ROUTE?.code ?? "R1");
   const [planned, setPlanned] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState("");
   const routeDef = PARAMS.commercialRoutes.find((r) => r.code === day)!;
-  const list = CUSTOMERS.filter((c) => c.sellerId === ME.id && c.routeCode === day && matchCustomer(c, q))
-    .map(customerRow).sort((a, b) => (b.days ?? 999) - (a.days ?? 999));
+  const act = activeCheckin();
+  const list = CUSTOMERS.filter((c) => c.sellerId === ME.id && (c.routeCode === day || c.id === act?.customerId) && matchCustomer(c, q))
+    .map(customerRow).sort((a, b) => Number(b.c.id === act?.customerId) - Number(a.c.id === act?.customerId) || (b.days ?? 999) - (a.days ?? 999));
   return (
     <>
+      <ActiveVisitBanner onOpen={onOpen} />
       <h2 style={{ margin: "6px 0 4px" }}>Rotas e planejamento</h2>
       <p className="small muted mb">Planejamento da próxima semana carregado das rotas cadastradas. Ajuste visitas, dia e prioridade.</p>
       <div className="chips mb">
@@ -289,11 +320,11 @@ function SellerRoute({ onOpen }: { onOpen: (c: Customer) => void }) {
         <div className="list cols">
           <ColsHead left="Cliente" right="Dias sem compra" />
           {list.map(({ c, days }) => (
-            <div key={c.id} className="row">
+            <div key={c.id} className={`row ${c.id === act?.customerId ? "row-active-visit" : ""}`}>
               <input type="checkbox" checked={planned[c.id] ?? true} onChange={(e) => setPlanned({ ...planned, [c.id]: e.target.checked })} style={{ width: 18, height: 18, accentColor: "var(--brand)" }} />
               <div className="grow click" onClick={() => onOpen(c)} style={{ cursor: "pointer" }}>
                 <div className="title">{c.tradeName}</div>
-                <div className="sub">{c.district} · últ. compra {fmtDate(c.lastPurchaseDate)}</div>
+                <div className="sub">{c.id === act?.customerId ? <b className="gold">● check-in ativo agora</b> : <>{c.district} · últ. compra {fmtDate(c.lastPurchaseDate)}</>}</div>
               </div>
               <div className="end"><span className={`bold num ${days !== null && days >= 21 ? "red" : ""}`}>{days === null ? "nunca" : `${days}d`}</span></div>
             </div>

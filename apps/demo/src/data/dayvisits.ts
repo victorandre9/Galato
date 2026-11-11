@@ -4,7 +4,7 @@
  * Só o vídeo do freezer é apagado 60 dias depois da visita.
  */
 import { addDays, isBusinessDay, routeForDate, type IsoDate } from "@galato/domain";
-import { CHECKINS, CUSTOMERS, ORDERS, PARAMS, SELLERS, TODAY, NOW } from "./mock";
+import { CHECKINS, CUSTOMERS, ORDERS, PARAMS, SELLERS, TODAY, NOW, CURRENT_SELLER } from "./mock";
 import { visitHistory, type VisitEntry } from "./visits";
 import { customerOrders } from "./history";
 
@@ -30,13 +30,20 @@ export function sellerDayVisits(sellerId: string, date: IsoDate): { routeName: s
     const s = SELLERS.find((x) => x.id === sellerId)!;
     const real = new Map(CHECKINS.filter((k) => k.sellerId === sellerId && k.date === TODAY).map((k) => [k.customerId, k]));
     const order = planned.slice().sort((a, b) => hash(a.id + date) - hash(b.id + date));
-    let doneLeft = Math.max(0, s.visitsDoneToday - [...real.values()].filter((k) => k.outAt).length);
+    // o check-in já soma em visitsDoneToday: desconta todos os check-ins reais (abertos e fechados)
+    let doneLeft = Math.max(0, s.visitsDoneToday - real.size);
     const activeReal = [...real.values()].some((k) => !k.outAt);
-    let activeLeft = !activeReal && doneLeft < order.length && hash(sellerId + date) > 0.25 ? 1 : 0;
+    // "em atendimento" fictício só para vendedores que não estão sendo usados no teste (sem check-in real hoje)
+    let activeLeft = !activeReal && real.size === 0 && sellerId !== CURRENT_SELLER.id && doneLeft < order.length && hash(sellerId + date) > 0.25 ? 1 : 0;
     const nowMin = (NOW.getTime() - Date.parse(`${TODAY}T08:00:00-03:00`)) / 60000;
     const totalDone = doneLeft;
     const slot = Math.max(15, (nowMin - 30) / Math.max(1, totalDone)); // visitas espalhadas entre 8h e agora
     let slotIdx = 0;
+    // check-in real em cliente fora da rota do dia também aparece
+    for (const [cid, k] of real) if (!order.some((c) => c.id === cid)) {
+      const hist = visitHistory(cid).find((v) => v.date === TODAY && v.live);
+      if (hist) out.push({ entry: hist, customerId: cid, status: k.outAt ? "visitado" : "em_andamento", extra: true });
+    }
     for (const c of order) {
       const k = real.get(c.id);
       const hist = visitHistory(c.id).find((v) => v.date === TODAY && v.live);

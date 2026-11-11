@@ -1,7 +1,7 @@
 /** Checkout da visita com vídeo obrigatório do freezer (reduzido no aparelho até 1 MB). */
 import { useEffect, useRef, useState } from "react";
 import { Video, LogOut, RefreshCw, CheckCircle2, AlertTriangle, Snowflake } from "lucide-react";
-import { nowStamp, type Checkin, type Customer } from "../data/mock";
+import { nowStamp, ORDERS, type Checkin, type Customer } from "../data/mock";
 import { commit, toast } from "../data/store";
 import { isServerDb } from "../data/sync";
 import { Card, Sheet, Progress, Chip, Faltando } from "./ui";
@@ -17,7 +17,9 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [contact, setContact] = useState(c.buyerName);
-  const [result, setResult] = useState<string | null>(null);
+  // pedido tirado nesta visita: o resultado já vem marcado e o pedido aparece no checkout
+  const ordersHere = ORDERS.filter((o) => o.customerId === c.id && o.kind === "ORDER" && o.createdAt >= checkin.inAt && o.status !== "cancelled");
+  const [result, setResult] = useState<string | null>(ordersHere.length ? "Tirou pedido" : null);
   const [note, setNote] = useState("");
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   const minutes = Math.max(1, Math.round((Date.parse(nowStamp()) - new Date(checkin.inAt).getTime()) / 60000));
@@ -54,6 +56,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
     <Sheet title="Checkout da visita" onClose={onClose} icon={<LogOut size={18} />}>
       <div className="small t2 mb">{c.tradeName} · visita em andamento há {minutes} min</div>
       <div className="field"><label>Com quem falou</label><input id="ck-contact" className="input" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Nome e cargo (ex.: Carlos, gerente)" /></div>
+      {ordersHere.length > 0 && <div className="small mb" style={{ padding: 10, borderRadius: 12, background: "var(--success-soft)" }}>Pedido desta visita: <b>{ordersHere.map((o) => o.number).join(", ")}</b> · fica ligado à visita no histórico.</div>}
       <div className="field"><label>Resultado da visita</label>
         <div className="chips">{["Tirou pedido", "Sem pedido · estoque alto", "Sem pedido · pediu retorno", "Comprador ausente", "Cliente fechado"].map((r) => <Chip key={r} on={result === r} onClick={() => setResult(result === r ? null : r)}>{r}</Chip>)}</div>
       </div>

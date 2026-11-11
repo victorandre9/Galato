@@ -189,7 +189,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (detail?.kind === "asset") return <AssetView c={c} a={detail.a} onClose={() => setDetail(null)} />;
  if (openOrder) return <OrderOpen order={openOrder} canEdit={!!viewerSellerId && viewerSellerId === openOrder.sellerId} onClose={() => setOpenOrder(null)} />;
   if (mode === "order" || mode === "quote")
-    return <OrderBuilder c={c} kind={mode === "order" ? "ORDER" : "QUOTE"} onClose={() => setMode(null)} onDone={onClose} />;
+    return <OrderBuilder c={c} kind={mode === "order" ? "ORDER" : "QUOTE"} onClose={() => setMode(null)} onDone={() => setMode(null)} />;
   if (mode === "proof") return <PaymentProofSheet c={c} onClose={() => setMode(null)} />;
   if (mode === "firstvisit") return <FirstVisitSheet c={c} onClose={() => setMode(null)} onDone={() => { setMode(null); doCheckin(); }} />;
   if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;

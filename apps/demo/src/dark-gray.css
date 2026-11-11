@@ -866,3 +866,8 @@ html[data-theme="dark"] .active-visit { background: linear-gradient(135deg, rgba
 html[data-theme="dark"] .active-visit .xs { color: #FFC94D; }
 html body .list .row.row-active-visit:is(*, .x.x.x) { background: rgba(255, 212, 92, .28); box-shadow: inset 0 0 0 2px #F5A800 !important; border-radius: 14px; padding-left: 10px; padding-right: 10px; }
 html[data-theme="dark"] body .list .row.row-active-visit:is(*, .x.x.x) { background: rgba(255, 190, 60, .12); }
+
+/* prospecção: documentos e atalhos de etapa */
+.doc-slot .doc-ic { color: var(--muted); display: grid; place-items: center; }
+.doc-slot.ok .doc-ic { color: #12924F; }
+.jump-card { padding: 14px !important; }

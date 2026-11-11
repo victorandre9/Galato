@@ -2,19 +2,19 @@
  * Prospecção: do pré-cadastro até virar cliente.
  * Vendedor conduz as etapas; financeiro aprova o cadastro; gerente acompanha o funil.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   UserPlus, Phone, MessageCircle, Building2, RotateCcw, XCircle, CheckCircle2, ClipboardCheck, Send, Calculator,
-  Filter, History, Target, Search, Clock, Users, ChevronRight,
+  Filter, History, Target, Search, Clock, Users, ChevronRight, FileText, Camera,
 } from "lucide-react";
 import { classifyAbcd, addDays, daysBetween } from "@galato/domain";
 import { PARAMS, PRODUCTS, SELLERS, TODAY, CURRENT_SELLER, FINANCE_USER, customerById, sellerById, nowStamp, type Role } from "../data/mock";
 import {
   LEADS, STAGES, OPEN_STAGES, stageOf, BUSINESS_TYPES, BRANDS, PRODUCT_MIX, SWITCH_REASONS, LOST_REASONS, CONTACT_RESULTS,
-  leadToCustomer, type Lead, type LeadStage,
+  leadToCustomer, DOCS, requiredDocs, type Lead, type LeadStage, type DocKey, type LeadDoc,
 } from "../data/leads";
 import { notify, MANAGERS_KEYS } from "../data/notify";
-import { commit, useStore } from "../data/store";
+import { commit, toast, useStore } from "../data/store";
 import { Card, Kpi, Sheet, Badge, Chip, Curve, Empty, Progress, Stepper, ColsHead, SearchBox, Faltando, brl, brl0, pct } from "./ui";
 import { CustomerSheet, fmtDateTime } from "./business";
 import { matchLead } from "../data/search";
@@ -77,13 +77,14 @@ export function LeadForm({ onClose, onSaved, sellerId = CURRENT_SELLER.id }: { o
   const [district, setDistrict] = useState("");
   const [type, setType] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [origin, setOrigin] = useState<"ativo" | "receptivo">("ativo");
   const ok = name.trim().length > 2 && phone.replace(/\D/g, "").length >= 10 && !!type;
   const save = () => {
     const by = sellerName(sellerId);
     const l: Lead = {
       id: `ld${Date.now().toString(36)}`, sellerId, createdAt: nowStamp(), stage: "lead", name: name.trim(), contact: contact.trim(),
       phone, address: address.trim(), district: district.trim(), type: type!, nextAt: TODAY, nextStep: "Fazer o 1º contato",
-      log: [{ at: nowStamp(), by, text: "Pré-cadastro criado" }], ...(notes.trim() ? { notes: notes.trim() } : {}),
+      log: [{ at: nowStamp(), by, text: origin === "receptivo" ? "Pré-cadastro criado · receptivo (cliente veio até a Galato)" : "Pré-cadastro criado" }], ...(notes.trim() ? { notes: notes.trim() } : {}), origin,
     };
     commit(() => { LEADS.unshift(l); }, `${l.name} entrou na prospecção`);
     onSaved?.(l);
@@ -92,6 +93,7 @@ export function LeadForm({ onClose, onSaved, sellerId = CURRENT_SELLER.id }: { o
   return (
     <Sheet title="Novo cliente · pré-cadastro" onClose={onClose} icon={<UserPlus size={18} />}>
       <p className="small muted mb">Só o básico para começar. CNPJ e dados fiscais ficam para quando o cliente fechar.</p>
+      <Field label="Origem"><OneChips options={["ativo", "receptivo"] as const} value={origin} onChange={setOrigin} label={(v) => (v === "ativo" ? "Prospecção do vendedor" : "Receptivo / já veio com pedido")} /></Field>
       <Field label="Nome do estabelecimento"><input id="lead-name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Padaria Pão Quente" /></Field>
       <Field label="Responsável"><input className="input" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Quem decide a compra" /></Field>
       <Field label="Telefone / WhatsApp"><input id="lead-phone" className="input" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(31) 99999-0000" /></Field>
@@ -110,6 +112,13 @@ export function LeadForm({ onClose, onSaved, sellerId = CURRENT_SELLER.id }: { o
 }
 
 // ---------------------------------------------------------------- ficha do prospect
+const JUMPS: { stage: LeadStage; step: "contato" | "quali" | "proposta" | "negocia" | "cadastro"; label: string }[] = [
+  { stage: "contato", step: "contato", label: "1º contato" }, { stage: "qualificacao", step: "quali", label: "Qualificação" },
+  { stage: "proposta", step: "proposta", label: "Proposta" }, { stage: "negociacao", step: "negocia", label: "Negociação" },
+  { stage: "cadastro", step: "cadastro", label: "Cadastro e documentos" },
+];
+const NEXT_OF: Partial<Record<LeadStage, LeadStage>> = { lead: "contato", contato: "qualificacao", qualificacao: "proposta", proposta: "negociacao", negociacao: "cadastro" };
+
 export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewer; onClose: () => void }) {
   useStore();
   const l = LEADS.find((x) => x.id === lead.id) ?? lead;
@@ -169,12 +178,28 @@ export function LeadSheet({ lead, viewer, onClose }: { lead: Lead; viewer: Viewe
             <dt>Compra estimada</dt><dd>{brl0(l.quali.monthlyCents)}/mês · {l.quali.freq}</dd><dt>Mix</dt><dd>{l.quali.mix.join(", ")}</dd><dt>Trocaria por</dt><dd>{l.quali.switchReason.join(", ")}</dd></>}
           {l.proposal && <><dt>Proposta</dt><dd>{brl0(l.proposal.valueCents)}/mês · prazo {l.proposal.termDays ? `${l.proposal.termDays} dias` : "à vista"}{l.proposal.comodato ? " · freezer em comodato" : ""}</dd></>}
           {l.quote && <><dt>Orçamento rápido</dt><dd>{brl(l.quote.totalCents)} · {l.quote.items.length} itens</dd></>}
+          {l.origin === "receptivo" && <><dt>Origem</dt><dd>Receptivo (cliente veio até a Galato)</dd></>}
+          {l.cadastro?.ownerName && <><dt>Responsável do CNPJ</dt><dd>{l.cadastro.ownerName}{l.cadastro.hasPartner ? " · tem sócio" : ""}</dd></>}
           {l.cadastro && <><dt>CNPJ</dt><dd>{l.cadastro.cnpj}</dd><dt>Razão social</dt><dd>{l.cadastro.legalName}</dd><dt>IE</dt><dd>{l.cadastro.ie}</dd><dt>Entrega</dt><dd>{l.cadastro.deliveryAddress} · {l.cadastro.cep}</dd><dt>Rota</dt><dd>{l.cadastro.routeCode}</dd></>}
           {l.stage === "perdido" && <><dt>Motivo da perda</dt><dd>{l.lostReason}</dd><dt>Tentar de novo</dt><dd>{fmtDay(l.retryAt)}</dd></>}
           {l.notes && <><dt>Observação</dt><dd>{l.notes}</dd></>}
         </dl>
       </div>
 
+      {l.cadastro?.docs && <DocsView docs={l.cadastro.docs} />}
+      {canAct && OPEN_STAGES.includes(l.stage) && !(l.stage === "cadastro" && l.cadastro?.status === "pendente") && (
+        <div className="card mt jump-card">
+          <div className="small semi mb">Ir direto para uma etapa <span className="xs muted">· preencha só o que já tem</span></div>
+          <div className="chips">
+            {JUMPS.filter((j) => j.stage !== l.stage).map((j) => <Chip key={j.stage} onClick={() => setStep(j.step)}>{j.label}</Chip>)}
+          </div>
+          {NEXT_OF[l.stage] && (
+            <button className="btn btn-ghost btn-block mt" onClick={() => commit(() => { const nx = NEXT_OF[l.stage]!; log(l, by, `Etapa "${stageOf(l.stage).label}" pulada`); l.stage = nx; l.nextStep = stageOf(nx).next; }, `Etapa pulada · agora em ${stageOf(NEXT_OF[l.stage]!).label}`)}>
+              Pular esta etapa → {stageOf(NEXT_OF[l.stage]!).label}
+            </button>
+          )}
+        </div>
+      )}
       {canAct && (
         <div className="stack mt">
           {l.stage === "lead" && <button className="btn btn-primary btn-block" onClick={() => setStep("contato")}><Phone size={16} /> Registrar 1º contato</button>}
@@ -336,12 +361,27 @@ function CadastroForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
   const [addr, setAddr] = useState(k?.deliveryAddress ?? l.address);
   const [route, setRoute] = useState(k?.routeCode ?? PARAMS.commercialRoutes[0]!.code);
   const [found, setFound] = useState(false);
+  const [owner, setOwner] = useState(k?.ownerName ?? l.contact ?? "");
+  const [partner, setPartner] = useState<boolean | null>(k?.hasPartner ?? null);
+  const [docs, setDocs] = useState<Partial<Record<DocKey, LeadDoc>>>(k?.docs ?? {});
+  const need = requiredDocs(!!partner);
+  const missingDocs = need.filter((d) => !docs[d.key]);
   const digits = cnpj.replace(/\D/g, "");
   const lookup = () => {
     // consulta simulada da Receita
     setLegal(`${l.name.toUpperCase()} LTDA`); setIe(String(100000 + (Number(digits.slice(-5)) || 4321))); setCep(cep || "30140-000"); if (!addr.trim()) setAddr(`Rua da Bahia, ${100 + (Number(digits.slice(-3)) || 0)}`); setFound(true);
   };
-  const ok = digits.length === 14 && legal.trim() && ie.trim() && addr.trim();
+  const ok = digits.length === 14 && legal.trim() && ie.trim() && addr.trim() && owner.trim().length > 2 && partner !== null && !missingDocs.length;
+  // salva o que já foi preenchido (documentos não se perdem), sem enviar ao financeiro
+  const saveDraft = () => {
+    commit(() => {
+      l.cadastro = { ...(l.cadastro ?? {}), cnpj, legalName: legal.trim(), ie: ie.trim(), cep, deliveryAddress: addr.trim(), routeCode: route, docs, ownerName: owner.trim(), ...(partner !== null ? { hasPartner: partner } : {}) } as NonNullable<Lead["cadastro"]>;
+      if (stageIdx(l.stage) < 5) l.stage = "cadastro";
+      l.nextStep = "Completar o cadastro e enviar ao financeiro";
+      log(l, by, `Cadastro salvo · ${Object.keys(docs).length} documento(s) anexado(s)`);
+    }, "Cadastro salvo · os documentos ficam guardados no prospect");
+    onClose();
+  };
   return (
     <Sheet title={`Cadastro · ${l.name}`} onClose={onClose} icon={<Building2 size={18} />}>
       {k?.reply && <div className="alert-line mb"><span className="dotc" style={{ background: "var(--danger)" }} />Financeiro pediu: {k.reply}</div>}
@@ -356,6 +396,13 @@ function CadastroForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
       <Field label="Inscrição estadual"><input className="input" value={ie} onChange={(e) => setIe(e.target.value)} /></Field>
       <Field label="CEP"><input className="input" inputMode="numeric" value={cep} onChange={(e) => setCep(e.target.value)} /></Field>
       <Field label="Endereço de entrega"><input className="input" value={addr} onChange={(e) => setAddr(e.target.value)} /></Field>
+      <Field label="Responsável / proprietário do CNPJ"><input id="lead-owner" className="input" value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Nome completo" /></Field>
+      <Field label="A empresa tem sócio?"><OneChips options={["sim", "nao"]} value={partner === null ? null : partner ? "sim" : "nao"} onChange={(v) => setPartner(v === "sim")} label={(v) => (v === "sim" ? "Sim, tem sócio" : "Não, só o responsável")} /></Field>
+      <div className="section-title" style={{ marginTop: 6 }}><span>Documentos obrigatórios</span></div>
+      <p className="xs muted mb">Foto ou arquivo (PDF). Ficam guardados no cadastro e o financeiro confere antes de aprovar.</p>
+      <div className="list mb">
+        {need.map((d) => <DocSlot key={d.key} label={d.label} doc={docs[d.key]} onChange={(v) => setDocs({ ...docs, [d.key]: v })} />)}
+      </div>
       <Field label="Rota comercial">
         <select className="input" value={route} onChange={(e) => setRoute(e.target.value)}>
           {PARAMS.commercialRoutes.map((r) => <option key={r.code} value={r.code}>{r.name} · {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][r.weekday]}</option>)}
@@ -363,7 +410,7 @@ function CadastroForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
       </Field>
       <button className="btn btn-primary btn-block" disabled={!ok} onClick={() => {
         commit(() => {
-          l.cadastro = { cnpj, legalName: legal.trim(), ie: ie.trim(), cep, deliveryAddress: addr.trim(), routeCode: route, sentAt: nowStamp(), status: "pendente" };
+          l.cadastro = { cnpj, legalName: legal.trim(), ie: ie.trim(), cep, deliveryAddress: addr.trim(), routeCode: route, sentAt: nowStamp(), status: "pendente", docs, ownerName: owner.trim(), hasPartner: !!partner };
           l.stage = "cadastro"; l.nextStep = "Aguardando aprovação do financeiro"; delete l.nextAt;
           log(l, by, k?.status === "correcao" ? "Cadastro corrigido e reenviado ao financeiro" : "Cadastro completo enviado ao financeiro");
           notify({ link: { t: "lead", id: l.id }, kind: "financeiro", priority: "high", title: "Cadastro de cliente novo", text: `${l.name} · ${by} · aguarda aprovação e limite.`, to: ["finance"] });
@@ -371,13 +418,64 @@ function CadastroForm({ l, by, onClose }: { l: Lead; by: string; onClose: () => 
         }, "Cadastro enviado ao financeiro");
         onClose();
       }}><Send size={16} /> Enviar ao financeiro</button>
-      <Faltando itens={[
+      <button className="btn btn-ghost btn-block mt" onClick={saveDraft}>Salvar e continuar depois</button>
+      <Faltando titulo="Para enviar ao financeiro, falta:" itens={[
+        owner.trim().length <= 2 && ["Responsável / proprietário do CNPJ", "o crédito é analisado no nome do responsável"],
+        partner === null && ["Se a empresa tem sócio", "com sócio, o contrato social passa a ser obrigatório"],
+        ...missingDocs.map((d) => [d.label, d.why] as [string, string]),
         digits.length !== 14 && ["CNPJ (14 números)", "o financeiro consulta o CNPJ para aprovar o crédito"],
         !legal.trim() && ["Razão social", "sai na nota fiscal"],
         !ie.trim() && ["Inscrição estadual", "obrigatória para emitir nota fiscal"],
         !addr.trim() && ["Endereço de entrega", "a logística precisa para montar a rota"],
       ]} />
     </Sheet>
+  );
+}
+
+/** Reduz a foto do documento (até 1400 px); PDF vai como está (até 2 MB). */
+async function readDoc(f: File): Promise<LeadDoc> {
+  const at = nowStamp();
+  if (f.type === "application/pdf") {
+    if (f.size > 2 * 1024 * 1024) throw new Error("PDF maior que 2 MB");
+    const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(f); });
+    return { name: f.name, dataUrl, at };
+  }
+  const url = URL.createObjectURL(f);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement("canvas"); cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    cv.getContext("2d")!.drawImage(img, 0, 0, cv.width, cv.height);
+    return { name: f.name || "foto.jpg", dataUrl: cv.toDataURL("image/jpeg", 0.8), at };
+  } finally { URL.revokeObjectURL(url); }
+}
+function DocSlot({ label, doc, onChange }: { label: string; doc?: LeadDoc; onChange: (d: LeadDoc) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className={`row doc-slot ${doc ? "ok" : ""}`}>
+      <span className="doc-ic">{doc ? <CheckCircle2 size={18} /> : <FileText size={18} />}</span>
+      <div className="grow" style={{ minWidth: 0 }}><div className="title small">{label}</div><div className="sub">{doc ? `${doc.name} · anexado` : "pendente"}</div></div>
+      <input ref={ref} type="file" accept="image/*,application/pdf" hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; try { onChange(await readDoc(f)); } catch (err) { toast((err as Error).message || "Não foi possível ler o arquivo", "danger"); } }} />
+      <button type="button" className="btn btn-soft btn-sm" data-instant="" onClick={() => ref.current?.click()}><Camera size={14} /> {doc ? "Trocar" : "Anexar"}</button>
+    </div>
+  );
+}
+function DocsView({ docs }: { docs: Partial<Record<DocKey, LeadDoc>> }) {
+  const [open, setOpen] = useState<LeadDoc | null>(null);
+  const list = DOCS.filter((d) => docs[d.key]);
+  if (!list.length) return null;
+  return (
+    <div className="card mt">
+      <div className="card-title"><span className="ic"><FileText size={16} /></span><span>Documentos ({list.length})</span></div>
+      <div className="list">{list.map((d) => <div key={d.key} className="row click" onClick={() => setOpen(docs[d.key]!)}><CheckCircle2 size={16} className="green" /><div className="grow small">{d.label}</div><span className="xs muted">abrir</span></div>)}</div>
+      {open && (
+        <Sheet title={open.name} onClose={() => setOpen(null)} icon={<FileText size={18} />}>
+          {open.dataUrl.startsWith("data:application/pdf") ? <iframe title={open.name} src={open.dataUrl} style={{ width: "100%", height: "70vh", border: 0, borderRadius: 12 }} />
+            : <img src={open.dataUrl} alt={open.name} style={{ width: "100%", borderRadius: 12 }} />}
+          <a className="btn btn-ghost btn-block mt" href={open.dataUrl} download={open.name}>Baixar</a>
+        </Sheet>
+      )}
+    </div>
   );
 }
 

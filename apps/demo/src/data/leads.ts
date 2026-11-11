@@ -26,6 +26,17 @@ export const SWITCH_REASONS = ["Preço", "Prazo de pagamento", "Freezer em comod
 export const LOST_REASONS = ["Preço", "Contrato com concorrente", "Sem espaço para freezer", "Não vende sorvete", "Cliente fechou", "Sem interesse", "Outro"];
 export const CONTACT_RESULTS = ["Falou com o dono", "Falou com funcionário", "Pediu para voltar outro dia", "Não estava aberto", "Por telefone/WhatsApp"];
 
+export type DocKey = "cartao_cnpj" | "doc_responsavel" | "comprovante_comercial" | "comprovante_responsavel" | "contrato_social";
+export interface LeadDoc { name: string; dataUrl: string; at: string }
+export const DOCS: { key: DocKey; label: string; why: string; onlyPartner?: boolean }[] = [
+  { key: "cartao_cnpj", label: "Cartão CNPJ", why: "comprova que a empresa existe e está ativa" },
+  { key: "doc_responsavel", label: "Documento de identificação do responsável (RG/CNH)", why: "identifica o proprietário/responsável pelo CNPJ" },
+  { key: "comprovante_comercial", label: "Comprovante de endereço comercial", why: "confirma o endereço do estabelecimento para entrega e cobrança" },
+  { key: "comprovante_responsavel", label: "Comprovante de residência do responsável", why: "exigido pelo financeiro para liberar crédito" },
+  { key: "contrato_social", label: "Contrato social", why: "obrigatório quando a empresa tem sócio", onlyPartner: true },
+];
+export const requiredDocs = (hasPartner?: boolean) => DOCS.filter((d) => !d.onlyPartner || hasPartner);
+
 export interface Lead {
   id: string; sellerId: string; createdAt: string; stage: LeadStage;
   name: string; contact: string; phone: string; address: string; district: string; type: string; notes?: string;
@@ -34,7 +45,11 @@ export interface Lead {
   score?: AbcdClass;
   quote?: { items: { productId: string; qty: number }[]; totalCents: number };
   proposal?: { valueCents: number; comodato: boolean; termDays: number; note?: string };
-  cadastro?: { cnpj: string; legalName: string; ie: string; cep: string; deliveryAddress: string; routeCode: string; sentAt?: string; status?: "pendente" | "aprovado" | "recusado" | "correcao"; reply?: string; limitCents?: number };
+  cadastro?: { cnpj: string; legalName: string; ie: string; cep: string; deliveryAddress: string; routeCode: string; sentAt?: string; status?: "pendente" | "aprovado" | "recusado" | "correcao"; reply?: string; limitCents?: number;
+    /** documentos obrigatórios (fotos/arquivos), guardados com o cadastro e vistos pelo financeiro */
+    docs?: Partial<Record<DocKey, LeadDoc>>; hasPartner?: boolean; ownerName?: string };
+  /** origem: prospecção ativa ou receptivo (cliente veio até a Galato / pedido já fechado) */
+  origin?: "ativo" | "receptivo";
   lostReason?: string; retryAt?: string; customerId?: string;
   log: { at: string; by: string; text: string }[];
 }

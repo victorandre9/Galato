@@ -871,3 +871,6 @@ html[data-theme="dark"] body .list .row.row-active-visit:is(*, .x.x.x) { backgro
 .doc-slot .doc-ic { color: var(--muted); display: grid; place-items: center; }
 .doc-slot.ok .doc-ic { color: #12924F; }
 .jump-card { padding: 14px !important; }
+
+/* observação da visita no histórico */
+:is(*, .visit-note.visit-note) .visit-note, .visit-note { margin-top: 4px; padding: 5px 8px; border-radius: 8px; background: var(--gold-soft); font-size: 12px; line-height: 1.35; white-space: normal; color: var(--text, inherit); }

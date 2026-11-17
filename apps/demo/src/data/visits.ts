@@ -23,6 +23,9 @@ function hash(s: string) {
   return (h >>> 0) / 4294967296;
 }
 const NO_ORDER = ["Estoque ainda alto", "Comprador ausente, volta na próxima", "Pediu retorno na quinta", "Pagamento pendente", "Fechado no horário da visita"];
+/** observações fictícias que o vendedor escreve no checkout (demonstração) */
+export const DEMO_NOTES_ORDER = ["Entregar até meio-dia", "Pediu promoção de picolé na próxima", "Freezer cheio, organizei por sabor", "Quer conhecer o pote de 2 L", "Pagou o boleto em atraso na hora"];
+export const DEMO_NOTES_NO = ["Responsável pelas compras não estava, volto quinta", "Dono viajando, falar com o gerente na próxima", "Concorrente colocou freezer ao lado", "Movimento fraco por causa da chuva", "Pediu para ligar antes da próxima visita"];
 const ROLES = ["(dono)", "(gerente)", "(comprador)", "(caixa)"];
 const stamp = (d: IsoDate, h: number, m: number) => `${d}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00-03:00`;
 
@@ -74,6 +77,7 @@ export function visitHistory(customerId: string): VisitEntry[] {
           contact: hash(key + "c") < 0.7 ? `${c.buyerName} ${ROLES[Math.floor(hash(key + "r") * ROLES.length)]}` : `Funcionário no balcão`,
           result: os.length ? `Tirou pedido · ${os.map((o) => o.number).join(", ")}` : `Sem pedido · ${NO_ORDER[Math.floor(hash(key + "n") * NO_ORDER.length)]}`,
           demoVideo: d >= addDays(TODAY, -60),
+          ...(hash(key + "o") < 0.6 ? { note: (os.length ? DEMO_NOTES_ORDER : DEMO_NOTES_NO)[Math.floor(hash(key + "p") * 5)] } : {}),
           ...(os.length ? { orderIds: os.map((o) => o.id), orderNumbers: os.map((o) => o.number), orderNumber: os[0]!.number } : {}),
         }),
       });

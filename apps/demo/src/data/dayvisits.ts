@@ -5,7 +5,7 @@
  */
 import { addDays, isBusinessDay, routeForDate, type IsoDate } from "@galato/domain";
 import { CHECKINS, CUSTOMERS, ORDERS, PARAMS, SELLERS, TODAY, NOW, CURRENT_SELLER } from "./mock";
-import { visitHistory, type VisitEntry } from "./visits";
+import { visitHistory, DEMO_NOTES_ORDER, DEMO_NOTES_NO, type VisitEntry } from "./visits";
 import { customerOrders } from "./history";
 
 export type DayStatus = "em_andamento" | "visitado" | "pendente" | "nao_visitado";
@@ -56,6 +56,7 @@ export function sellerDayVisits(sellerId: string, date: IsoDate): { routeName: s
         const inAt = stamp(date, 5 + slotIdx * slot + Math.floor(hash(c.id + "g") * Math.max(1, slot - dur - 3))); slotIdx++;
         out.push({ customerId: c.id, status: "visitado", extra: false, entry: { ...base, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur,
           contact: c.buyerName, demoVideo: true,
+          ...(hash(c.id + "o") < 0.6 ? { note: (todays.length ? DEMO_NOTES_ORDER : DEMO_NOTES_NO)[Math.floor(hash(c.id + "p") * 5)] } : {}),
           result: todays.length ? `Tirou pedido · ${todays.map((o) => o.number).join(", ")}` : "Sem pedido · Estoque ainda alto",
           ...(todays.length ? { orderIds: todays.map((o) => o.id), orderNumbers: todays.map((o) => o.number), orderNumber: todays[0]!.number } : {}) } });
       } else if (activeLeft > 0) {
@@ -78,7 +79,7 @@ export function sellerDayVisits(sellerId: string, date: IsoDate): { routeName: s
       const inAt = stamp(date, 10 + Math.floor(hash(c.id + date + "h") * 480));
       const e: VisitEntry = missed
         ? { id: `dv-${c.id}-${date}`, date, sellerId, sellerName: sellerName(sellerId), status: "nao_visitado", result: "Não visitado · cliente da rota ficou sem visita", live: false }
-        : { id: `dv-${c.id}-${date}`, date, sellerId, sellerName: sellerName(sellerId), status: "visitado", live: false, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur, contact: c.buyerName, result: "Sem pedido", demoVideo: date >= addDays(TODAY, -60) };
+        : { id: `dv-${c.id}-${date}`, date, sellerId, sellerName: sellerName(sellerId), status: "visitado", live: false, inAt, outAt: new Date(Date.parse(inAt) + dur * 60000).toISOString(), minutes: dur, contact: c.buyerName, result: "Sem pedido", demoVideo: date >= addDays(TODAY, -60), ...(hash(c.id + date + "o") < 0.5 ? { note: DEMO_NOTES_NO[Math.floor(hash(c.id + date + "p") * 5)] } : {}) };
       out.push({ entry: e, customerId: c.id, status: missed ? "nao_visitado" : "visitado", extra: false });
     }
     // visitas fora da rota do dia (ex.: dia em que saiu pedido)

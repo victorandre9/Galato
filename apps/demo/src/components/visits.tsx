@@ -40,7 +40,8 @@ function VisitRow({ v, onClick }: { v: VisitEntry; onClick: () => void }) {
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="title small">{fmtD(v.date)}{v.inAt ? ` · ${hhmm(v.inAt)}${v.outAt ? `–${hhmm(v.outAt)}` : ""}` : ""}{v.minutes ? ` (${v.minutes} min)` : ""}</div>
         <div className="sub" style={{ whiteSpace: "normal" }}>{v.sellerName}{v.contact ? <> · <UserRound size={11} style={{ verticalAlign: -1 }} /> falou com {v.contact}</> : ""}</div>
-        <div className="xs" style={{ whiteSpace: "normal", marginTop: 2 }}>{v.result}{v.note ? ` · ${v.note}` : ""}</div>
+        <div className="xs" style={{ whiteSpace: "normal", marginTop: 2 }}>{v.result}</div>
+        {v.note && <div className="visit-note">📝 {v.note}</div>}
       </div>
       <div className="end visit-end">
         <Badge tone={v.status === "nao_visitado" ? "danger" : v.status === "em_andamento" ? "warning" : v.orderIds?.length ? "success" : "neutral"}>

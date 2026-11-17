@@ -38,6 +38,7 @@ export function SellerDaySheet({ sellerId, onClose, onPanel }: { sellerId: strin
           <div className="title small">{c.tradeName}{v.extra ? <span className="xs muted"> · fora da rota</span> : null}</div>
           <div className="sub">{c.district} · {c.address}</div>
           {e.result && v.status !== "pendente" && <div className="xs" style={{ marginTop: 2 }}>{e.result}</div>}
+          {e.note && v.status !== "pendente" && <div className="visit-note">📝 {e.note}</div>}
         </div>
         <div className="end dv-end">
           {v.status === "em_andamento" && <><Badge tone="warning">check-in {hhmm(e.inAt)}</Badge><span className="xs semi gold">há {minsSince(e.inAt)} min</span></>}

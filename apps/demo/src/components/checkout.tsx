@@ -60,7 +60,7 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
       <div className="field"><label>Resultado da visita</label>
         <div className="chips">{["Tirou pedido", "Sem pedido · estoque alto", "Sem pedido · pediu retorno", "Comprador ausente", "Cliente fechado"].map((r) => <Chip key={r} on={result === r} onClick={() => setResult(result === r ? null : r)}>{r}</Chip>)}</div>
       </div>
-      <div className="field"><label>Anotação (opcional)</label><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: pediu promoção de picolé na próxima" /></div>
+      <div className="field"><label>Observação da visita <span className="xs muted">(aparece no histórico para a gestão)</span></label><textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: responsável pelas compras não estava, volto quinta" /></div>
       {required ? (
         <>
           <div className="card mb" style={{ background: "var(--gold-soft)" }}>

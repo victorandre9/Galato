@@ -83,7 +83,7 @@ export function VisitSheet({ v, customerId, onClose }: { v: VisitEntry; customer
           <div className="list">
             {orders.map((o) => (
               <div key={o.id} className="row click" onClick={() => setOrder(o)}>
-                <div className="grow"><div className="title small">{o.number}</div><div className="sub">{o.invoiceNumber ?? "sem NF"} · {o.items.length} itens</div></div>
+                <div className="grow"><div className="title small">{o.number}</div><div className="sub">{o.invoiceNumber ?? "NF a emitir"} · {o.items.length} itens</div></div>
                 <div className="end num semi">{brl(o.totalCents)}</div>
                 <ChevronRight size={16} className="muted" />
               </div>

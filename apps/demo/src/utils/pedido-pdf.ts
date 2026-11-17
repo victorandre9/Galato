@@ -60,7 +60,7 @@ export async function gerarPdfPedido(o: HistOrder & { kind?: string }): Promise<
     linhas.forEach((l, i) => doc.text(doc.splitTextToSize(l, w - 8)[0] as string, x + 4, y + 11 + i * 5.4));
   };
   bloco("Cliente", [c.tradeName, c.legalName, `CNPJ ${c.document} · cód. ${c.code}`, `${c.address} · ${c.district}`, `${c.city}/${c.state} · ${c.buyerName} · ${c.phone}`], 14, 112);
-  bloco("Condições", [`Vendedor: ${s?.name ?? "—"}`, `Pagamento: ${termo(o.paymentTermDays)}${o.boletoBank ? ` · boleto ${o.boletoBank === "bradesco" ? "Bradesco" : "Sicoob"}` : ""}`, `Nota fiscal: ${o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"}`, `Situação: ${statusLabel(o.status)}`], 130, W - 144);
+  bloco("Condições", [`Vendedor: ${s?.name ?? "—"}`, `Pagamento: ${termo(o.paymentTermDays)}`, `Nota fiscal: ${o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"}`, `Situação: ${statusLabel(o.status)}`], 130, W - 144);
   y += 8 + 5 * 5.4 + 8;
 
   // itens

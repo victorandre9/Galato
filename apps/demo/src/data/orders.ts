@@ -12,7 +12,7 @@ export const orderPlate = (o: { id: string }) => plateFor(o.id);
 /** Status como o vendedor/gestão leem: com número da nota e placa do veículo. */
 export function orderStatusText(o: { id: string; status: string; invoiceNumber?: string | null; fiscalDoc?: string; kind?: string }): string {
   if (o.kind === "QUOTE" || o.kind === "SIMPLE_QUOTE") return o.status === "converted" ? "Convertido em pedido" : ["rejected", "expired", "cancelled"].includes(o.status) ? "Cancelado" : "Orçamento";
-  if (o.status === "invoiced") return o.fiscalDoc === "sem_nf" || !o.invoiceNumber ? "Faturado sem nota fiscal" : `Nota fiscal faturada · ${o.invoiceNumber}`;
+  if (o.status === "invoiced") return !o.invoiceNumber ? "Pedido faturado" : `Nota fiscal faturada · ${o.invoiceNumber}`;
   if (o.status === "in_delivery_route" || o.status === "in_transit") return `Em rota de entrega · placa ${orderPlate(o)}`;
   return statusLabel(o.status);
 }

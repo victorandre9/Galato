@@ -14,7 +14,7 @@ import App from "./App";
 import { CHECKINS } from "./data/mock";
 import { deleteVideo, daysUntilPurge, retryPendingUploads } from "./components/video";
 import { persistChanges } from "./data/sync";
-import { setState, getState } from "./data/store";
+import { setState, getState, setOnline } from "./data/store";
 
 createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
 
@@ -72,3 +72,13 @@ window.addEventListener("online", () => { retryPendingUploads(); });
 try { if (/Chrome|Chromium|Edg\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent)) document.documentElement.classList.add("can-refract"); } catch { /* ok */ }
 
 installPressEffect();
+
+// funciona sem internet: guarda o app no aparelho (instalado na tela inicial ou no navegador)
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
+}
+
+// internet do aparelho caiu/voltou: o app avisa, guarda tudo no aparelho e sincroniza sozinho ao voltar
+window.addEventListener("offline", () => setOnline(false));
+window.addEventListener("online", () => setOnline(true));
+if (!navigator.onLine) setOnline(false);

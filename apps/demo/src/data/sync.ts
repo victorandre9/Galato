@@ -75,6 +75,17 @@ export const isServerDb = () => server;
 // ---------------- alterações que ficam só neste aparelho
 let LOCAL_KEY = "galato-local-overlay";
 const PENDING_KEY = "galato-server-pending";
+/** última cópia dos dados do banco, para abrir o app sem internet com tudo o que já foi visto */
+const SERVER_CACHE_KEY = "galato-server-cache";
+const serverCache = new Map<string, { type: string; id: string; json: string | null }>();
+let cacheTimer: ReturnType<typeof setTimeout> | null = null;
+function rememberRemote(docs: { type: string; id: string; json: string | null }[]) {
+  for (const d of docs) serverCache.set(keyOf(d.type, d.id), d);
+  if (!cacheTimer) cacheTimer = setTimeout(() => {
+    cacheTimer = null;
+    try { localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify({ seq: lastSeq, docs: [...serverCache.values()] })); } catch { /* sem espaço: fica sem a cópia */ }
+  }, 800);
+}
 const localOnly = new Map<string, { type: string; id: string; json: string | null }>();
 function loadLocal() {
   localOnly.clear();
@@ -152,6 +163,7 @@ async function pullServer() {
     let touched = false;
     for (const d of data.docs) touched = applyDoc(d.type, d.id, d.json, true) || touched;
     lastSeq = data.seq;
+    rememberRemote(data.docs);
     if (touched) onRemote();
   } catch { /* sem internet: tenta depois */ }
 }
@@ -186,7 +198,8 @@ export function persistChanges() {
         changed.push(k);
       }
     }
-  if (!online) { changed.forEach((k) => offlineDirty.add(k)); return changed.length; }
+  // sem internet: já fica gravado no aparelho (sobrevive a fechar o app) e sobe sozinho quando a internet voltar
+  if (!online) { changed.forEach((k) => { offlineDirty.add(k); if (server) keepLocal(k); }); return changed.length; }
   changed.forEach(writeKey);
   return changed.length;
 }
@@ -221,6 +234,8 @@ function applyLocalOnly() {
   for (const [k, v] of localOnly) { keyMeta.set(k, { type: v.type, id: v.id }); applyDoc(v.type, v.id, v.json); }
 }
 
+function hasServerCache() { try { return !!localStorage.getItem(SERVER_CACHE_KEY); } catch { return false; } }
+
 /** Tenta o banco do site; sem ele, usa só o aparelho. */
 async function startServer() {
   let ok = false;
@@ -235,12 +250,31 @@ async function startServer() {
         ok = true; server = true;
         for (const d of data.docs) applyDoc(d.type, d.id, d.json, true);
         lastSeq = data.seq;
+        serverCache.clear(); rememberRemote(data.docs);
       }
     }
-  } catch { /* sem banco */ }
+  } catch { /* sem banco ou sem internet */ }
   // o que foi feito enquanto conectava não pode se perder
   const early = [...localOnly.entries()];
   const keepEarly = () => { for (const [k, v] of early) localOnly.set(k, v); saveLocal(); };
+  if (!ok && !navigator.onLine || (!ok && hasServerCache())) {
+    // sem internet, mas o aparelho já usou o banco: abre com a última cópia e guarda o que fizer na fila de envio
+    try {
+      const raw = localStorage.getItem(SERVER_CACHE_KEY);
+      if (raw) { const c = JSON.parse(raw) as { seq: number; docs: { type: string; id: string; json: string | null }[] }; for (const d of c.docs) applyDoc(d.type, d.id, d.json, true); lastSeq = c.seq; rememberRemote(c.docs); }
+    } catch { /* ok */ }
+    LOCAL_KEY = PENDING_KEY; loadLocal(); applyLocalOnly(); keepEarly();
+    server = true; // grava na fila; envia sozinho quando a internet voltar
+    onRemote(); onMode("shared");
+    const retry = async () => {
+      if (!navigator.onLine) return;
+      try { const r = await fetch(`${API}?r=overlay&since=${lastSeq}`, { cache: "no-store" }); if (r.ok) { window.removeEventListener("online", retry); clearInterval(iv); pullServer(); scheduleFlush(); } } catch { /* ainda sem internet */ }
+    };
+    const iv = setInterval(retry, 15_000);
+    window.addEventListener("online", retry);
+    setInterval(() => { if (document.visibilityState === "visible") pullServer(); }, 3000);
+    return;
+  }
   if (!ok) {
     // sem banco: o que se faz fica neste aparelho
     LOCAL_KEY = "galato-local-overlay"; loadLocal(); applyLocalOnly(); keepEarly();

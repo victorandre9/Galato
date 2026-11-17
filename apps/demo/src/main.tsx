@@ -78,6 +78,34 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
 }
 
+// app instalado no celular (iPhone principalmente) fica aberto em segundo plano com a versão antiga:
+// ao voltar para o app (e a cada 5 min) confere se saiu versão nova e recarrega sozinho
+{
+  let first: string | null = null;
+  const sig = async () => {
+    try {
+      const r = await fetch("./assets/app.js", { method: "HEAD", cache: "no-store" });
+      return r.ok ? (r.headers.get("etag") ?? r.headers.get("last-modified") ?? r.headers.get("content-length")) : null;
+    } catch { return null; }
+  };
+  const check = async () => {
+    if (!navigator.onLine) return;
+    const now = await sig();
+    if (!now) return;
+    if (first === null) { first = now; return; }
+    if (now !== first) {
+      try { const regs = await navigator.serviceWorker?.getRegistrations(); await Promise.all((regs ?? []).map((r) => r.update())); } catch { /* ok */ }
+      // trava contra recarregar em sequência (no máximo 1 vez por minuto)
+      try { const last = Number(sessionStorage.getItem("galato-reload") ?? 0); if (Date.now() - last < 60_000) return; sessionStorage.setItem("galato-reload", String(Date.now())); } catch { /* ok */ }
+      location.reload();
+    }
+  };
+  check();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  window.addEventListener("focus", check);
+  setInterval(check, 5 * 60_000);
+}
+
 // internet do aparelho caiu/voltou: o app avisa, guarda tudo no aparelho e sincroniza sozinho ao voltar
 window.addEventListener("offline", () => setOnline(false));
 window.addEventListener("online", () => { setOnline(true); setTimeout(retryPendingUploads, 1500); });

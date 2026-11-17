@@ -1,6 +1,6 @@
 /* Galato · funciona sem internet: guarda o app no aparelho.
    Rede primeiro (sempre a versão nova quando há internet); sem internet, usa a cópia guardada. */
-const CACHE = "galato-app-v1";
+const CACHE = "galato-app-v2";
 const CORE = ["./", "./index.html", "./assets/app.js", "./assets/index.css", "./galato-logo.png", "./icon-192.png", "./icon-512.png", "./manifest.webmanifest", "./bg-curves.svg", "./bg-curves-gray.svg"];
 
 self.addEventListener("install", (e) => {
@@ -17,7 +17,8 @@ self.addEventListener("fetch", (e) => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const res = await fetch(req);
+      // ignora o cache do navegador: sempre busca a versão publicada mais nova
+      const res = await fetch(req, { cache: "no-cache" });
       if (res.ok) cache.put(req, res.clone());
       return res;
     } catch {

@@ -487,6 +487,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
   const [items, setItems] = useState<{ productId: string; qty: number }[]>(() => (editing ?? fromQuote) ? (editing ?? fromQuote)!.items.map((it) => ({ productId: it.productId, qty: it.qty })) : []);
   const [term, setTerm] = useState<number | null>(editing ? editing.paymentTermDays : fromQuote ? fromQuote.paymentTermDays : null);
   const [fiscal, setFiscal] = useState<"com_nf" | "sem_nf" | null>(editing?.fiscalDoc ?? null);
+  const [bank, setBank] = useState<"bradesco" | "sicoob" | null>(editing?.boletoBank ?? null);
   const fin = financial(c);
   const cats = [...new Set(PRODUCTS.map((p) => p.category))];
   const filtered = PRODUCTS.filter((p) => (!cat || p.category === cat) && (`${p.commercialName} ${p.code} ${p.category} ${p.fiscalName}`.toLowerCase().includes(q.toLowerCase())));
@@ -498,6 +499,8 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
   const decision = total > 0 ? decidePaymentTerm(total, term ?? 0, PARAMS.paymentTerms.rules) : null;
   const recommended = decision?.recommendedDays ?? 7;
   const granted = term ?? recommended;
+  /** pedido a prazo é pago por boleto: precisa escolher o banco (à vista/PIX não) */
+  const needsBank = granted > 0;
   const notice = orderSubmissionNotice(fin.creditStatus);
   /** Regra do crédito: sem boleto em atraso → pedido liberado direto; com atraso → só envia junto com o comprovante (vai para liberação do crédito). */
   const late = fin.creditStatus === "attention";
@@ -517,6 +520,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         editing.items = items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents }));
         editing.totalCents = total; editing.paymentTermDays = granted; editing.recommendedTermDays = recommended;
         if (fiscal) editing.fiscalDoc = fiscal;
+        if (needsBank && bank) editing.boletoBank = bank; else delete editing.boletoBank;
         editing.status = status; editing.editedAt = nowStamp(); editing.editCount = (editing.editCount ?? 0) + 1;
         logOrder(editing, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Alterado pelo vendedor · ${brl(oldTotal)} → ${brl(total)} · volta para análise`);
         applySalesDelta(editing, before);
@@ -540,6 +544,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         paymentTermDays: granted, recommendedTermDays: recommended, expectedDelivery: null,
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
         ...(kind === "ORDER" && fiscal ? { fiscalDoc: fiscal } : {}),
+        ...(kind === "ORDER" && needsBank && bank ? { boletoBank: bank } : {}),
       };
       o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : `${fromQuote ? `Orçamento ${fromQuote.number} transformado em pedido · ` : "Pedido emitido · "}${status === "blocked" ? "bloqueado pelo crédito" : status === "credit_approved" ? "liberado direto (cliente sem boleto em atraso)" : "enviado para liberação do crédito com comprovante de pagamento"}` }];
       if (kind === "QUOTE" || kind === "SIMPLE_QUOTE") o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: "Orçamento criado" }];
@@ -565,7 +570,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         notify({ link: { t: "order", id: o.id },
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
           title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : status === "credit_approved" ? "Novo pedido liberado direto para faturar" : "Pedido com comprovante aguardando liberação do crédito",
-          text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
+          text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"}${needsBank && bank ? ` · boleto ${bank === "bradesco" ? "Bradesco" : "Sicoob"}` : ""} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
           to: status === "credit_approved" ? ["billing", ...MANAGERS_KEYS] : ["finance", ...MANAGERS_KEYS],
         });
       }
@@ -670,6 +675,14 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
               </div>
             </Card>
           )}
+          {kind === "ORDER" && needsBank && (
+            <Card title="Boleto" sub="banco que emite o boleto" className={bank ? "" : "needs-answer"}>
+              <div className="grid g2" style={{ marginBottom: 0 }}>
+                <button id="bank-bradesco" className={`route-pick ${bank === "bradesco" ? "on" : ""}`} onClick={() => setBank("bradesco")}><b>Boleto Bradesco</b><span className="xs">prazo {termLabel(granted)}</span></button>
+                <button id="bank-sicoob" className={`route-pick ${bank === "sicoob" ? "on" : ""}`} onClick={() => setBank("sicoob")}><b>Boleto Sicoob</b><span className="xs">prazo {termLabel(granted)}</span></button>
+              </div>
+            </Card>
+          )}
           {kind === "ORDER" && late && (
             <Card title="Cliente com boleto em atraso" className={payProof ? "" : "needs-answer"} sub="pedido só vai com o comprovante">
               <div className="small red semi">{fin.overdueCount} boleto(s) vencido(s) · {brl(fin.overdueCents)}</div>
@@ -682,15 +695,16 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
           )}
           {kind === "ORDER" ? (
             <>
-              <button id="btn-emit" className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal || (late && !payProof)}
+              <button id="btn-emit" className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal || (needsBank && !bank) || (late && !payProof)}
                 onClick={() => save(emitStatus, emitMsg)}>
-                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : late && !payProof ? "Anexe o comprovante de pagamento" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : late ? "Emitir pedido com comprovante" : "Emitir pedido"}
+                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : needsBank && !bank ? "Escolha o boleto: Bradesco ou Sicoob" : late && !payProof ? "Anexe o comprovante de pagamento" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : late ? "Emitir pedido com comprovante" : "Emitir pedido"}
               </button>
               {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
               <Faltando itens={[
                 !items.length && ["Produtos", "o pedido precisa de pelo menos um item"],
                 items.length > 0 && !stock.canIssue && [`${stock.blockingCount} item(ns) sem estoque`, "diminua a quantidade ou retire o item: não dá para faturar sem estoque"],
                 !fiscal && ["Com ou sem nota fiscal", "o faturamento precisa saber se emite NF"],
+                needsBank && !bank && ["Boleto Bradesco ou Sicoob", "o financeiro emite o boleto no banco escolhido"],
                 late && !payProof && ["Comprovante de pagamento", "cliente com boleto em atraso: o pedido só vai para o crédito junto com o comprovante"],
               ]} />
             </>

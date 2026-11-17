@@ -371,7 +371,7 @@ function FinanceQueue() {
         <Card id="aguardando-credito" title="Pedidos aguardando crédito">
           {blocked.slice(0, 8).map((o) => (
             <div key={o.id} className="row">
-              <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · {o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
+              <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}><div className="title small">{o.number} · <CustomerName id={o.customerId} /></div><div className="sub">{brl(o.totalCents)} · {o.fiscalDoc === "sem_nf" ? "sem NF" : "com NF"}{o.boletoBank ? ` · boleto ${o.boletoBank === "bradesco" ? "Bradesco" : "Sicoob"}` : ""} · emitido {fmtDateTime(o.createdAt)} · {ORDER_STATUS[o.status as keyof typeof ORDER_STATUS].label}</div></div>
               <button className="btn btn-soft btn-sm" onClick={() => commit(() => {
                 setOrderStatus(o, "credit_approved", FINANCE_USER.name, "Pedido liberado pelo crédito");
                 notify({ link: { t: "order", id: o.id }, kind: "financeiro", title: "Pedido liberado pelo crédito", text: `${o.number} · ${customerById.get(o.customerId)?.tradeName} · ${brl(o.totalCents)} segue para faturamento.`, to: [`seller:${o.sellerId}`, "billing"] });
@@ -501,7 +501,7 @@ function BillingBoard() {
       {col === "todo" && <input type="checkbox" className="chk" checked={sel.has(o.id)} onChange={() => toggle(o.id)} aria-label={`Selecionar ${o.number}`} />}
       <div className="grow click" style={{ cursor: "pointer" }} onClick={() => setOpenOrder(o)}>
         <div className="title small">{o.number} · <CustomerName id={o.customerId} /></div>
-        <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}</div>
+        <div className="sub">{brl(o.totalCents)} · {sellerById.get(o.sellerId)?.name.split(" ")[0]} · emitido {fmtDateTime(o.createdAt)}{o.fiscalDoc && <> · <span className={`nf-tag ${o.fiscalDoc}`}>{o.fiscalDoc === "com_nf" ? "com NF" : "sem NF"}</span></>}{o.boletoBank && <> · boleto {o.boletoBank === "bradesco" ? "Bradesco" : "Sicoob"}</>}</div>
         {o.billingError && <div className="xs red semi" style={{ whiteSpace: "normal" }}>{o.billingError}</div>}
         {o.invoiceNumber && col === "done" && <div className="xs green semi">{o.invoiceNumber} · disponível para logística</div>}
       </div>

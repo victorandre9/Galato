@@ -294,6 +294,8 @@ export interface Order {
   editedAt?: string; editCount?: number;
   /** escolhido pelo vendedor no fim do pedido */
   fiscalDoc?: "com_nf" | "sem_nf";
+  /** banco que emite o boleto (pedido a prazo) */
+  boletoBank?: "bradesco" | "sicoob";
   /** linha do tempo com horário de cada etapa */
   log?: { at: string; by: string; text: string }[];
 }

@@ -80,5 +80,5 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
 
 // internet do aparelho caiu/voltou: o app avisa, guarda tudo no aparelho e sincroniza sozinho ao voltar
 window.addEventListener("offline", () => setOnline(false));
-window.addEventListener("online", () => setOnline(true));
+window.addEventListener("online", () => { setOnline(true); setTimeout(retryPendingUploads, 1500); });
 if (!navigator.onLine) setOnline(false);

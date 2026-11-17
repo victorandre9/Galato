@@ -138,6 +138,13 @@ export async function loadVideo(key: string): Promise<Blob | null> {
   } catch { return null; }
 }
 
+async function deleteLocalVideo(key: string) {
+  try {
+    const db = await open();
+    await new Promise<void>((res) => { const tx = db.transaction(STORE, "readwrite"); tx.objectStore(STORE).delete(key); tx.oncomplete = () => res(); tx.onerror = () => res(); });
+  } catch { /* ok */ }
+}
+
 export async function deleteVideo(key: string) {
   try {
     const db = await open();
@@ -170,6 +177,8 @@ export async function uploadVideo(key: string, blob?: Blob | null): Promise<bool
     const r = await fetch("/api/data?r=video", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, mime: b.type || "video/mp4", data: await toBase64(b) }) });
     if (!r.ok) throw new Error(String(r.status));
     setPending(getPending().filter((k) => k !== key));
+    // já está na nuvem: tira a cópia do aparelho para não ocupar espaço (ao assistir, vem do banco)
+    await deleteLocalVideo(key);
     return true;
   } catch {
     setPending([...getPending(), key]);

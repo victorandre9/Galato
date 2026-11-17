@@ -79,8 +79,9 @@ const PENDING_KEY = "galato-server-pending";
 const SERVER_CACHE_KEY = "galato-server-cache";
 const serverCache = new Map<string, { type: string; id: string; json: string | null }>();
 let cacheTimer: ReturnType<typeof setTimeout> | null = null;
+const BIG = 60_000; // registros com fotos/arquivos pesados não ficam guardados no aparelho (vêm do banco quando houver internet)
 function rememberRemote(docs: { type: string; id: string; json: string | null }[]) {
-  for (const d of docs) serverCache.set(keyOf(d.type, d.id), d);
+  for (const d of docs) { const k = keyOf(d.type, d.id); if (d.json && d.json.length > BIG) serverCache.delete(k); else serverCache.set(k, d); }
   if (!cacheTimer) cacheTimer = setTimeout(() => {
     cacheTimer = null;
     try { localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify({ seq: lastSeq, docs: [...serverCache.values()] })); } catch { /* sem espaço: fica sem a cópia */ }
@@ -268,7 +269,7 @@ async function startServer() {
     onRemote(); onMode("shared");
     const retry = async () => {
       if (!navigator.onLine) return;
-      try { const r = await fetch(`${API}?r=overlay&since=${lastSeq}`, { cache: "no-store" }); if (r.ok) { window.removeEventListener("online", retry); clearInterval(iv); pullServer(); scheduleFlush(); } } catch { /* ainda sem internet */ }
+      try { const r = await fetch(`${API}?r=overlay&since=${lastSeq}`, { cache: "no-store" }); if (r.ok) { window.removeEventListener("online", retry); clearInterval(iv); lastSeq = 0; pullServer(); scheduleFlush(); } } catch { /* ainda sem internet */ }
     };
     const iv = setInterval(retry, 15_000);
     window.addEventListener("online", retry);

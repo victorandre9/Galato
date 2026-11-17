@@ -16,7 +16,7 @@ const GROUPS: { title: string; roles: { role: Role; label: string; desc: string;
   { title: "Comercial", roles: [
     { role: "seller", label: "Vendedor externo", desc: "Quanto vendi, quanto falta, quem visitar", icon: <UserRound />, device: "Celular" },
     { role: "sales_coordinator", label: "Supervisor comercial", desc: "Equipe, metas, carteiras e aprovações", icon: <Briefcase />, device: "Celular · desktop" },
-    { role: "general_manager", label: "Gerente geral", desc: "Tudo do supervisor + logística, relatórios e liberações", icon: <Crown />, device: "Celular · desktop" },
+    { role: "general_manager", label: "Gerente", desc: "Tudo do supervisor + logística, relatórios e liberações", icon: <Crown />, device: "Celular · desktop" },
   ]},
   { title: "Administrativo", roles: [
     { role: "finance", label: "Financeiro / Crédito", desc: "Comprovantes, SLA, liberação", icon: <Wallet />, device: "Desktop" },

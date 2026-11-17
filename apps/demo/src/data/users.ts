@@ -9,7 +9,7 @@ export const USER_LIMIT = 20;
 
 export type UserRole = "general_manager" | "sales_coordinator" | "seller" | "finance" | "billing" | "transport_coordinator" | "driver";
 export const USER_ROLE_LABEL: Record<UserRole, string> = {
-  general_manager: "Gerente geral (master)", sales_coordinator: "Supervisor comercial", seller: "Vendedor externo",
+  general_manager: "Gerente (master)", sales_coordinator: "Supervisor comercial", seller: "Vendedor externo",
   finance: "Financeiro / Crédito", billing: "Faturamento", transport_coordinator: "Coord. Transportes", driver: "Motorista",
 };
 export interface AppUser { id: string; name: string; role: UserRole; email: string; phone: string; active: boolean; refId?: string; master?: boolean }

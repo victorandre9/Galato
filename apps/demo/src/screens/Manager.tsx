@@ -51,7 +51,7 @@ import { Card, Kpi, Ring, Sheet, brl, brl0, pct, Chip, Badge, Progress, RankingL
 import { CustomerSheet, CustomerTable, fmtDate } from "../components/business";
 
 const ROLE_INFO: Partial<Record<Role, { label: string; name: string }>> = {
-  general_manager: { label: "Gerente geral", name: "Paulo Henrique Lopes" },
+  general_manager: { label: "Gerente", name: "Paulo Henrique Lopes" },
   sales_coordinator: { label: "Supervisor comercial", name: "Ricardo Nunes" },
   sales_manager: { label: "Gerente comercial", name: MANAGERS[0]!.name },
 };

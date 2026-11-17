@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import {
   MapPin, Phone, Snowflake, Receipt, ShoppingCart, FileText, Upload, LogIn, LogOut as LogOutIc, AlertTriangle,
-  ArrowRightLeft, Send, Search, Plus, Minus, Trash2, Lock, QrCode, History, MessageCircle,
+  ArrowRightLeft, MessageSquareWarning, Send, Search, Plus, Minus, Trash2, Lock, QrCode, History, MessageCircle,
 } from "lucide-react";
 import {
   checkStock, decidePaymentTerm, orderSubmissionNotice, CREDIT_BLOCK_MESSAGE, ORDER_STATUS, QUOTE_STATUS,
@@ -12,7 +12,9 @@ import {
   PARAMS, PRODUCTS, ORDERS, PAYMENT_REQUESTS, TODAY, NOW, nowStamp, sellerById, customerById, type Customer, type Order,
 } from "../data/mock";
 import { customerRow, financial } from "../data/selectors";
-import { commit, toast } from "../data/store";
+import { commit, toast, useStore } from "../data/store";
+import { COM_OCCURRENCES, type ComOccurrence } from "../data/comocc";
+import { CustomerOccurrenceSheet, CustomerOccurrenceDetail, CustomerOccurrenceRow } from "./customer-occurrences";
 import { notify, MANAGERS_KEYS } from "../data/notify";
 import { VisitHistoryCard } from "./visits";
 import { matchCustomer } from "../data/search";
@@ -120,7 +122,9 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   const openCheckin = CHECKINS.find((k) => k.customerId === c.id && k.date === TODAY && !k.outAt);
   const doneToday = CHECKINS.filter((k) => k.customerId === c.id && k.date === TODAY && k.outAt);
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers" | "occurrence" | "checkout">(null);
+  const [mode, setMode] = useState<null | "order" | "quote" | "proof" | "transfer" | "forward" | "firstvisit" | "freezers" | "occurrence" | "comocc" | "checkout">(null);
+  const [openCom, setOpenCom] = useState<ComOccurrence | null>(null);
+  const comOccs = COM_OCCURRENCES.filter((o) => o.customerId === c.id);
   const [playVideo, setPlayVideo] = useState<Checkin | null>(null);
   const doCheckin = () => commit(() => {
     CHECKINS.unshift({ id: `ck${Date.now()}`, customerId: c.id, sellerId: c.sellerId, inAt: nowStamp(), date: TODAY });
@@ -194,6 +198,8 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
   if (mode === "firstvisit") return <FirstVisitSheet c={c} onClose={() => setMode(null)} onDone={() => { setMode(null); doCheckin(); }} />;
   if (mode === "freezers") return <FreezerManager c={c} onClose={() => setMode(null)} />;
   if (mode === "occurrence") return <FreezerOccurrenceSheet c={c} onClose={() => setMode(null)} />;
+  if (mode === "comocc") return <CustomerOccurrenceSheet c={c} author={viewerSellerId ? "seller" : "manager"} onClose={() => setMode(null)} />;
+  if (openCom) return <CustomerOccurrenceDetail occ={openCom} viewer={viewerSellerId ? "seller" : "manager"} onClose={() => setOpenCom(null)} />;
   if (mode === "checkout" && openCheckin) return <CheckoutSheet c={c} checkin={openCheckin} onClose={() => setMode(null)} />;
   if (pastOpen) return <OrderDetail o={pastOpen} onClose={() => setPastOpen(null)} />;
   if (playVideo) return <CheckinVideo checkin={playVideo} title={`Vídeo do freezer · ${c.tradeName}`} onClose={() => setPlayVideo(null)} />;
@@ -211,6 +217,7 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
             <div className="small t2 mt">{c.code} · CNPJ {c.document}</div>
             <div className="small t2 flex" style={{ marginTop: 4 }}><MapPin size={14} /> {c.address} — {c.district}, {c.city}/{c.state} · {c.cep}</div>
             <div className="small t2 flex" style={{ marginTop: 4 }}><Phone size={14} /> {c.buyerName} (comprador) · {c.phone}</div>
+            <CurveExplain c={c} />
             <div className="divider" />
             <div className="grid g3" style={{ marginBottom: 0 }}>
               <div><div className="xs muted">Vendedor</div><div className="semi small">{sellerById.get(c.sellerId)?.name}</div></div>
@@ -246,6 +253,15 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
               <AlertOctagon size={18} /> Ocorrência de freezer
               <span className="xs" style={{ opacity: .85, fontWeight: 500 }}>perda · defeito · outros produtos</span>
             </button>
+          )}
+          <button id="btn-comocc" className="btn btn-ghost btn-block occ-cta" onClick={() => setMode("comocc")} style={{ borderColor: "var(--warning, #d97706)" }}>
+            <MessageSquareWarning size={18} /> Ocorrência do cliente
+            <span className="xs" style={{ opacity: .85, fontWeight: 500 }}>vai parar de comprar · reclamação · preço · outros</span>
+          </button>
+          {comOccs.length > 0 && (
+            <Card title={`Ocorrências do cliente (${comOccs.length})`} icon={<MessageSquareWarning size={17} />} sub="toque para acompanhar">
+              <div className="list">{comOccs.map((o) => <CustomerOccurrenceRow key={o.id} o={o} onClick={() => setOpenCom(o)} />)}</div>
+            </Card>
           )}
           {custOccs.length > 0 && (
             <Card title={`Ocorrências de freezer (${custOccs.length})`} icon={<AlertOctagon size={17} />} sub="toque para acompanhar">
@@ -326,9 +342,61 @@ export function CustomerSheet({ c, viewerSellerId, onClose }: { c: Customer; vie
           <Card title="Dados editáveis" icon={<MessageCircle size={17} />}>
             <EditableContact c={c} />
           </Card>
+          <ManagerPortfolioCard c={c} />
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/** Como a curva do cliente foi calculada (média dos últimos meses × faixas). */
+function CurveExplain({ c }: { c: Customer }) {
+  const n = PARAMS.abcd.averageWindowMonths;
+  const last = c.monthlyHistoryCents.slice(-n);
+  const rule = PARAMS.abcd.rules.find((r) => r.class === c.abcd);
+  return (
+    <div className="xs muted mt">
+      Curva <b>{c.abcd}</b> · média dos últimos {n} meses fechados: <b>{brl(c.avgMonthlyCents)}</b> ({last.map((v) => brl(v).replace(",00", "")).join(" + ")})
+      {rule && <> · faixa {c.abcd}: {rule.maxMonthlyCents === null ? `a partir de ${brl(rule.minMonthlyCents)}` : `${brl(rule.minMonthlyCents)} a ${brl(rule.maxMonthlyCents)}`}/mês</>}
+    </div>
+  );
+}
+
+/** Gestão: mudar o cliente de carteira (vendedor), região e rota. */
+function ManagerPortfolioCard({ c }: { c: Customer }) {
+  const s = useStore();
+  const isMgr = s.role === "sales_coordinator" || s.role === "general_manager";
+  const [seller, setSeller] = useState(c.sellerId);
+  const [route, setRoute] = useState(c.routeCode);
+  const [reason, setReason] = useState("");
+  if (!isMgr) return null;
+  const target = SELLERS.find((x) => x.id === seller)!;
+  const changed = seller !== c.sellerId || route !== c.routeCode;
+  return (
+    <Card title="Carteira e região" icon={<ArrowRightLeft size={17} />} sub="só a gestão">
+      <div className="field"><label>Vendedor responsável (carteira)</label>
+        <select id="mgr-seller" className="input" value={seller} onChange={(e) => setSeller(e.target.value)}>{SELLERS.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.region}</option>)}</select>
+      </div>
+      <div className="field"><label>Região</label><input className="input" value={target.region} readOnly /></div>
+      <div className="field"><label>Rota comercial</label>
+        <select className="input" value={route} onChange={(e) => setRoute(e.target.value)}>
+          {PARAMS.commercialRoutes.map((r) => <option key={r.code} value={r.code}>{r.name} — {["dom", "segunda", "terça", "quarta", "quinta", "sexta", "sáb"][r.weekday]}</option>)}
+        </select>
+      </div>
+      <div className="field"><label>Motivo</label><input id="mgr-reason" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: mudança de território, cliente mudou de endereço" /></div>
+      <Faltando itens={[changed && reason.trim().length < 3 && ["Motivo", "fica registrado no histórico da carteira e os vendedores são avisados"]]} />
+      <button className="btn btn-primary btn-block btn-sm" disabled={!changed || reason.trim().length < 3} onClick={() => commit(() => {
+        const from = c.sellerId;
+        const fromName = sellerById.get(from)?.name ?? "";
+        c.sellerId = seller; c.region = target.region; c.routeCode = route;
+        if (from !== seller) {
+          TRANSFER_REQUESTS.unshift({ id: `tr${Date.now()}`, customerId: c.id, fromSellerId: from, toSellerId: seller, reason: `Transferido pela gestão · ${reason.trim()}`, createdAt: nowStamp(), status: "approved", decidedAt: nowStamp(), decidedBy: "Gestão" });
+          notify({ link: { t: "customer", id: c.id }, kind: "comercial", title: "Cliente passou para a sua carteira", text: `${c.tradeName} (antes de ${fromName}) · ${reason.trim()}`, to: [`seller:${seller}`] });
+          notify({ link: { t: "customer", id: c.id }, kind: "comercial", title: "Cliente saiu da sua carteira", text: `${c.tradeName} foi para ${target.name} · ${reason.trim()}`, to: [`seller:${from}`] });
+        }
+        setReason("");
+      }, seller !== c.sellerId ? `${c.tradeName} agora é da carteira de ${target.name}` : "Rota do cliente atualizada")}>Salvar mudança de carteira</button>
+    </Card>
   );
 }
 

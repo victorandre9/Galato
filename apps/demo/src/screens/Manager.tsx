@@ -1,3 +1,6 @@
+import { COM_OCCURRENCES } from "../data/comocc";
+import { ManagerCustomerOccurrences } from "../components/customer-occurrences";
+import { MessageSquareWarning } from "lucide-react";
 /** Gestão comercial (gerente geral, gerente, coordenador) — desktop-first, responsivo. */
 import { useState } from "react";
 import {
@@ -74,6 +77,7 @@ export function ManagerApp({ role }: { role: Role }) {
     { id: "inactive", label: "Clientes sem compra", icon: <UserX size={20} />, count: CUSTOMERS.filter((c) => scope.includes(c.sellerId) && (!c.lastPurchaseDate || daysBetween(c.lastPurchaseDate, TODAY) >= 28)).length },
     { id: "finance", label: "Financeiro", icon: <Wallet size={20} />, count: fq.breached },
     { id: "assets", label: "Ativos / freezers", icon: <Snowflake size={20} /> },
+    { id: "comocc", label: "Ocorrências clientes", icon: <MessageSquareWarning size={20} />, count: COM_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && o.status !== "resolvida").length },
     { id: "fzocc", label: "Ocorrências freezer", icon: <AlertOctagon size={20} />, count: FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length },
     { id: "prospect", label: "Prospecção", icon: <Filter size={20} />, count: LEADS.filter((l) => scope.includes(l.sellerId) && l.stage === "cadastro").length },
     ...(role === "general_manager" ? [
@@ -96,6 +100,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "finance" && <FinanceView />}
       {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
+      {tab === "comocc" && <ManagerCustomerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
       {tab === "motos" && <MotosView scope={scope} />}
       {tab === "users" && role === "general_manager" && <UsersView />}

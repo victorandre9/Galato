@@ -874,3 +874,17 @@ html[data-theme="dark"] body .list .row.row-active-visit:is(*, .x.x.x) { backgro
 
 /* observação da visita no histórico */
 :is(*, .visit-note.visit-note) .visit-note, .visit-note { margin-top: 4px; padding: 5px 8px; border-radius: 8px; background: var(--gold-soft); font-size: 12px; line-height: 1.35; white-space: normal; color: var(--text, inherit); }
+
+/* conferência de freezers */
+.fzr-tabs .chip svg { vertical-align: -2px; margin-right: 3px; }
+.fzr-daynav { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 12px; background: var(--surface-2, rgba(127,127,127,.08)); }
+.fzr-ic { display: inline-flex; margin-top: 2px; color: var(--info, #2563eb); }
+.fzr-ok .fzr-ic { color: var(--success, #0e8f4f); }
+.fzr-problema .fzr-ic { color: var(--danger, #c81e22); }
+.fzr-sem_video .fzr-ic { color: var(--muted, #888); }
+.fzr-conferir .fzr-ic { color: var(--gold, #d99a00); }
+.fzr-done { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 12px; background: var(--success-soft); font-weight: 600; font-size: 14px; }
+.fzr-video { border-radius: 14px; overflow: hidden; background: #111; }
+.fzr-video .small.muted { color: #cfd6e0; }
+:is(*, .x.x.x) .btn-success, .btn-success { background: linear-gradient(180deg, #16a35f, #0e8f4f) !important; color: #fff !important; border-color: transparent !important; }
+.btn-success:disabled { opacity: .5; }

@@ -106,6 +106,11 @@ export function CheckoutSheet({ c, checkin, onClose }: { c: Customer; checkin: C
 
 /** Reproduz o vídeo do checkout (se estiver neste aparelho). */
 export function CheckinVideo({ checkin, onClose, title }: { checkin: Checkin; onClose: () => void; title: string }) {
+  return <Sheet title={title} onClose={onClose} icon={<Video size={18} />}><CheckinVideoPlayer checkin={checkin} /></Sheet>;
+}
+
+/** Player do vídeo do checkout, sem a janela (usado também na conferência de freezers). */
+export function CheckinVideoPlayer({ checkin }: { checkin: Checkin }) {
   const [url, setUrl] = useState<string | null | undefined>(undefined);
   const v = checkin.video!;
   useEffect(() => {
@@ -116,7 +121,7 @@ export function CheckinVideo({ checkin, onClose, title }: { checkin: Checkin; on
   }, [v.key, v.purgedAt]);
   const left = v.savedAt ? daysUntilPurge(v.savedAt) : null;
   return (
-    <Sheet title={title} onClose={onClose} icon={<Video size={18} />}>
+    <>
       {v.purgedAt ? (
         <div className="small" style={{ padding: 12, borderRadius: 12, background: "var(--neutral-soft)" }}>
           Vídeo apagado automaticamente em {new Date(v.purgedAt).toLocaleDateString("pt-BR")} ({VIDEO_LIMITS.retentionDays} dias após o checkout). A visita continua no histórico.
@@ -125,6 +130,6 @@ export function CheckinVideo({ checkin, onClose, title }: { checkin: Checkin; on
         : url ? <video className="checkout-video" src={url} controls autoPlay playsInline muted />
         : <div className="small muted">{isServerDb() ? "O vídeo ainda não chegou: o aparelho do vendedor envia assim que tiver internet." : "O vídeo está guardado no aparelho do vendedor. Com o banco de dados ligado, ele aparece aqui para a gestão."}</div>}
       <div className="xs muted mt">{fmtBytes(v.bytes)} · {v.seconds} s{left !== null && !v.purgedAt ? ` · apaga em ${Math.max(0, left)} dia(s)` : ""}</div>
-    </Sheet>
+    </>
   );
 }

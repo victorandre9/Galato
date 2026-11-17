@@ -104,6 +104,15 @@ export function VisitSheet({ v, customerId, onClose }: { v: VisitEntry; customer
 function DemoFreezerVideo({ c, date, patrimonies, onClose }: { c: string; date: string; patrimonies: string[]; onClose: () => void }) {
   return (
     <Sheet title={`Vídeo do freezer · ${c}`} onClose={onClose} icon={<Video size={18} />}>
+      <DemoFreezerPlayer date={date} patrimonies={patrimonies} />
+      <p className="small muted mt">Vídeo de demonstração. No sistema em uso, aqui toca o vídeo de até 10 segundos que o vendedor grava no checkout da visita, mostrando o freezer por dentro e por fora.</p>
+    </Sheet>
+  );
+}
+
+/** Animação que faz o papel do vídeo nas visitas de demonstração. */
+export function DemoFreezerPlayer({ date, patrimonies }: { date: string; patrimonies: string[] }) {
+  return (
       <div className="demo-video">
         <svg viewBox="0 0 320 200" className="demo-video__svg" aria-hidden>
           <rect x="0" y="0" width="320" height="200" fill="#1a1d23" />
@@ -119,7 +128,5 @@ function DemoFreezerVideo({ c, date, patrimonies, onClose }: { c: string; date: 
           <text x="12" y="190" fontSize="11" fill="#cfd6e0">{new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC" })} · {patrimonies.join(", ")}</text>
         </svg>
       </div>
-      <p className="small muted mt">Vídeo de demonstração. No sistema em uso, aqui toca o vídeo de até 10 segundos que o vendedor grava no checkout da visita, mostrando o freezer por dentro e por fora.</p>
-    </Sheet>
   );
 }

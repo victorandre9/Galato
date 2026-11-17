@@ -1,3 +1,4 @@
+import { ManagerFreezerReview, freezerReviewCount } from "../components/freezer-review";
 import { COM_OCCURRENCES } from "../data/comocc";
 import { ManagerCustomerOccurrences } from "../components/customer-occurrences";
 import { MessageSquareWarning } from "lucide-react";
@@ -67,10 +68,12 @@ export function ManagerApp({ role }: { role: Role }) {
   const fq = financeQueue();
   const tabs = [
     { id: "home", label: "Início", icon: <LayoutDashboard size={20} /> },
+    ...(role === "general_manager" ? [{ id: "fzrev", label: "Freezers", icon: <Snowflake size={20} />, count: freezerReviewCount(scope) }] : []),
     { id: "sales", label: "Metas", icon: <TrendingUp size={20} /> },
     { id: "visits", label: "Visitas", icon: <MapPin size={20} /> },
-    { id: "deliveries", label: "Entregas", icon: <Truck size={20} /> },
+    ...(role !== "general_manager" ? [{ id: "deliveries", label: "Entregas", icon: <Truck size={20} /> }] : []),
     { id: "more", label: "Mais", icon: <MoreHorizontal size={20} /> },
+    ...(role === "general_manager" ? [{ id: "deliveries", label: "Entregas", icon: <Truck size={20} /> }] : []),
     ...(role === "general_manager" ? [{ id: "results", label: "Resultados do mês", icon: <Trophy size={20} /> }] : []),
     { id: "approvals", label: "Liberações", icon: <ShieldCheck size={20} />, count: approvalsCount(role, scope) },
     { id: "reports", label: "Relatórios", icon: <BarChart3 size={20} /> },
@@ -100,6 +103,7 @@ export function ManagerApp({ role }: { role: Role }) {
       {tab === "finance" && <FinanceView />}
       {tab === "assets" && <AssetsView scope={scope} onOpen={setOpen} />}
       {tab === "fzocc" && <ManagerFreezerOccurrences scope={scope} />}
+      {tab === "fzrev" && role === "general_manager" && <ManagerFreezerReview scope={scope} />}
       {tab === "comocc" && <ManagerCustomerOccurrences scope={scope} />}
       {tab === "portfolio" && <PortfolioView />}
       {tab === "motos" && <MotosView scope={scope} />}
@@ -151,6 +155,7 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
     { tone: "warning", text: `${countByStatus(orders, ["blocked"])} pedidos bloqueados pelo crédito`, link: { t: "orders", title: "Pedidos bloqueados pelo crédito", statuses: ["blocked"] } },
     { tone: "warning", text: `${countByStatus(orders, ["awaiting_credit_review", "in_approval"])} pedidos aguardando o crédito`, link: { t: "orders", title: "Pedidos enviados ao crédito", statuses: ["awaiting_credit_review", "in_approval"] } },
     { tone: "warning", text: `${assets.idleCount} freezers sem giro (${brl0(assets.idleValue)})`, link: { t: "tab", tab: "assets" } },
+    ...(role === "general_manager" ? (() => { const n = freezerReviewCount(scope); return n ? [{ tone: "warning" as const, text: `${n} vídeo(s) de freezer para conferir`, link: { t: "tab", tab: "fzrev" } as NotifLink }] : []; })() : []),
     ...(() => { const n = FREEZER_OCCURRENCES.filter((o) => scope.includes(o.sellerId) && OCC_STATUS[o.status].open).length; return n ? [{ tone: "danger" as const, text: `${n} ocorrência(s) de freezer aguardando a gestão`, link: { t: "tab", tab: "fzocc" } as NotifLink }] : []; })(),
   ];
 

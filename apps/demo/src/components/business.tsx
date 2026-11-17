@@ -499,6 +499,11 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
   const recommended = decision?.recommendedDays ?? 7;
   const granted = term ?? recommended;
   const notice = orderSubmissionNotice(fin.creditStatus);
+  /** Regra do crédito: sem boleto em atraso → pedido liberado direto; com atraso → só envia junto com o comprovante (vai para liberação do crédito). */
+  const late = fin.creditStatus === "attention";
+  const [payProof, setPayProof] = useState<string | null>(null);
+  const emitStatus = fin.creditStatus === "blocked" ? "blocked" : late ? "awaiting_credit_review" : "credit_approved";
+  const emitMsg = emitStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : late ? "Pedido + comprovante enviados para liberação do crédito" : "Pedido liberado direto · cliente sem atraso · segue para o faturamento";
   const setQty = (id: string, qty: number) => setItems((xs) => (qty <= 0 ? xs.filter((x) => x.productId !== id) : xs.map((x) => (x.productId === id ? { ...x, qty } : x))));
   const add = (id: string) => setItems((xs) => (xs.some((x) => x.productId === id) ? xs.map((x) => (x.productId === id ? { ...x, qty: x.qty + 1 } : x)) : [...xs, { productId: id, qty: 1 }]));
   const title = editing ? `Editar ${editing.number}` : fromQuote ? `Transformar ${fromQuote.number} em pedido` : kind === "ORDER" ? "Pedido direto" : kind === "QUOTE" ? "Orçamento completo" : "Orçamento simples";
@@ -536,7 +541,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         items: items.map((it) => ({ ...it, unitPriceCents: PRODUCTS.find((p) => p.id === it.productId)!.priceCents })),
         ...(kind === "ORDER" && fiscal ? { fiscalDoc: fiscal } : {}),
       };
-      o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : `${fromQuote ? `Orçamento ${fromQuote.number} transformado em pedido · ` : "Pedido emitido · "}${status === "blocked" ? "bloqueado pelo crédito" : "enviado ao crédito"}` }];
+      o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: status === "draft" ? "Rascunho salvo" : `${fromQuote ? `Orçamento ${fromQuote.number} transformado em pedido · ` : "Pedido emitido · "}${status === "blocked" ? "bloqueado pelo crédito" : status === "credit_approved" ? "liberado direto (cliente sem boleto em atraso)" : "enviado para liberação do crédito com comprovante de pagamento"}` }];
       if (kind === "QUOTE" || kind === "SIMPLE_QUOTE") o.log = [{ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: "Orçamento criado" }];
       ORDERS.unshift(o);
       created = o;
@@ -544,15 +549,24 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
         fromQuote.status = "converted";
         logOrder(fromQuote, sellerById.get(c.sellerId)?.name ?? "Vendedor", `Transformado no pedido ${o.number}`);
       }
+      if (kind === "ORDER" && status === "awaiting_credit_review" && payProof) {
+        const over = c.receivables.filter((x) => x.openCents > 0 && x.dueDate < TODAY);
+        PAYMENT_REQUESTS.unshift({
+          id: `pr-new-${Date.now()}`, number: `SQ-${7500 + PAYMENT_REQUESTS.length}`, customerId: c.id, sellerId: c.sellerId, method: "PIX",
+          amountCents: over.reduce((a, x) => a + x.openCents, 0), receivableDoc: `${over.map((x) => x.doc).join(", ") || "Atraso"} · junto do pedido ${o.number}`, createdAt: nowStamp(),
+          status: "pending", attachmentName: "comprovante-pagamento.jpg", attachmentDataUrl: payProof,
+        });
+        o.log.push({ at: o.createdAt, by: sellerById.get(c.sellerId)?.name ?? "Vendedor", text: `Comprovante ${PAYMENT_REQUESTS[0]!.number} anexado` });
+      }
       if (kind === "ORDER" && status !== "draft") {
         const s = SELLERS.find((x) => x.id === c.sellerId);
         if (s) { s.todayAchievedCents += total; s.monthAchievedCents += total; s.ordersMonth += 1; s.ordersToday += 1; }
         c.lastPurchaseDate = TODAY; c.lastPurchaseCents = total;
         notify({ link: { t: "order", id: o.id },
           kind: "financeiro", priority: status === "blocked" ? "high" : "normal",
-          title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : "Novo pedido enviado ao crédito",
+          title: status === "blocked" ? "Pedido bloqueado aguardando liberação" : status === "credit_approved" ? "Novo pedido liberado direto para faturar" : "Pedido com comprovante aguardando liberação do crédito",
           text: `${o.number} · ${c.tradeName} · ${brl(total)} · ${fiscal === "sem_nf" ? "sem NF" : "com NF"} · prazo ${termLabel(granted)}${granted !== recommended ? ` (recomendado ${termLabel(recommended)})` : ""} · ${sellerById.get(c.sellerId)?.name}.`,
-          to: ["finance", ...MANAGERS_KEYS],
+          to: status === "credit_approved" ? ["billing", ...MANAGERS_KEYS] : ["finance", ...MANAGERS_KEYS],
         });
       }
     }, message);
@@ -565,7 +579,7 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
       <div className="card" style={{ textAlign: "center" }}>
         <div className="bold" style={{ fontSize: 20 }}>{saved.number}</div>
         <div className="small muted">{c.tradeName} · {brl(saved.totalCents)}</div>
-        <div className="small mt">{saved.kind === "ORDER" ? (saved.status === "blocked" ? "Bloqueado: aguardando liberação do crédito." : "Enviado para o crédito.") : "Orçamento pronto para enviar ao cliente."}</div>
+        <div className="small mt">{saved.kind === "ORDER" ? (saved.status === "blocked" ? "Bloqueado: aguardando liberação do crédito." : saved.status === "credit_approved" ? "Liberado direto (cliente sem atraso) · segue para o faturamento." : "Enviado com o comprovante para liberação do crédito.") : "Orçamento pronto para enviar ao cliente."}</div>
       </div>
       <p className="small muted mt">Compartilhe o PDF com o cliente (WhatsApp, e-mail) ou baixe para guardar.</p>
       <PdfButtons o={liveToHist(saved)} />
@@ -656,17 +670,28 @@ export function OrderBuilder({ c, kind, onClose, onDone, editing, fromQuote }: {
               </div>
             </Card>
           )}
+          {kind === "ORDER" && late && (
+            <Card title="Cliente com boleto em atraso" className={payProof ? "" : "needs-answer"} sub="pedido só vai com o comprovante">
+              <div className="small red semi">{fin.overdueCount} boleto(s) vencido(s) · {brl(fin.overdueCents)}</div>
+              <div className="small t2 mt mb">Fotografe o comprovante de pagamento. O pedido vai junto para a <b>liberação do crédito</b>.</div>
+              <PhotoCapture value={payProof} onChange={setPayProof} label="Fotografar comprovante de pagamento" />
+            </Card>
+          )}
+          {kind === "ORDER" && !late && fin.creditStatus === "clear" && items.length > 0 && (
+            <div className="small" style={{ padding: 10, borderRadius: 12, background: "var(--success-soft)" }}>✅ Cliente sem boleto em atraso: o pedido é <b>liberado direto</b> e vai para o faturamento.</div>
+          )}
           {kind === "ORDER" ? (
             <>
-              <button className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal}
-                onClick={() => save(fin.creditStatus === "blocked" ? "blocked" : "awaiting_credit_review", fin.creditStatus === "blocked" ? "Pedido salvo · bloqueado até liberação do financeiro" : "Pedido enviado ao crédito")}>
-                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : "Emitir pedido"}
+              <button id="btn-emit" className="btn btn-primary btn-block" disabled={!items.length || !stock.canIssue || !fiscal || (late && !payProof)}
+                onClick={() => save(emitStatus, emitMsg)}>
+                {!stock.canIssue ? `Resolva ${stock.blockingCount} item(ns) sem estoque` : !fiscal ? "Escolha: com ou sem nota fiscal" : late && !payProof ? "Anexe o comprovante de pagamento" : editing && editing.status !== "draft" ? "Salvar alterações · volta para análise" : late ? "Emitir pedido com comprovante" : "Emitir pedido"}
               </button>
               {(!editing || editing.status === "draft") && <button className="btn btn-ghost btn-block" disabled={!items.length} onClick={() => save("draft", "Rascunho salvo")}>Salvar rascunho</button>}
               <Faltando itens={[
                 !items.length && ["Produtos", "o pedido precisa de pelo menos um item"],
                 items.length > 0 && !stock.canIssue && [`${stock.blockingCount} item(ns) sem estoque`, "diminua a quantidade ou retire o item: não dá para faturar sem estoque"],
                 !fiscal && ["Com ou sem nota fiscal", "o faturamento precisa saber se emite NF"],
+                late && !payProof && ["Comprovante de pagamento", "cliente com boleto em atraso: o pedido só vai para o crédito junto com o comprovante"],
               ]} />
             </>
           ) : kind === "QUOTE" ? (

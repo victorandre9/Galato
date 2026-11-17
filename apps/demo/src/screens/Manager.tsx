@@ -1,4 +1,6 @@
 import { ManagerFreezerReview, freezerReviewCount } from "../components/freezer-review";
+import { freezerDay, freezerBacklog } from "../data/freezer-review";
+const idleTop = (a: { idle: { c: Customer; days: number | null; value: number }[] }) => a.idle.slice(0, 3);
 import { COM_OCCURRENCES } from "../data/comocc";
 import { ManagerCustomerOccurrences } from "../components/customer-occurrences";
 import { MessageSquareWarning } from "lucide-react";
@@ -195,8 +197,42 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             <div className="bullet-total" style={{ cursor: "pointer" }} onClick={() => setRankOpen(true)}><span className="semi">Total da equipe</span><span className="num"><b>{brl0(tA)}</b> <span className="muted xs">/ {brl0(tT)}</span></span><b className={`num ${tA >= tT ? "green" : "red"}`}>{pct(tT ? (tA / tT) * 100 : 0)}</b></div>
           ); })()}
         </Card>
-        <Card title={`Exceções e alertas (${alerts.length})`} icon={<AlertTriangle size={17} />}>
-          {alerts.map((a, i) => <AlertLine key={i} tone={a.tone} text={a.text} link={a.link} />)}
+        <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")} onClick={() => goTab("assets")}>
+          <div className="flex" style={{ gap: 16 }}>
+            <Ring value={(1 - assets.idleCount / Math.max(1, assets.onStreet)) * 100} size={96} stroke={10} label={assets.onStreet} sub="freezers" />
+            <dl className="kv" style={{ flex: 1 }}>
+              <dt>Valor na rua</dt><dd className="num">{brl0(assets.valueOnStreet)}</dd>
+              <dt>Sem giro</dt><dd className="red">{assets.idleCount}</dd>
+              <dt>Valor parado</dt><dd className="num red">{brl0(assets.idleValue)}</dd>
+            </dl>
+          </div>
+          {role === "general_manager" && (() => {
+            const day = freezerDay(scope, TODAY), back = freezerBacklog(scope);
+            const todo = day.items.filter((i) => i.state === "conferir").length;
+            const probs = day.items.filter((i) => i.state === "problema");
+            const rev = day.items.filter((i) => i.state !== "sem_video"), done = rev.filter((i) => i.review).length;
+            return (
+              <div onClick={(e) => { e.stopPropagation(); goTab("fzrev"); }} style={{ cursor: "pointer" }}>
+                <div className="divider" />
+                <div className="semi small mb">Conferência dos vídeos · hoje</div>
+                <div className="progress-row mb"><Progress value={rev.length ? (done / rev.length) * 100 : 0} /><b className="num xs">{done}/{rev.length}</b></div>
+                <div className="grid g3" style={{ marginBottom: 10 }}>
+                  <MiniStat label="A conferir hoje" n={todo} />
+                  <MiniStat label="Atrasados" n={back.length} danger />
+                  <MiniStat label="Vencem em 7d" n={back.filter((i) => i.daysLeft <= 7).length} danger />
+                </div>
+                <div className="list">
+                  {probs.slice(0, 3).map((i) => (
+                    <div key={i.key} className="row"><AlertTriangle size={15} className="red" /><div className="grow"><div className="title small">{i.asset.patrimony} · {i.customer.tradeName}</div><div className="sub">{sellerById.get(i.sellerId)?.name} · problema na conferência</div></div></div>
+                  ))}
+                  {idleTop(assets).map((r) => (
+                    <div key={r.c.id} className="row"><Snowflake size={15} className="gold" /><div className="grow"><div className="title small">{r.c.tradeName}</div><div className="sub">{r.c.assets.length} freezer(s) sem giro · {r.days === null ? "nunca comprou" : `${r.days} dias sem compra`}</div></div><div className="end num xs red">{brl0(r.value)}</div></div>
+                  ))}
+                </div>
+                <button className="btn btn-primary btn-block btn-sm mt" onClick={(e) => { e.stopPropagation(); goTab("fzrev"); }}><Snowflake size={15} /> Abrir conferência de freezers</button>
+              </div>
+            );
+          })()}
         </Card>
       </div>
 
@@ -217,21 +253,8 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             <dt>Ticket médio</dt><dd className="num">{brl(Math.round(g.achievedMonthCents / SELLERS.filter((s) => scope.includes(s.id)).reduce((a, s) => a + s.ordersMonth, 0)))}</dd>
           </dl>
         </Card>
-        <Card title="Financeiro" icon={<Receipt size={17} />} link="Ver fila" onLink={() => goTab("finance")} onClick={() => goTab("finance")}>
-          <div className="grid g3" style={{ marginBottom: 10 }}>
-            <MiniStat label="Pendentes" n={fq.queue.length} />
-            <MiniStat label={`> ${PARAMS.financialSla.responseHours}h`} n={fq.breached} danger />
-            <MiniStat label="Do dia anterior" n={fq.carryOver} />
-          </div>
-          <div className="list">
-            {fq.queue.slice(0, 3).map((p) => (
-              <div key={p.id} className="row click" onClick={(e) => { e.stopPropagation(); setProofOpen(p); }}>
-                <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
-                <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{sellerById.get(p.sellerId)?.name}</div></div>
-                <Badge tone={p.sla.level === "breached" ? "danger" : p.sla.level === "warning" ? "warning" : "neutral"}>{Math.floor(p.sla.elapsedHours)}h</Badge>
-              </div>
-            ))}
-          </div>
+        <Card title={`Exceções e alertas (${alerts.length})`} icon={<AlertTriangle size={17} />}>
+          {alerts.map((a, i) => <AlertLine key={i} tone={a.tone} text={a.text} link={a.link} />)}
         </Card>
       </div>
 
@@ -246,14 +269,20 @@ function ManagerHome({ scope, role, info, goTab }: { scope: string[]; role: Role
             <div key={l as string} className="row click" onClick={() => setPipe(l as string)}><span className="grow">{l}</span><Badge tone={t as never}>{n as number}</Badge></div>
           ))}
         </Card>
-        <Card title="Ativos na rua" icon={<Snowflake size={17} />} link="Ver" onLink={() => goTab("assets")} onClick={() => goTab("assets")}>
-          <div className="flex" style={{ gap: 16 }}>
-            <Ring value={(1 - assets.idleCount / Math.max(1, assets.onStreet)) * 100} size={96} stroke={10} label={assets.onStreet} sub="freezers" />
-            <dl className="kv" style={{ flex: 1 }}>
-              <dt>Valor na rua</dt><dd className="num">{brl0(assets.valueOnStreet)}</dd>
-              <dt>Sem giro</dt><dd className="red">{assets.idleCount}</dd>
-              <dt>Valor parado</dt><dd className="num red">{brl0(assets.idleValue)}</dd>
-            </dl>
+        <Card title="Financeiro" icon={<Receipt size={17} />} link="Ver fila" onLink={() => goTab("finance")} onClick={() => goTab("finance")}>
+          <div className="grid g3" style={{ marginBottom: 10 }}>
+            <MiniStat label="Pendentes" n={fq.queue.length} />
+            <MiniStat label={`> ${PARAMS.financialSla.responseHours}h`} n={fq.breached} danger />
+            <MiniStat label="Do dia anterior" n={fq.carryOver} />
+          </div>
+          <div className="list">
+            {fq.queue.slice(0, 3).map((p) => (
+              <div key={p.id} className="row click" onClick={(e) => { e.stopPropagation(); setProofOpen(p); }}>
+                <Badge tone={p.method === "PIX" ? "brand" : "info"}>{p.method}</Badge>
+                <div className="grow"><div className="title small">{customerById.get(p.customerId)?.tradeName}</div><div className="sub">{sellerById.get(p.sellerId)?.name}</div></div>
+                <Badge tone={p.sla.level === "breached" ? "danger" : p.sla.level === "warning" ? "warning" : "neutral"}>{Math.floor(p.sla.elapsedHours)}h</Badge>
+              </div>
+            ))}
           </div>
         </Card>
         <Card title="Logística agora" icon={<Truck size={17} />} link="Ver" onLink={() => goTab("deliveries")}>

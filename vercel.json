@@ -3,5 +3,6 @@
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "node scripts/build-demo.mjs",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "ignoreCommand": "bash -c 'git diff --quiet HEAD^ HEAD -- . \":(exclude)CLAUDE.md\" \":(exclude)AGENTS.md\" \":(exclude)docs\"'"
 }
